@@ -172,27 +172,49 @@ function SidebarContent({
         {navigation.map((item) => (
           <NavLink
             key={`${item.label}-${item.to}`}
-            className={({ isActive }) =>
-              [
-                'group flex items-center gap-3 rounded-2xl px-3 py-3 transition duration-200 xl:px-4',
-                isActive
-                  ? 'bg-white text-slate-950 shadow-[0_14px_34px_rgba(15,23,40,0.24)]'
-                  : 'text-slate-300 hover:bg-white/6 hover:text-white',
-              ].join(' ')
-            }
             end={item.exact}
             onClick={onNavigate}
             to={item.to}
           >
-            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-current/10 bg-current/5">
-              <ShellIcon icon={item.icon} />
-            </span>
-            <span className="hidden min-w-0 xl:block">
-              <span className="block font-semibold">{item.label}</span>
-              <span className="mt-0.5 block truncate text-xs opacity-70">
-                {item.description}
+            {({ isActive }) => (
+              <span
+                className={[
+                  'group flex w-full items-center gap-3 rounded-2xl px-3 py-3 transition duration-200 xl:px-4',
+                  isActive
+                    ? 'border border-slate-200 bg-white text-slate-950 shadow-[0_14px_34px_rgba(15,23,40,0.24)]'
+                    : 'text-slate-300 hover:bg-white/6 hover:text-white',
+                ].join(' ')}
+              >
+                <span
+                  className={[
+                    'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border transition',
+                    isActive
+                      ? 'border-slate-200 bg-slate-100 text-slate-900'
+                      : 'border-current/10 bg-current/5',
+                  ].join(' ')}
+                >
+                  <ShellIcon icon={item.icon} />
+                </span>
+                <span className="hidden min-w-0 xl:block">
+                  <span
+                    className={[
+                      'block font-semibold',
+                      isActive ? 'text-slate-950' : '',
+                    ].join(' ')}
+                  >
+                    {item.label}
+                  </span>
+                  <span
+                    className={[
+                      'mt-0.5 block truncate text-xs',
+                      isActive ? 'text-slate-600 opacity-100' : 'opacity-70',
+                    ].join(' ')}
+                  >
+                    {item.description}
+                  </span>
+                </span>
               </span>
-            </span>
+            )}
           </NavLink>
         ))}
       </nav>
