@@ -1262,7 +1262,7 @@ type CalendarIconName =
   | 'sliders'
 
 function CalendarIcon({ name }: { name: CalendarIconName }) {
-  const common = 'h-4 w-4'
+  const common = 'h-4 w-4 shrink-0'
 
   switch (name) {
     case 'chevron-left':
@@ -1304,9 +1304,33 @@ function CalendarIcon({ name }: { name: CalendarIconName }) {
       return (
         <svg className={common} fill="none" viewBox="0 0 24 24">
           <path
-            d="M5 7h14M7 12h10M9 17h6M9 5v4M15 10v4M12 15v4"
+            d="M4 7h16M4 17h16M4 12h16"
             stroke="currentColor"
             strokeLinecap="round"
+            strokeWidth="1.8"
+          />
+          <circle
+            cx="9"
+            cy="7"
+            r="2"
+            fill="white"
+            stroke="currentColor"
+            strokeWidth="1.8"
+          />
+          <circle
+            cx="15"
+            cy="12"
+            r="2"
+            fill="white"
+            stroke="currentColor"
+            strokeWidth="1.8"
+          />
+          <circle
+            cx="11"
+            cy="17"
+            r="2"
+            fill="white"
+            stroke="currentColor"
             strokeWidth="1.8"
           />
         </svg>
