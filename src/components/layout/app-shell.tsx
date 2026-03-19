@@ -165,7 +165,9 @@ function SidebarContent({
       </div>
 
       <div className="mt-8 hidden rounded-[1.5rem] border border-white/8 bg-white/4 p-4 text-sm leading-6 text-slate-300 xl:block">
-        {meta.summary}
+        <p className="max-w-[18rem] text-slate-300">
+          Operate bookings, staff, services, and studio settings from one control center.
+        </p>
       </div>
 
       <nav className="mt-8 flex-1 space-y-2 overflow-y-auto">
@@ -195,10 +197,10 @@ function SidebarContent({
                 >
                   <ShellIcon icon={item.icon} />
                 </span>
-                <span className="hidden min-w-0 xl:block">
+                <span className="hidden min-w-0 overflow-hidden xl:block">
                   <span
                     className={[
-                      'block font-semibold',
+                      'block truncate font-semibold',
                       isActive ? 'text-slate-950' : '',
                     ].join(' ')}
                   >
@@ -206,7 +208,7 @@ function SidebarContent({
                   </span>
                   <span
                     className={[
-                      'mt-0.5 block truncate text-xs',
+                      'mt-0.5 hidden text-xs 2xl:block',
                       isActive ? 'text-slate-600 opacity-100' : 'opacity-70',
                     ].join(' ')}
                   >
