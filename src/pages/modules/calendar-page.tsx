@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import type { AppRole } from '../../data/navigation'
 
 type CalendarPageProps = {
@@ -339,6 +340,7 @@ const badgeToneByPayment: Record<PaymentStatus, string> = {
 }
 
 export function CalendarPage({ role }: CalendarPageProps) {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [view, setView] = useState<(typeof viewOptions)[number]>('Day')
   const [location, setLocation] = useState<(typeof locationOptions)[number]>(
     locationOptions[0],
@@ -392,8 +394,31 @@ export function CalendarPage({ role }: CalendarPageProps) {
     setIsCreateModalOpen(true)
   }
 
+  useEffect(() => {
+    if (searchParams.get('modal') !== 'create' || isCreateModalOpen) {
+      return
+    }
+
+    const frame = requestAnimationFrame(() => {
+      setFormState({
+        ...baseFormState,
+        dateLabel: activeDay.label,
+        staffId: staffMembers[0].id,
+        time: '09:00',
+      })
+      setIsCreateModalOpen(true)
+    })
+
+    return () => cancelAnimationFrame(frame)
+  }, [activeDay.label, isCreateModalOpen, searchParams])
+
   const closeCreateModal = () => {
     setIsCreateModalOpen(false)
+    if (searchParams.get('modal') === 'create') {
+      const nextParams = new URLSearchParams(searchParams)
+      nextParams.delete('modal')
+      setSearchParams(nextParams)
+    }
   }
 
   const handleCreateBooking = (event: FormEvent<HTMLFormElement>) => {

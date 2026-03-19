@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
   appRoleMeta,
+  dashboardPathByRole,
   roleNavigation,
   type AppRole,
   type NavItem,
@@ -13,13 +14,26 @@ type AppShellProps = {
 
 export function AppShell({ role }: AppShellProps) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const navigate = useNavigate()
   const meta = appRoleMeta[role]
   const navigation = roleNavigation[role]
+  const dashboardPath = dashboardPathByRole[role]
+  const calendarPath =
+    navigation.find((item) => item.label === 'Calendar')?.to ?? dashboardPath
+  const paymentsPath =
+    navigation.find((item) => item.label === 'Payments')?.to ?? dashboardPath
+  const settingsPath =
+    navigation.find((item) => item.label === 'Settings')?.to ?? dashboardPath
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f6f8fb_0%,#eef2f7_100%)]">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-24 border-r border-white/10 bg-[#0f1728] px-4 py-6 text-slate-200 shadow-[20px_0_60px_rgba(15,23,40,0.18)] md:flex xl:w-72 xl:px-5">
-        <SidebarContent navigation={navigation} role={role} />
+        <SidebarContent
+          dashboardPath={dashboardPath}
+          navigation={navigation}
+          role={role}
+          settingsPath={settingsPath}
+        />
       </aside>
 
       {mobileNavOpen ? (
@@ -38,9 +52,11 @@ export function AppShell({ role }: AppShellProps) {
         ].join(' ')}
       >
         <SidebarContent
+          dashboardPath={dashboardPath}
           navigation={navigation}
           onNavigate={() => setMobileNavOpen(false)}
           role={role}
+          settingsPath={settingsPath}
         />
       </aside>
 
@@ -66,7 +82,8 @@ export function AppShell({ role }: AppShellProps) {
 
               <div className="flex flex-wrap items-center gap-3">
                 <button
-                  className="hidden h-12 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-white md:inline-flex"
+                  className="hidden h-12 cursor-pointer items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-white md:inline-flex"
+                  onClick={() => navigate(dashboardPath)}
                   type="button"
                 >
                   Atelier North
@@ -74,7 +91,8 @@ export function AppShell({ role }: AppShellProps) {
                 </button>
 
                 <button
-                  className="relative inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-700 transition hover:border-slate-300 hover:bg-white"
+                  className="relative inline-flex h-12 w-12 cursor-pointer items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-700 transition hover:border-slate-300 hover:bg-white"
+                  onClick={() => navigate(paymentsPath)}
                   type="button"
                 >
                   <ShellIcon icon="bell" />
@@ -82,7 +100,8 @@ export function AppShell({ role }: AppShellProps) {
                 </button>
 
                 <button
-                  className="hidden h-12 items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 text-left transition hover:border-slate-300 hover:bg-white sm:inline-flex"
+                  className="hidden h-12 cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 text-left transition hover:border-slate-300 hover:bg-white sm:inline-flex"
+                  onClick={() => navigate(settingsPath)}
                   type="button"
                 >
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[linear-gradient(135deg,#9ed7d2,#a8c6f1)] font-display text-sm text-ink-950">
@@ -96,34 +115,13 @@ export function AppShell({ role }: AppShellProps) {
                 </button>
 
                 <button
-                  className="inline-flex h-12 items-center gap-2 rounded-2xl bg-slate-950 px-5 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(15,23,40,0.2)] transition hover:bg-slate-800"
+                  className="inline-flex h-12 cursor-pointer items-center gap-2 rounded-2xl bg-slate-950 px-5 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(15,23,40,0.2)] transition hover:bg-slate-800"
+                  onClick={() => navigate(`${calendarPath}?modal=create`)}
                   type="button"
                 >
                   <ShellIcon icon="plus" />
                   <span className="hidden sm:inline">New Booking</span>
                 </button>
-              </div>
-            </div>
-
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200/80 pt-4">
-              <div>
-                <p className="font-display text-2xl text-ink-950">{meta.label}</p>
-                <p className="text-sm text-slate-500">
-                  Premium StudioFlow workspace with responsive operational
-                  navigation.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                {['Today', 'This week', 'All staff'].map((chip) => (
-                  <button
-                    key={chip}
-                    className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-white"
-                    type="button"
-                  >
-                    {chip}
-                  </button>
-                ))}
               </div>
             </div>
           </div>
@@ -140,21 +138,33 @@ export function AppShell({ role }: AppShellProps) {
 }
 
 type SidebarContentProps = {
+  dashboardPath: string
   navigation: NavItem[]
   onNavigate?: () => void
   role: AppRole
+  settingsPath: string
 }
 
 function SidebarContent({
+  dashboardPath,
   navigation,
   onNavigate,
   role,
+  settingsPath,
 }: SidebarContentProps) {
   const meta = appRoleMeta[role]
+  const navigate = useNavigate()
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex items-center gap-3 xl:px-2">
+      <button
+        className="flex cursor-pointer items-center gap-3 rounded-2xl text-left transition hover:bg-white/5 xl:px-2 xl:py-1.5"
+        onClick={() => {
+          onNavigate?.()
+          navigate(dashboardPath)
+        }}
+        type="button"
+      >
         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/8 font-display text-lg text-white">
           SF
         </div>
@@ -162,15 +172,15 @@ function SidebarContent({
           <p className="font-display text-2xl text-white">StudioFlow</p>
           <p className="text-sm text-slate-400">{meta.badge}</p>
         </div>
-      </div>
+      </button>
 
-      <div className="mt-8 hidden rounded-[1.5rem] border border-white/8 bg-white/4 p-4 text-sm leading-6 text-slate-300 xl:block">
+      <div className="mt-6 hidden rounded-[1.5rem] border border-white/8 bg-white/4 p-4 text-sm leading-6 text-slate-300 xl:block">
         <p className="max-w-[18rem] text-slate-300">
-          Operate bookings, staff, services, and studio settings from one control center.
+          Studio-wide bookings, staff, services, and payments from one premium hub.
         </p>
       </div>
 
-      <nav className="mt-8 flex-1 space-y-2 overflow-y-auto">
+      <nav className="mt-6 flex-1 space-y-2 overflow-y-auto">
         {navigation.map((item) => (
           <NavLink
             key={`${item.label}-${item.to}`}
@@ -181,7 +191,7 @@ function SidebarContent({
             {({ isActive }) => (
               <span
                 className={[
-                  'group flex w-full items-center gap-3 rounded-2xl px-3 py-3 transition duration-200 xl:px-4',
+                  'group flex w-full cursor-pointer items-center gap-3 rounded-2xl px-3 py-3 transition duration-200 xl:px-4',
                   isActive
                     ? 'border border-slate-200 bg-white text-slate-950 shadow-[0_14px_34px_rgba(15,23,40,0.24)]'
                     : 'text-slate-300 hover:bg-white/6 hover:text-white',
@@ -232,7 +242,11 @@ function SidebarContent({
           </div>
         </div>
         <button
-          className="mt-3 hidden w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10 xl:inline-flex"
+          className="mt-3 hidden w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10 xl:inline-flex"
+          onClick={() => {
+            onNavigate?.()
+            navigate(settingsPath)
+          }}
           type="button"
         >
           <ShellIcon icon="settings" />

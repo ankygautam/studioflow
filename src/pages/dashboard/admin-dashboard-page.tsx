@@ -151,17 +151,17 @@ export function AdminDashboardPage() {
         animate={{ opacity: 1, y: 0 }}
         initial={{ opacity: 0, y: 12 }}
         transition={{ duration: 0.35 }}
-        className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_48px_rgba(15,23,40,0.06)] md:p-7"
+        className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_18px_48px_rgba(15,23,40,0.06)] md:p-6"
       >
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-          <div className="space-y-3">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div className="space-y-2">
             <p className="font-display text-xs uppercase tracking-[0.35em] text-slate-500">
               Operations home
             </p>
-            <h1 className="font-display text-4xl text-ink-950 md:text-5xl">
+            <h1 className="font-display text-3xl text-ink-950 md:text-4xl">
               Studio dashboard
             </h1>
-            <p className="max-w-3xl text-base leading-7 text-slate-600 md:text-lg">
+            <p className="max-w-3xl text-sm leading-7 text-slate-600 md:text-base">
               Track bookings, revenue, staff utilization, and appointment
               momentum from one premium control surface built for high-tempo
               service studios.
@@ -174,7 +174,7 @@ export function AdminDashboardPage() {
           </div>
         </div>
 
-        <div className="mt-6 grid gap-3 md:grid-cols-3">
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
           <FilterSelect
             label="Date range"
             options={filters.dateRange}
@@ -193,6 +193,12 @@ export function AdminDashboardPage() {
             value={service}
             onChange={setService}
           />
+        </div>
+
+        <div className="mt-5 flex flex-wrap gap-3">
+          <QuickActionChip label="Open calendar" to="/admin/calendar" />
+          <QuickActionChip label="Review payments" to="/admin/payments" />
+          <QuickActionChip label="Open client CRM" to="/admin/clients" />
         </div>
       </motion.section>
 
@@ -279,15 +285,15 @@ export function AdminDashboardPage() {
         >
           <div className="grid grid-cols-7 gap-2">
             {miniCalendarDays.map((day) => (
-              <button
+              <Link
                 key={day.day}
                 className={[
-                  'rounded-[1.25rem] border p-3 text-left transition',
+                  'block rounded-[1.25rem] border p-3 text-left transition',
                   day.selected
                     ? 'border-slate-900 bg-slate-900 text-white shadow-[0_16px_36px_rgba(15,23,40,0.16)]'
                     : 'border-slate-200 bg-slate-50 text-slate-800 hover:border-slate-300 hover:bg-white',
                 ].join(' ')}
-                type="button"
+                to="/admin/calendar"
               >
                 <p className="text-xs uppercase tracking-[0.18em] opacity-70">
                   {day.day}
@@ -296,7 +302,7 @@ export function AdminDashboardPage() {
                 <p className="mt-3 text-xs font-semibold opacity-80">
                   {day.bookings} bookings
                 </p>
-              </button>
+              </Link>
             ))}
           </div>
 
@@ -317,9 +323,10 @@ export function AdminDashboardPage() {
         >
           <div className="space-y-3">
             {upcomingAppointments.map((appointment) => (
-              <div
+              <Link
                 key={`${appointment.client}-${appointment.time}`}
-                className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4"
+                className="block rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white"
+                to="/admin/appointments"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -333,7 +340,7 @@ export function AdminDashboardPage() {
                 <p className="mt-3 text-xs uppercase tracking-[0.18em] text-slate-500">
                   {appointment.staff}
                 </p>
-              </div>
+              </Link>
             ))}
           </div>
         </DashboardCard>
@@ -346,9 +353,10 @@ export function AdminDashboardPage() {
         >
           <div className="space-y-3">
             {recentClients.map((client) => (
-              <div
+              <Link
                 key={client.name}
-                className="flex items-center justify-between gap-4 rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4"
+                className="flex items-center justify-between gap-4 rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white"
+                to="/admin/clients"
               >
                 <div>
                   <p className="font-semibold text-slate-950">{client.name}</p>
@@ -370,7 +378,7 @@ export function AdminDashboardPage() {
                     {client.balance}
                   </p>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </DashboardCard>
@@ -381,9 +389,10 @@ export function AdminDashboardPage() {
         >
           <div className="space-y-3">
             {topServices.map((service) => (
-              <div
+              <Link
                 key={service.name}
-                className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4"
+                className="block rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white"
+                to="/admin/services"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -395,7 +404,7 @@ export function AdminDashboardPage() {
                 <p className="mt-4 font-display text-2xl text-slate-950">
                   {service.revenue}
                 </p>
-              </div>
+              </Link>
             ))}
           </div>
         </DashboardCard>
@@ -406,9 +415,10 @@ export function AdminDashboardPage() {
         >
           <div className="space-y-3">
             {staffPerformance.map((member) => (
-              <div
+              <Link
                 key={member.name}
-                className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4"
+                className="block rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white"
+                to="/admin/staff"
               >
                 <div className="flex items-start justify-between gap-4">
                   <p className="font-semibold text-slate-950">{member.name}</p>
@@ -421,27 +431,40 @@ export function AdminDashboardPage() {
                   <MetricPill label="Utilization" value={member.utilization} />
                   <MetricPill label="Completion" value={member.completion} />
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </DashboardCard>
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[0.85fr_1fr_1.15fr]">
-        <DashboardCard title="Cancellation rate">
-          <div className="rounded-[1.5rem] bg-[linear-gradient(135deg,rgba(212,111,131,0.14),rgba(243,181,152,0.1))] p-5">
+        <DashboardCard
+          action={<Link className="text-sm font-semibold text-slate-500 hover:text-slate-900" to="/admin/appointments">View reasons</Link>}
+          title="Cancellation rate"
+        >
+          <Link
+            className="block rounded-[1.5rem] bg-[linear-gradient(135deg,rgba(212,111,131,0.14),rgba(243,181,152,0.1))] p-5 transition hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(15,23,40,0.06)]"
+            to="/admin/appointments"
+          >
             <p className="font-display text-5xl text-slate-950">3.8%</p>
             <p className="mt-3 text-sm leading-6 text-slate-600">
               Down from 5.1% last month, with most cancellations now happening
               more than 24 hours before service time.
             </p>
-          </div>
+          </Link>
         </DashboardCard>
 
-        <DashboardCard title="Popular time slots">
+        <DashboardCard
+          action={<Link className="text-sm font-semibold text-slate-500 hover:text-slate-900" to="/admin/calendar">Open board</Link>}
+          title="Popular time slots"
+        >
           <div className="space-y-4">
             {popularSlots.map((slot) => (
-              <div key={slot.label}>
+              <Link
+                key={slot.label}
+                className="block rounded-[1.25rem] border border-transparent p-2 transition hover:border-slate-200 hover:bg-slate-50"
+                to="/admin/calendar"
+              >
                 <div className="mb-2 flex items-center justify-between text-sm">
                   <span className="font-semibold text-slate-800">{slot.label}</span>
                   <span className="text-slate-500">{slot.bookings} bookings</span>
@@ -452,17 +475,21 @@ export function AdminDashboardPage() {
                     style={{ width: `${(slot.bookings / 22) * 100}%` }}
                   />
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </DashboardCard>
 
-        <DashboardCard title="Recent activity feed">
+        <DashboardCard
+          action={<Link className="text-sm font-semibold text-slate-500 hover:text-slate-900" to="/admin/appointments">Open timeline</Link>}
+          title="Recent activity feed"
+        >
           <div className="space-y-3">
             {activityFeed.map((activity, index) => (
-              <div
+              <Link
                 key={activity}
-                className="flex gap-3 rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4"
+                className="flex gap-3 rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white"
+                to={activity.includes('Deposit') ? '/admin/payments' : '/admin/appointments'}
               >
                 <div className="mt-1 h-3 w-3 rounded-full bg-slate-900" />
                 <div>
@@ -471,7 +498,7 @@ export function AdminDashboardPage() {
                     {index === 0 ? 'Just now' : `${index * 18} min ago`}
                   </p>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </DashboardCard>
@@ -517,7 +544,7 @@ function FilterSelect({ label, onChange, options, value }: FilterSelectProps) {
         {label}
       </span>
       <select
-        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-800 outline-none transition focus:border-slate-400 focus:bg-white"
+        className="w-full cursor-pointer rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-800 outline-none transition focus:border-slate-400 focus:bg-white"
         onChange={(event) => onChange(event.target.value)}
         value={value}
       >
@@ -564,5 +591,21 @@ function MetricPill({ label, value }: MetricPillProps) {
       <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{label}</p>
       <p className="mt-2 text-sm font-semibold text-slate-900">{value}</p>
     </div>
+  )
+}
+
+type QuickActionChipProps = {
+  label: string
+  to: string
+}
+
+function QuickActionChip({ label, to }: QuickActionChipProps) {
+  return (
+    <Link
+      className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-white hover:text-slate-950"
+      to={to}
+    >
+      {label}
+    </Link>
   )
 }
