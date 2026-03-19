@@ -26,7 +26,7 @@ export function AppShell({ role }: AppShellProps) {
     navigation.find((item) => item.label === 'Settings')?.to ?? dashboardPath
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f6f8fb_0%,#eef2f7_100%)]">
+    <div className="min-h-screen overflow-x-hidden bg-[linear-gradient(180deg,#f6f8fb_0%,#eef2f7_100%)]">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-24 border-r border-white/10 bg-[#0f1728] px-4 py-6 text-slate-200 shadow-[20px_0_60px_rgba(15,23,40,0.18)] md:flex xl:w-72 xl:px-5">
         <SidebarContent
           dashboardPath={dashboardPath}
@@ -60,7 +60,7 @@ export function AppShell({ role }: AppShellProps) {
         />
       </aside>
 
-      <div className="min-h-screen md:pl-24 xl:pl-72">
+      <div className="min-h-screen overflow-x-hidden md:pl-24 xl:pl-72">
         <header className="sticky top-0 z-20 px-3 pt-3 md:px-4 md:pt-4">
           <div className="rounded-[1.75rem] border border-slate-200/80 bg-white/92 px-4 py-4 shadow-[0_14px_40px_rgba(15,23,40,0.08)] backdrop-blur md:px-6">
             <div className="flex flex-wrap items-center gap-3">
@@ -72,7 +72,7 @@ export function AppShell({ role }: AppShellProps) {
                 <ShellIcon icon="menu" />
               </button>
 
-              <label className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+              <label className="order-1 flex min-w-0 basis-full items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] md:order-none md:flex-1 md:basis-auto">
                 <ShellIcon icon="search" />
                 <input
                   className="min-w-0 flex-1 bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
@@ -80,7 +80,7 @@ export function AppShell({ role }: AppShellProps) {
                 />
               </label>
 
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-3 md:flex-initial md:flex-nowrap">
                 <button
                   className="hidden h-12 cursor-pointer items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-white md:inline-flex"
                   onClick={() => navigate(dashboardPath)}
@@ -115,7 +115,7 @@ export function AppShell({ role }: AppShellProps) {
                 </button>
 
                 <button
-                  className="inline-flex h-12 cursor-pointer items-center gap-2 rounded-2xl bg-slate-950 px-5 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(15,23,40,0.2)] transition hover:bg-slate-800"
+                  className="inline-flex h-12 max-w-full cursor-pointer items-center gap-2 rounded-2xl bg-slate-950 px-4 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(15,23,40,0.2)] transition hover:bg-slate-800 sm:px-5"
                   onClick={() => navigate(`${calendarPath}?modal=create`)}
                   type="button"
                 >
@@ -127,8 +127,8 @@ export function AppShell({ role }: AppShellProps) {
           </div>
         </header>
 
-        <main className="p-3 md:p-4">
-          <div className="min-h-[calc(100vh-7.5rem)] rounded-[2rem] border border-slate-200/70 bg-[#fbfcff] p-4 shadow-[0_20px_60px_rgba(15,23,40,0.06)] md:p-6 xl:p-8">
+        <main className="overflow-x-hidden p-3 md:p-4">
+          <div className="min-h-[calc(100vh-7.5rem)] overflow-x-hidden rounded-[2rem] border border-slate-200/70 bg-[#fbfcff] p-4 shadow-[0_20px_60px_rgba(15,23,40,0.06)] md:p-6 xl:p-8">
             <Outlet />
           </div>
         </main>

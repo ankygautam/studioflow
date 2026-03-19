@@ -243,7 +243,7 @@ export function AdminDashboardPage() {
         ))}
       </section>
 
-      <section className="grid items-start gap-6 xl:grid-cols-[1.35fr_0.9fr_1fr]">
+      <section className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,0.9fr)_minmax(0,1fr)]">
         <DashboardCard
           action={<Link className="text-sm font-semibold text-slate-500 hover:text-slate-900" to="/admin/analytics">View report</Link>}
           title="Weekly revenue"
@@ -307,7 +307,7 @@ export function AdminDashboardPage() {
             </div>
           </div>
 
-          <div className="mt-4 -mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2">
+          <div className="mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2">
             {miniCalendarDays.map((day) => (
               <Link
                 key={day.day}
@@ -476,7 +476,7 @@ export function AdminDashboardPage() {
         </DashboardCard>
       </section>
 
-      <section className="grid items-start gap-6 xl:grid-cols-[0.85fr_1fr_1.15fr]">
+      <section className="grid items-start gap-6 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)_minmax(0,1.15fr)]">
         <DashboardCard
           action={<Link className="text-sm font-semibold text-slate-500 hover:text-slate-900" to="/admin/appointments">View reasons</Link>}
           title="Cancellation rate"
@@ -558,7 +558,7 @@ function DashboardCard({ action, children, title }: DashboardCardProps) {
       animate={{ opacity: 1, y: 0 }}
       initial={{ opacity: 0, y: 12 }}
       transition={{ duration: 0.3 }}
-      className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_16px_40px_rgba(15,23,40,0.05)] md:p-6"
+      className="min-w-0 overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_16px_40px_rgba(15,23,40,0.05)] md:p-6"
     >
       <div className="mb-5 flex items-center justify-between gap-4">
         <h2 className="font-display text-2xl text-slate-950">{title}</h2>
