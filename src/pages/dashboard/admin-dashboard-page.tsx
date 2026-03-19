@@ -53,6 +53,14 @@ const miniCalendarDays = [
   { bookings: 6, day: 'Sun', date: '24' },
 ]
 
+const selectedOverviewDay =
+  miniCalendarDays.find((day) => day.selected) ?? miniCalendarDays[0]
+
+const weeklyBookingTotal = miniCalendarDays.reduce(
+  (total, day) => total + day.bookings,
+  0,
+)
+
 const upcomingAppointments = [
   {
     client: 'Maya Laurent',
@@ -202,7 +210,7 @@ export function AdminDashboardPage() {
         </div>
       </motion.section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat, index) => (
           <motion.div
             key={stat.label}
@@ -235,7 +243,7 @@ export function AdminDashboardPage() {
         ))}
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.35fr_0.9fr_1fr]">
+      <section className="grid items-start gap-6 xl:grid-cols-[1.35fr_0.9fr_1fr]">
         <DashboardCard
           action={<Link className="text-sm font-semibold text-slate-500 hover:text-slate-900" to="/admin/analytics">View report</Link>}
           title="Weekly revenue"
@@ -283,37 +291,68 @@ export function AdminDashboardPage() {
           action={<Link className="text-sm font-semibold text-slate-500 hover:text-slate-900" to="/admin/calendar">Open calendar</Link>}
           title="Booking overview"
         >
-          <div className="grid grid-cols-7 gap-2">
+          <div className="rounded-[1.35rem] border border-slate-200 bg-slate-50/80 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.22em] text-slate-500">
+                  This week
+                </p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">
+                  {weeklyBookingTotal} bookings across 7 days
+                </p>
+              </div>
+              <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                Peak day: {selectedOverviewDay.day} {selectedOverviewDay.date}
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-4 -mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2">
             {miniCalendarDays.map((day) => (
               <Link
                 key={day.day}
                 className={[
-                  'block rounded-[1.25rem] border p-3 text-left transition',
+                  'block min-w-[92px] snap-start rounded-[1.4rem] border px-4 py-4 text-left transition',
                   day.selected
-                    ? 'border-slate-900 bg-slate-900 text-white shadow-[0_16px_36px_rgba(15,23,40,0.16)]'
-                    : 'border-slate-200 bg-slate-50 text-slate-800 hover:border-slate-300 hover:bg-white',
+                    ? 'min-w-[112px] border-slate-900 bg-slate-900 text-white shadow-[0_18px_36px_rgba(15,23,40,0.18)]'
+                    : 'border-slate-200 bg-slate-50 text-slate-800 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white',
                 ].join(' ')}
                 to="/admin/calendar"
               >
-                <p className="text-xs uppercase tracking-[0.18em] opacity-70">
+                <p className="text-xs uppercase tracking-[0.22em] opacity-70">
                   {day.day}
                 </p>
-                <p className="mt-2 font-display text-2xl">{day.date}</p>
-                <p className="mt-3 text-xs font-semibold opacity-80">
+                <p className="mt-3 font-display text-4xl leading-none">
+                  {day.date}
+                </p>
+                <p className="mt-4 text-sm font-semibold opacity-80">
                   {day.bookings} bookings
                 </p>
               </Link>
             ))}
           </div>
 
-          <div className="mt-4 rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
-            <p className="text-sm font-semibold text-slate-900">
-              Thursday load forecast
-            </p>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              18 bookings scheduled, 3 pending confirmations, and strongest demand
-              from 12 PM to 3 PM.
-            </p>
+          <div className="mt-4 rounded-[1.5rem] border border-slate-200 bg-[linear-gradient(135deg,rgba(169,200,243,0.12),rgba(143,208,199,0.1))] p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">
+                  Thursday load forecast
+                </p>
+                <p className="mt-2 max-w-md text-sm leading-6 text-slate-600">
+                  18 bookings scheduled, 3 pending confirmations, and strongest demand
+                  from 12 PM to 3 PM.
+                </p>
+              </div>
+              <span className="rounded-full border border-blue-200 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700">
+                Prime window
+              </span>
+            </div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              <OverviewMetric label="Scheduled" value="18" />
+              <OverviewMetric label="Pending" value="3" />
+              <OverviewMetric label="Peak hours" value="12-3 PM" />
+            </div>
           </div>
         </DashboardCard>
 
@@ -346,7 +385,7 @@ export function AdminDashboardPage() {
         </DashboardCard>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-3">
+      <section className="grid items-start gap-6 xl:grid-cols-3">
         <DashboardCard
           action={<Link className="text-sm font-semibold text-slate-500 hover:text-slate-900" to="/admin/clients">Open CRM</Link>}
           title="Recent clients"
@@ -437,7 +476,7 @@ export function AdminDashboardPage() {
         </DashboardCard>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[0.85fr_1fr_1.15fr]">
+      <section className="grid items-start gap-6 xl:grid-cols-[0.85fr_1fr_1.15fr]">
         <DashboardCard
           action={<Link className="text-sm font-semibold text-slate-500 hover:text-slate-900" to="/admin/appointments">View reasons</Link>}
           title="Cancellation rate"
@@ -590,6 +629,22 @@ function MetricPill({ label, value }: MetricPillProps) {
     <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
       <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{label}</p>
       <p className="mt-2 text-sm font-semibold text-slate-900">{value}</p>
+    </div>
+  )
+}
+
+type OverviewMetricProps = {
+  label: string
+  value: string
+}
+
+function OverviewMetric({ label, value }: OverviewMetricProps) {
+  return (
+    <div className="rounded-[1.15rem] border border-white/70 bg-white/85 px-4 py-3 shadow-[0_10px_24px_rgba(15,23,40,0.04)]">
+      <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
+        {label}
+      </p>
+      <p className="mt-2 text-lg font-semibold text-slate-950">{value}</p>
     </div>
   )
 }
