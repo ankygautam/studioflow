@@ -560,10 +560,12 @@ export function CalendarPage({ role }: CalendarPageProps) {
                 </button>
 
                 <button
-                  className="inline-flex h-12 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-white xl:self-start"
+                  className="inline-flex h-12 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-white xl:self-start"
                   type="button"
                 >
-                  <CalendarIcon name="sliders" />
+                  <span className="inline-flex h-4 w-4 items-center justify-center">
+                    <CalendarIcon name="sliders" />
+                  </span>
                   Filters
                 </button>
               </div>
@@ -1262,7 +1264,7 @@ type CalendarIconName =
   | 'sliders'
 
 function CalendarIcon({ name }: { name: CalendarIconName }) {
-  const common = 'h-4 w-4 shrink-0'
+  const common = 'block h-4 w-4 shrink-0'
 
   switch (name) {
     case 'chevron-left':
