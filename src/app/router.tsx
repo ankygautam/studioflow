@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { createHashRouter, Navigate } from 'react-router-dom'
 import { AppShell } from '../components/layout/app-shell'
 import { PublicLayout } from '../components/layout/public-layout'
 import { ForgotPasswordPage } from '../pages/auth/forgot-password-page'
@@ -20,7 +20,7 @@ import { ServicesPage } from '../pages/modules/services-page'
 import { SettingsPage } from '../pages/modules/settings-page'
 import { StaffPage } from '../pages/modules/staff-page'
 
-export const router = createBrowserRouter([
+export const router = createHashRouter([
   {
     element: <PublicLayout />,
     path: '/',
