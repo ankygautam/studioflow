@@ -359,6 +359,8 @@ export function CalendarPage({ role }: CalendarPageProps) {
 
   const activeDay = dayPresets[dayIndex]
   const bookings = scheduleByDay[activeDay.label] ?? []
+  const activeDayDisplay =
+    activeDay.label === 'Today' ? 'Thursday, March 19' : activeDay.label
   const visibleStaff =
     selectedStaffFilter === 'All Staff'
       ? staffMembers
@@ -511,51 +513,68 @@ export function CalendarPage({ role }: CalendarPageProps) {
           transition={{ duration: 0.3 }}
           className="rounded-[2rem] border border-slate-200 bg-white shadow-[0_18px_48px_rgba(15,23,40,0.06)]"
         >
-          <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 p-4 md:p-5">
-            <SelectControl
-              label="Location"
-              value={location}
-              onChange={(value) =>
-                setLocation(value as (typeof locationOptions)[number])
-              }
-              options={[...locationOptions]}
-            />
+          <div className="border-b border-slate-200 p-4 md:p-5">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+              <div className="grid gap-3 md:grid-cols-2 xl:min-w-[420px] xl:flex-1">
+                <SelectControl
+                  label="Location"
+                  value={location}
+                  onChange={(value) =>
+                    setLocation(value as (typeof locationOptions)[number])
+                  }
+                  options={[...locationOptions]}
+                />
 
-            <SelectControl
-              label="Staff"
-              value={selectedStaffFilter}
-              onChange={setSelectedStaffFilter}
-              options={['All Staff', ...staffMembers.map((member) => member.id)]}
-              optionLabel={(value) =>
-                value === 'All Staff'
-                  ? value
-                  : staffMembers.find((member) => member.id === value)?.name ?? value
-              }
-            />
+                <SelectControl
+                  label="Staff"
+                  value={selectedStaffFilter}
+                  onChange={setSelectedStaffFilter}
+                  options={['All Staff', ...staffMembers.map((member) => member.id)]}
+                  optionLabel={(value) =>
+                    value === 'All Staff'
+                      ? value
+                      : staffMembers.find((member) => member.id === value)?.name ?? value
+                  }
+                />
+              </div>
 
-            <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-1">
-              <ControlButton onClick={goToPreviousDay}>
-                <CalendarIcon name="chevron-left" />
-              </ControlButton>
-              <ControlButton onClick={goToToday}>Today</ControlButton>
-              <ControlButton onClick={goToNextDay}>
-                <CalendarIcon name="chevron-right" />
-              </ControlButton>
+              <div className="flex flex-wrap items-center justify-end gap-3 xl:flex-none">
+                <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-1">
+                  <ControlButton onClick={goToPreviousDay}>
+                    <CalendarIcon name="chevron-left" />
+                  </ControlButton>
+                  <div className="min-w-[180px] rounded-xl bg-white px-4 py-2 text-center text-sm font-semibold text-slate-800">
+                    {activeDayDisplay}
+                  </div>
+                  <ControlButton onClick={goToNextDay}>
+                    <CalendarIcon name="chevron-right" />
+                  </ControlButton>
+                </div>
+
+                <button
+                  className="inline-flex h-12 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-white"
+                  onClick={goToToday}
+                  type="button"
+                >
+                  Today
+                </button>
+
+                <button
+                  className="inline-flex h-12 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-white xl:self-start"
+                  type="button"
+                >
+                  <CalendarIcon name="sliders" />
+                  Filters
+                </button>
+              </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800">
-              {activeDay.label}
-            </div>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800">
+                {view === 'Day' ? `Day view • ${activeDayDisplay}` : `${view} view • ${activeDayDisplay}`}
+              </div>
 
-            <button
-              className="inline-flex h-12 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-white"
-              type="button"
-            >
-              <CalendarIcon name="sliders" />
-              Filters
-            </button>
-
-            <div className="ml-auto flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 p-1">
                 {viewOptions.map((option) => (
                   <button
@@ -582,6 +601,7 @@ export function CalendarPage({ role }: CalendarPageProps) {
                 <CalendarIcon name="plus" />
                 Add New
               </button>
+              </div>
             </div>
           </div>
 
