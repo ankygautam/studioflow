@@ -560,13 +560,13 @@ export function CalendarPage({ role }: CalendarPageProps) {
                 </button>
 
                 <button
-                  className="inline-flex h-12 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-white xl:self-start"
+                  className="inline-flex h-12 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold leading-none text-slate-700 transition hover:border-slate-300 hover:bg-white xl:self-start"
                   type="button"
                 >
-                  <span className="inline-flex h-4 w-4 items-center justify-center">
-                    <CalendarIcon name="sliders" />
+                  <span className="inline-flex h-4 w-4 items-center justify-center text-slate-500">
+                    <CalendarIcon name="filter" />
                   </span>
-                  Filters
+                  <span className="leading-none">Filters</span>
                 </button>
               </div>
             </div>
@@ -1260,8 +1260,8 @@ type CalendarIconName =
   | 'chevron-left'
   | 'chevron-right'
   | 'close'
+  | 'filter'
   | 'plus'
-  | 'sliders'
 
 function CalendarIcon({ name }: { name: CalendarIconName }) {
   const common = 'block h-4 w-4 shrink-0'
@@ -1302,37 +1302,14 @@ function CalendarIcon({ name }: { name: CalendarIconName }) {
           />
         </svg>
       )
-    case 'sliders':
+    case 'filter':
       return (
         <svg className={common} fill="none" viewBox="0 0 24 24">
           <path
-            d="M4 7h16M4 17h16M4 12h16"
+            d="M4 6h16l-6.5 7.2V18l-3 1.6v-6.4L4 6Z"
             stroke="currentColor"
             strokeLinecap="round"
-            strokeWidth="1.8"
-          />
-          <circle
-            cx="9"
-            cy="7"
-            r="2"
-            fill="white"
-            stroke="currentColor"
-            strokeWidth="1.8"
-          />
-          <circle
-            cx="15"
-            cy="12"
-            r="2"
-            fill="white"
-            stroke="currentColor"
-            strokeWidth="1.8"
-          />
-          <circle
-            cx="11"
-            cy="17"
-            r="2"
-            fill="white"
-            stroke="currentColor"
+            strokeLinejoin="round"
             strokeWidth="1.8"
           />
         </svg>
