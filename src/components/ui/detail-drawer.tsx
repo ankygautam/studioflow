@@ -22,7 +22,7 @@ export function DetailDrawer({
         <>
           <motion.button
             aria-label="Close details"
-            className="fixed inset-0 z-40 bg-slate-950/35 backdrop-blur-sm"
+            className="fixed inset-0 z-40 bg-slate-950/10"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
