@@ -56,12 +56,23 @@ async function request<T>(path: string, options: RequestOptions = {}) {
   let response: Response
 
   try {
+    if (!normalizeBaseUrl()) {
+      throw new ApiError(
+        'This StudioFlow deployment is missing its backend API configuration. Set VITE_API_URL for this environment and try again.',
+        0,
+      )
+    }
+
     response = await fetch(`${normalizeBaseUrl()}${path}`, {
       ...options,
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
       headers,
     })
   } catch (error) {
+    if (error instanceof ApiError) {
+      throw error
+    }
+
     throw new ApiError(
       `Unable to reach the StudioFlow backend at ${normalizeBaseUrl()}. Start the Spring Boot app and database, then try again.`,
       0,

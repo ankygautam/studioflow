@@ -8,6 +8,7 @@ import { AuthSubmitButton } from '../../components/auth/auth-submit-button'
 import { AuthLayout } from '../../components/layout/auth-layout'
 import { getRoleDestination, isValidEmail } from '../../features/auth/auth-utils'
 import { useAuth } from '../../features/auth/use-auth'
+import { appConfig } from '../../lib/app-config'
 
 export function LoginPage() {
   const { login } = useAuth()
@@ -138,6 +139,14 @@ export function LoginPage() {
         <div className="mt-6 rounded-[24px] border border-slate-200 bg-white px-4 py-4 text-sm leading-7 text-slate-600">
           Accounts are provisioned by the studio owner or admin. Use your assigned login details to access the workspace.
         </div>
+
+        {appConfig.isHostedBuildWithoutApi ? (
+          <div className="mt-4 rounded-[24px] border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-7 text-amber-900">
+            This hosted frontend is live, but its backend API URL is not configured yet. Set
+            <span className="mx-1 font-semibold">VITE_API_URL</span>
+            in the deployment environment to enable sign-in and workspace data.
+          </div>
+        ) : null}
       </div>
     </AuthLayout>
   )

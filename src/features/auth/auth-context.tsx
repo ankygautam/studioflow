@@ -7,6 +7,7 @@ import {
   persistAuthToken,
   persistSelectedLocationId,
 } from '../../lib/api/http'
+import { appConfig } from '../../lib/app-config'
 import { AuthContext, type AuthContextValue } from './auth-context-object'
 import type { AuthUser } from './auth-types'
 import { mapBackendRole } from './auth-utils'
@@ -47,6 +48,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [applyUser])
 
   useEffect(() => {
+    if (!appConfig.isApiConfigured) {
+      clearAuthToken()
+      setUser(null)
+      setSelectedLocationIdState(null)
+      setIsLoading(false)
+      return
+    }
+
     if (!getStoredAuthToken()) {
       setIsLoading(false)
       return
