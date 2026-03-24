@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: studioflow-backend
+  datasource:
+    # TODO: replace with the real local or container PostgreSQL connection.
+    url: ${STUDIOFLOW_DB_URL:jdbc:postgresql://localhost:5432/studioflow}
+    # TODO: replace with the real database username.
+    username: ${STUDIOFLOW_DB_USERNAME:}
+    # TODO: provide via environment variable or local override, never commit real values.
+    password: ${STUDIOFLOW_DB_PASSWORD:}
+  jpa:
+    hibernate:
+      # TODO: consider switching to validate once migrations are added.
+      ddl-auto: update
+    open-in-view: false
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          time_zone: UTC
+
+server:
+  port: ${STUDIOFLOW_SERVER_PORT:8080}
