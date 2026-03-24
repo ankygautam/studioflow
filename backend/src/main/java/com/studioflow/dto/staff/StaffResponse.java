@@ -7,9 +7,7 @@ import java.util.UUID;
 public record StaffResponse(
     UUID id,
     UUID userId,
-    String userFullName,
     UUID studioId,
-    String studioName,
     String displayName,
     String jobTitle,
     String phone,
@@ -17,6 +15,9 @@ public record StaffResponse(
     String avatarUrl,
     StaffStatus status,
     Instant createdAt,
-    Instant updatedAt
+    Instant updatedAt,
+    String userFullName,
+    String userEmail,
+    String studioName
 ) {
 }

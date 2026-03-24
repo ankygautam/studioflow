@@ -5,7 +5,6 @@ export type LoginInput = {
   email: string
   password: string
   remember: boolean
-  role: AuthRole
 }
 
 export type RegisterInput = {
@@ -19,10 +18,11 @@ export type RegisterInput = {
 
 export type AuthContextValue = {
   forgotPassword: (email: string) => Promise<void>
+  isLoading: boolean
   isAuthenticated: boolean
-  login: (input: LoginInput) => Promise<void>
+  login: (input: LoginInput) => Promise<AuthUser>
   logout: () => void
-  register: (input: RegisterInput) => Promise<void>
+  register: (input: RegisterInput) => Promise<AuthUser>
   user: AuthUser | null
 }
 

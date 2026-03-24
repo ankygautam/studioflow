@@ -34,7 +34,7 @@ public class ConsentFormSubmission extends BaseEntity {
     private CustomerProfile customerProfile;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "appointment_id", nullable = false)
+    @JoinColumn(name = "appointment_id")
     private Appointment appointment;
 
     @Enumerated(EnumType.STRING)

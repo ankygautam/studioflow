@@ -5,11 +5,9 @@ import { AuthFooterLinkRow } from '../../components/auth/auth-footer-link-row'
 import { AuthHeader } from '../../components/auth/auth-header'
 import { AuthInputField } from '../../components/auth/auth-input-field'
 import { AuthPasswordField } from '../../components/auth/auth-password-field'
-import { AuthSelectField } from '../../components/auth/auth-select-field'
 import { AuthSubmitButton } from '../../components/auth/auth-submit-button'
 import { AuthLayout } from '../../components/layout/auth-layout'
-import { authRoleOptions, getRoleDestination, isValidEmail } from '../../features/auth/auth-utils'
-import type { AuthRole } from '../../features/auth/auth-types'
+import { getRoleDestination, isValidEmail } from '../../features/auth/auth-utils'
 import { useAuth } from '../../features/auth/use-auth'
 
 export function LoginPage() {
@@ -22,8 +20,8 @@ export function LoginPage() {
     email: 'admin@studioflow.co',
     password: 'password123',
     remember: true,
-    role: 'admin' as AuthRole,
   })
+  const [submitError, setSubmitError] = useState('')
 
   const errors = {
     email:
@@ -33,16 +31,16 @@ export function LoginPage() {
           ? 'Enter a valid email address'
           : '',
     password: !form.password.trim() ? 'Password is required' : '',
-    role: !form.role ? 'Role is required' : '',
   }
 
-  const isFormValid = !errors.email && !errors.password && !errors.role
+  const isFormValid = !errors.email && !errors.password
   const shouldShowError = (field: keyof typeof errors) => touched[field]
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    setTouched({ email: true, password: true, role: true })
+    setTouched({ email: true, password: true })
+    setSubmitError('')
 
     if (!isFormValid) {
       return
@@ -51,8 +49,10 @@ export function LoginPage() {
     setIsSubmitting(true)
 
     try {
-      await login(form)
-      navigate(getRoleDestination(form.role), { replace: true })
+      const nextUser = await login(form)
+      navigate(getRoleDestination(nextUser.role), { replace: true })
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Unable to sign in right now.')
     } finally {
       setIsSubmitting(false)
     }
@@ -100,17 +100,6 @@ export function LoginPage() {
             value={form.password}
           />
 
-          <AuthSelectField
-            error={shouldShowError('role') ? errors.role : ''}
-            label="Preview role"
-            onBlur={() => setTouched((current) => ({ ...current, role: true }))}
-            onChange={(value) =>
-              setForm((current) => ({ ...current, role: value as AuthRole }))
-            }
-            options={authRoleOptions}
-            value={form.role}
-          />
-
           <div className="flex flex-wrap items-center justify-between gap-3">
             <label className="inline-flex items-center gap-3 text-sm text-slate-600">
               <input
@@ -138,12 +127,13 @@ export function LoginPage() {
             isLoading={isSubmitting}
             loadingLabel="Signing in..."
           />
+          {submitError ? <p className="text-sm font-medium text-rose-500">{submitError}</p> : null}
         </motion.form>
 
         <div className="mt-6 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-600">
           Demo tip: use <span className="font-semibold text-slate-950">admin@studioflow.co</span>{' '}
-          or <span className="font-semibold text-slate-950">staff@studioflow.co</span> to preview
-          different roles.
+          or <span className="font-semibold text-slate-950">staff@studioflow.co</span> with password{' '}
+          <span className="font-semibold text-slate-950">password123</span>.
         </div>
 
         <AuthFooterLinkRow actionLabel="Create an account" prompt="New to StudioFlow?" to="/register" />

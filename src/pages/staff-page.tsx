@@ -1,114 +1,361 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { SurfaceCard } from '../components/layout/app-shell'
+import { EmptyState, ErrorState, LoadingState } from '../components/ui/async-state'
 import { DataTable } from '../components/ui/data-table'
 import { DetailDrawer } from '../components/ui/detail-drawer'
+import { InputField, SelectField, TextAreaField } from '../components/ui/form-controls'
+import { PageHeader } from '../components/ui/page-header'
 import { StatusBadge } from '../components/ui/status-badge'
+import { canManageStaff } from '../features/auth/authorization'
+import { useAuth } from '../features/auth/use-auth'
+import { useRemoteList } from '../hooks/use-remote-list'
+import { getDefaultStudioId } from '../lib/api/http'
+import { createStaff, deleteStaff, getStaff, updateStaff } from '../lib/api/staff-api'
+import type { StaffRecord, StaffStatus } from '../lib/api/types'
+import { humanizeEnum } from '../lib/formatters'
 
-const staffMembers = [
-  {
-    availability: 'Open after 3 PM',
-    id: 'staff-1',
-    name: 'Nina Hart',
-    role: 'Senior Tattoo Artist',
-    services: ['Consults', 'Micro realism', 'Fine line'],
-  },
-  {
-    availability: 'Booked steady',
-    id: 'staff-2',
-    name: 'Elena Cross',
-    role: 'Color Specialist',
-    services: ['Color correction', 'Blowout', 'Gloss'],
-  },
-  {
-    availability: 'Walk-ins enabled',
-    id: 'staff-3',
-    name: 'Luis Cole',
-    role: 'Lead Barber',
-    services: ['Fade', 'Beard sculpt', 'Hot towel'],
-  },
-] as const
+type StaffFormState = {
+  avatarUrl: string
+  bio: string
+  displayName: string
+  jobTitle: string
+  phone: string
+  status: StaffStatus
+  studioId: string
+  userId: string
+}
+
+const staffStatuses: StaffStatus[] = ['ACTIVE', 'ON_LEAVE', 'INACTIVE']
 
 export function StaffPage() {
-  const [selectedId, setSelectedId] = useState<string>(staffMembers[0].id)
-  const selectedStaff = staffMembers.find((staff) => staff.id === selectedId) ?? staffMembers[0]
+  const { user } = useAuth()
+  const canManage = user ? canManageStaff(user.role) : false
+  const defaultStudioId = getDefaultStudioId()
+  const loadStaff = useCallback(() => getStaff(defaultStudioId), [defaultStudioId])
+  const { data: staffMembers, error, isLoading, reload } = useRemoteList(loadStaff)
+
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [mutationError, setMutationError] = useState<string | null>(null)
+  const [editingStaff, setEditingStaff] = useState<StaffRecord | null>(null)
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof StaffFormState, string>>>({})
+  const [formState, setFormState] = useState<StaffFormState>(createStaffForm(defaultStudioId))
+
+  const openCreateDrawer = () => {
+    setEditingStaff(null)
+    setMutationError(null)
+    setFormErrors({})
+    setFormState(createStaffForm(defaultStudioId))
+    setIsDrawerOpen(true)
+  }
+
+  const openEditDrawer = (staffMember: StaffRecord) => {
+    setEditingStaff(staffMember)
+    setMutationError(null)
+    setFormErrors({})
+    setFormState(createStaffForm(staffMember.studioId, staffMember))
+    setIsDrawerOpen(true)
+  }
+
+  const closeDrawer = () => {
+    setIsDrawerOpen(false)
+    setEditingStaff(null)
+    setMutationError(null)
+    setFormErrors({})
+  }
+
+  const handleSubmit = async () => {
+    const errors = validateStaffForm(formState, editingStaff?.studioId ?? defaultStudioId)
+    setFormErrors(errors)
+
+    if (Object.keys(errors).length > 0) {
+      return
+    }
+
+    const studioId = editingStaff?.studioId ?? defaultStudioId ?? formState.studioId.trim()
+
+    if (!studioId) {
+      setMutationError('Set VITE_STUDIO_ID or provide a studio ID to save staff profiles.')
+      return
+    }
+
+    const payload = {
+      avatarUrl: formState.avatarUrl.trim(),
+      bio: formState.bio.trim(),
+      displayName: formState.displayName.trim(),
+      jobTitle: formState.jobTitle.trim(),
+      phone: formState.phone.trim(),
+      status: formState.status,
+      studioId,
+      userId: formState.userId.trim(),
+    }
+
+    setIsSaving(true)
+    setMutationError(null)
+
+    try {
+      if (editingStaff) {
+        await updateStaff(editingStaff.id, payload)
+      } else {
+        await createStaff(payload)
+      }
+
+      await reload()
+      closeDrawer()
+    } catch (error) {
+      setMutationError(error instanceof Error ? error.message : 'Unable to save staff right now.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!editingStaff) {
+      return
+    }
+
+    setIsSaving(true)
+    setMutationError(null)
+
+    try {
+      await deleteStaff(editingStaff.id)
+      await reload()
+      closeDrawer()
+    } catch (error) {
+      setMutationError(error instanceof Error ? error.message : 'Unable to update staff status right now.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
-      <Hero
+      <PageHeader
+        actions={canManage ? (
+          <button
+            className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
+            onClick={openCreateDrawer}
+            type="button"
+          >
+            Add staff
+          </button>
+        ) : null}
+        description="A simple staff table with clean profile editing, linked user records, and active status visibility."
         eyebrow="Staff"
         title="Team visibility"
-        description="A simple staff table with clear roles, availability, and assigned services."
       />
 
       <section className="grid gap-6">
         <SurfaceCard title="Staff roster">
-          <DataTable columns={['Name', 'Role', 'Availability', 'Assigned services']}>
-            {staffMembers.map((staff) => (
-              <tr key={staff.id}>
-                <td className="px-4 py-4">
-                  <button
-                    className="font-semibold text-slate-950 transition hover:text-slate-700"
-                    onClick={() => setSelectedId(staff.id)}
-                    type="button"
-                  >
-                    {staff.name}
-                  </button>
-                </td>
-                <td className="px-4 py-4 text-sm text-slate-600">{staff.role}</td>
-                <td className="px-4 py-4">
-                  <StatusBadge tone="calm">{staff.availability}</StatusBadge>
-                </td>
-                <td className="px-4 py-4 text-sm text-slate-600">{staff.services.join(', ')}</td>
-              </tr>
-            ))}
-          </DataTable>
+          {isLoading ? <LoadingState title="Loading staff..." /> : null}
+          {!isLoading && error ? (
+            <ErrorState
+              action={
+                <button
+                  className="rounded-full border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-600"
+                  onClick={() => void reload()}
+                  type="button"
+                >
+                  Retry
+                </button>
+              }
+              message={error}
+            />
+          ) : null}
+          {!isLoading && !error && staffMembers.length === 0 ? (
+            <EmptyState
+              action={canManage ? (
+                <button
+                  className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
+                  onClick={openCreateDrawer}
+                  type="button"
+                >
+                  Add the first staff profile
+                </button>
+              ) : null}
+              description="Staff profiles will appear here once linked to real backend user accounts."
+              title="No staff profiles yet"
+            />
+          ) : null}
+          {!isLoading && !error && staffMembers.length > 0 ? (
+            <DataTable columns={['Staff member', 'Role', 'Status', 'Linked account']}>
+              {staffMembers.map((staffMember) => (
+                <tr key={staffMember.id}>
+                  <td className="px-4 py-4">
+                    {canManage ? (
+                      <button
+                        className="font-semibold text-slate-950 transition hover:text-slate-700"
+                        onClick={() => openEditDrawer(staffMember)}
+                        type="button"
+                      >
+                        {staffMember.displayName}
+                      </button>
+                    ) : (
+                      <span className="font-semibold text-slate-950">{staffMember.displayName}</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-4 text-sm text-slate-600">{staffMember.jobTitle || 'Not set'}</td>
+                  <td className="px-4 py-4">
+                    <StatusBadge tone={staffTone(staffMember.status)}>{humanizeEnum(staffMember.status)}</StatusBadge>
+                  </td>
+                  <td className="px-4 py-4 text-sm text-slate-600">
+                    {staffMember.userEmail || staffMember.userFullName || 'Linked user pending'}
+                  </td>
+                </tr>
+              ))}
+            </DataTable>
+          ) : null}
         </SurfaceCard>
       </section>
 
       <DetailDrawer
         footer={
-          <button className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white">
-            Open schedule
-          </button>
+          <div className="flex flex-wrap justify-between gap-3">
+            <div>
+              {editingStaff ? (
+                <button
+                  className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700"
+                  disabled={isSaving}
+                  onClick={() => void handleDelete()}
+                  type="button"
+                >
+                  Mark inactive
+                </button>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600"
+                disabled={isSaving}
+                onClick={closeDrawer}
+                type="button"
+              >
+                Cancel
+              </button>
+              <button
+                className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                disabled={isSaving}
+                onClick={() => void handleSubmit()}
+                type="button"
+              >
+                {isSaving ? 'Saving...' : editingStaff ? 'Save changes' : 'Create profile'}
+              </button>
+            </div>
+          </div>
         }
-        onClose={() => setSelectedId('')}
-        open={Boolean(selectedId)}
+        onClose={closeDrawer}
+        open={isDrawerOpen}
         subtitle="Staff details"
-        title={selectedStaff.name}
+        title={editingStaff ? editingStaff.displayName : 'Add staff'}
       >
-        <div className="space-y-4">
-          <InfoCard label="Role" value={selectedStaff.role} />
-          <InfoCard label="Availability" value={selectedStaff.availability} />
-          <InfoCard label="Assigned services" value={selectedStaff.services.join(', ')} />
+        <div className="space-y-5">
+          {mutationError ? <ErrorState message={mutationError} /> : null}
+          <div className="grid gap-4 sm:grid-cols-2">
+            {!editingStaff && !defaultStudioId ? (
+              <InputField
+                error={formErrors.studioId}
+                label="Studio ID"
+                onChange={(event) => setFormState((current) => ({ ...current, studioId: event.target.value }))}
+                placeholder="Paste the studio UUID"
+                value={formState.studioId}
+              />
+            ) : null}
+            <InputField
+              error={formErrors.userId}
+              label="Linked user ID"
+              onChange={(event) => setFormState((current) => ({ ...current, userId: event.target.value }))}
+              placeholder="Paste the user UUID"
+              value={formState.userId}
+            />
+            <InputField
+              error={formErrors.displayName}
+              label="Display name"
+              onChange={(event) => setFormState((current) => ({ ...current, displayName: event.target.value }))}
+              placeholder="Nina Hart"
+              value={formState.displayName}
+            />
+            <InputField
+              label="Job title"
+              onChange={(event) => setFormState((current) => ({ ...current, jobTitle: event.target.value }))}
+              placeholder="Senior tattoo artist"
+              value={formState.jobTitle}
+            />
+            <InputField
+              label="Phone"
+              onChange={(event) => setFormState((current) => ({ ...current, phone: event.target.value }))}
+              placeholder="(555) 123-4567"
+              value={formState.phone}
+            />
+            <InputField
+              label="Avatar URL"
+              onChange={(event) => setFormState((current) => ({ ...current, avatarUrl: event.target.value }))}
+              placeholder="https://..."
+              value={formState.avatarUrl}
+            />
+            <SelectField
+              error={formErrors.status}
+              label="Status"
+              onChange={(event) =>
+                setFormState((current) => ({ ...current, status: event.target.value as StaffStatus }))
+              }
+              value={formState.status}
+            >
+              {staffStatuses.map((status) => (
+                <option key={status} value={status}>
+                  {humanizeEnum(status)}
+                </option>
+              ))}
+            </SelectField>
+          </div>
+          <TextAreaField
+            label="Bio"
+            onChange={(event) => setFormState((current) => ({ ...current, bio: event.target.value }))}
+            placeholder="Add specialties, availability context, or operational notes."
+            value={formState.bio}
+          />
         </div>
       </DetailDrawer>
     </div>
   )
 }
 
-function Hero({
-  description,
-  eyebrow,
-  title,
-}: {
-  description: string
-  eyebrow: string
-  title: string
-}) {
-  return (
-    <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-[0_18px_44px_rgba(15,23,42,0.05)] md:p-7">
-      <p className="text-xs font-semibold uppercase tracking-[0.38em] text-slate-400">{eyebrow}</p>
-      <h1 className="mt-3 font-display text-4xl text-slate-950">{title}</h1>
-      <p className="mt-4 max-w-3xl text-base leading-8 text-slate-600">{description}</p>
-    </section>
-  )
+function createStaffForm(studioId: string | null, staffMember?: StaffRecord): StaffFormState {
+  return {
+    avatarUrl: staffMember?.avatarUrl ?? '',
+    bio: staffMember?.bio ?? '',
+    displayName: staffMember?.displayName ?? '',
+    jobTitle: staffMember?.jobTitle ?? '',
+    phone: staffMember?.phone ?? '',
+    status: staffMember?.status ?? 'ACTIVE',
+    studioId: studioId ?? '',
+    userId: staffMember?.userId ?? '',
+  }
 }
 
-function InfoCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">{label}</p>
-      <p className="mt-2 text-sm leading-7 text-slate-700">{value}</p>
-    </div>
-  )
+function validateStaffForm(formState: StaffFormState, studioId: string | null) {
+  const errors: Partial<Record<keyof StaffFormState, string>> = {}
+
+  if (!studioId && !formState.studioId.trim()) {
+    errors.studioId = 'Studio ID is required to create a staff profile.'
+  }
+
+  if (!formState.userId.trim()) {
+    errors.userId = 'Linked user ID is required.'
+  }
+
+  if (!formState.displayName.trim()) {
+    errors.displayName = 'Display name is required.'
+  }
+
+  if (!formState.status) {
+    errors.status = 'Status is required.'
+  }
+
+  return errors
+}
+
+function staffTone(status: StaffStatus) {
+  if (status === 'ACTIVE') return 'success' as const
+  if (status === 'ON_LEAVE') return 'attention' as const
+  return 'neutral' as const
 }

@@ -1,15 +1,16 @@
 package com.studioflow.controller;
 
+import com.studioflow.dto.appointment.AppointmentCreateRequest;
 import com.studioflow.dto.appointment.AppointmentResponse;
-import com.studioflow.dto.appointment.CreateAppointmentRequest;
-import com.studioflow.dto.appointment.UpdateAppointmentRequest;
-import com.studioflow.service.AppointmentManagementService;
+import com.studioflow.dto.appointment.AppointmentUpdateRequest;
+import com.studioflow.service.AppointmentService;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,39 +26,44 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AppointmentController {
 
-    private final AppointmentManagementService appointmentManagementService;
+    private final AppointmentService appointmentService;
 
     @PostMapping
-    public ResponseEntity<AppointmentResponse> create(
-        @Valid @RequestBody CreateAppointmentRequest request
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST')")
+    public ResponseEntity<AppointmentResponse> createAppointment(
+        @Valid @RequestBody AppointmentCreateRequest request
     ) {
-        AppointmentResponse response = appointmentManagementService.create(request);
+        AppointmentResponse response = appointmentService.createAppointment(request);
         return ResponseEntity.created(URI.create("/api/appointments/" + response.id())).body(response);
     }
 
     @GetMapping
-    public ResponseEntity<List<AppointmentResponse>> getAll(
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST','STAFF')")
+    public ResponseEntity<List<AppointmentResponse>> getAllAppointments(
         @RequestParam(required = false) UUID studioId
     ) {
-        return ResponseEntity.ok(appointmentManagementService.getAll(studioId));
+        return ResponseEntity.ok(appointmentService.getAllAppointments(studioId));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<AppointmentResponse> getById(@PathVariable UUID id) {
-        return ResponseEntity.ok(appointmentManagementService.getById(id));
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST','STAFF')")
+    public ResponseEntity<AppointmentResponse> getAppointmentById(@PathVariable UUID id) {
+        return ResponseEntity.ok(appointmentService.getAppointmentById(id));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<AppointmentResponse> update(
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST','STAFF')")
+    public ResponseEntity<AppointmentResponse> updateAppointment(
         @PathVariable UUID id,
-        @Valid @RequestBody UpdateAppointmentRequest request
+        @Valid @RequestBody AppointmentUpdateRequest request
     ) {
-        return ResponseEntity.ok(appointmentManagementService.update(id, request));
+        return ResponseEntity.ok(appointmentService.updateAppointment(id, request));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        appointmentManagementService.delete(id);
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST')")
+    public ResponseEntity<Void> deleteAppointment(@PathVariable UUID id) {
+        appointmentService.deleteAppointment(id);
         return ResponseEntity.noContent().build();
     }
 }

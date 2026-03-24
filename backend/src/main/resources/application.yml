@@ -22,3 +22,14 @@ spring:
 
 server:
   port: ${STUDIOFLOW_SERVER_PORT:8080}
+
+studioflow:
+  cors:
+    allowed-origins:
+      - ${STUDIOFLOW_CORS_ORIGIN_1:http://localhost:5173}
+      - ${STUDIOFLOW_CORS_ORIGIN_2:http://localhost:5174}
+      - ${STUDIOFLOW_CORS_ORIGIN_3:https://ankygautam.github.io}
+  security:
+    jwt:
+      secret: ${STUDIOFLOW_JWT_SECRET:studioflow-jwt-secret-key-change-me-2026}
+      expiration-minutes: ${STUDIOFLOW_JWT_EXPIRATION_MINUTES:720}

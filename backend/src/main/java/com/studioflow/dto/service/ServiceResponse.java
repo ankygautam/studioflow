@@ -8,7 +8,6 @@ import java.util.UUID;
 public record ServiceResponse(
     UUID id,
     UUID studioId,
-    String studioName,
     String name,
     ServiceCategory category,
     String description,

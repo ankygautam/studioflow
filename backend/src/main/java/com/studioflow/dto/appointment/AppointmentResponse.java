@@ -10,13 +10,9 @@ import java.util.UUID;
 public record AppointmentResponse(
     UUID id,
     UUID studioId,
-    String studioName,
     UUID customerProfileId,
-    String customerName,
     UUID staffProfileId,
-    String staffDisplayName,
     UUID serviceId,
-    String serviceName,
     LocalDate appointmentDate,
     LocalTime startTime,
     LocalTime endTime,
@@ -24,6 +20,9 @@ public record AppointmentResponse(
     String notes,
     AppointmentSource source,
     Instant createdAt,
-    Instant updatedAt
+    Instant updatedAt,
+    String customerName,
+    String staffName,
+    String serviceName
 ) {
 }

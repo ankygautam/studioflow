@@ -20,6 +20,7 @@ export function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [touched, setTouched] = useState<Record<string, boolean>>({})
+  const [submitError, setSubmitError] = useState('')
   const [form, setForm] = useState({
     businessName: 'Atelier North',
     confirmPassword: 'password123',
@@ -67,10 +68,13 @@ export function RegisterPage() {
     }
 
     setIsSubmitting(true)
+    setSubmitError('')
 
     try {
-      await register(form)
-      navigate(getRoleDestination(form.role), { replace: true })
+      const nextUser = await register(form)
+      navigate(getRoleDestination(nextUser.role), { replace: true })
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Unable to create account right now.')
     } finally {
       setIsSubmitting(false)
     }
@@ -173,6 +177,7 @@ export function RegisterPage() {
             isLoading={isSubmitting}
             loadingLabel="Creating account..."
           />
+          {submitError ? <p className="text-sm font-medium text-rose-500">{submitError}</p> : null}
         </motion.form>
 
         <AuthFooterLinkRow actionLabel="Back to sign in" prompt="Already have access?" to="/login" />

@@ -2,12 +2,14 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useState, type ReactNode } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { navigationItems, type NavigationItem } from '../../data/navigation'
+import { canAccessRoute, canCreateBookings, canManageSettings } from '../../features/auth/authorization'
 import { useAuth } from '../../features/auth/use-auth'
 
 export function AppShell() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const navigate = useNavigate()
   const { logout, user } = useAuth()
+  const showNewBooking = user ? canCreateBookings(user.role) : false
 
   const initials =
     user?.fullName
@@ -105,14 +107,16 @@ export function AppShell() {
                   <span>Logout</span>
                 </button>
 
-                <button
-                  className="inline-flex h-12 items-center gap-2 rounded-2xl bg-[#0f172a] px-4 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(15,23,42,0.2)] transition hover:bg-slate-800 sm:px-5"
-                  onClick={() => navigate('/calendar')}
-                  type="button"
-                >
-                  <ShellIcon icon="plus" />
-                  <span className="hidden sm:inline">New Booking</span>
-                </button>
+                {showNewBooking ? (
+                  <button
+                    className="inline-flex h-12 items-center gap-2 rounded-2xl bg-[#0f172a] px-4 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(15,23,42,0.2)] transition hover:bg-slate-800 sm:px-5"
+                    onClick={() => navigate('/calendar?newBooking=1')}
+                    type="button"
+                  >
+                    <ShellIcon icon="plus" />
+                    <span className="hidden sm:inline">New Booking</span>
+                  </button>
+                ) : null}
               </div>
             </div>
           </div>
@@ -157,7 +161,9 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       </div>
 
       <nav className="mt-6 flex-1 space-y-2 overflow-y-auto pr-1">
-        {navigationItems.map((item) => (
+        {navigationItems
+          .filter((item) => (user ? canAccessRoute(user.role, item.slug) : true))
+          .map((item) => (
           <NavLink
             key={item.slug}
             onClick={onNavigate}
@@ -212,17 +218,19 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             </p>
           </div>
         </div>
-        <button
-          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
-          onClick={() => {
-            navigate('/settings')
-            onNavigate?.()
-          }}
-          type="button"
-        >
-          <ShellIcon icon="settings" />
-          Open settings
-        </button>
+        {user && canManageSettings(user.role) ? (
+          <button
+            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+            onClick={() => {
+              navigate('/settings')
+              onNavigate?.()
+            }}
+            type="button"
+          >
+            <ShellIcon icon="settings" />
+            Open settings
+          </button>
+        ) : null}
         <button
           className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/6 hover:text-white"
           onClick={() => {

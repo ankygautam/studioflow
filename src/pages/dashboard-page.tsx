@@ -1,33 +1,21 @@
 import { motion } from 'framer-motion'
 import { DrawerPreview } from '../components/ui/drawer-preview'
+import { EmptyState, ErrorState, LoadingState } from '../components/ui/async-state'
 import { DataTable } from '../components/ui/data-table'
 import { StatusBadge } from '../components/ui/status-badge'
 import { SurfaceCard } from '../components/layout/app-shell'
+import { useCallback } from 'react'
+import { useRemoteList } from '../hooks/use-remote-list'
+import { getAppointments } from '../lib/api/appointments-api'
+import { getClients } from '../lib/api/clients-api'
+import { getDefaultStudioId } from '../lib/api/http'
+import { formatDate, formatTime, humanizeEnum } from '../lib/formatters'
 
 const stats = [
   { label: "Today's bookings", subtext: '6 check-ins completed', value: '28' },
   { label: 'Revenue today', subtext: '+12.4% vs last Tuesday', value: '$4,860' },
   { label: 'Pending deposits', subtext: '8 clients awaiting payment', value: '$790' },
   { label: 'Staff available', subtext: '11 on floor, 3 on flex hold', value: '14' },
-]
-
-const appointments = [
-  { client: 'Maya Laurent', service: 'Fine line tattoo consult', status: 'Checked in', time: '10:30 AM' },
-  { client: 'Alina Ross', service: 'Luxury blowout + trim', status: 'Confirmed', time: '11:15 AM' },
-  { client: 'Jordan Hale', service: 'Piercing styling session', status: 'Deposit pending', time: '12:40 PM' },
-  { client: 'Leah Monroe', service: 'Wellness reset massage', status: 'Confirmed', time: '2:00 PM' },
-]
-
-const upcoming = [
-  ['3:15 PM', 'Nora Patel', 'Micro realism consult'],
-  ['4:00 PM', 'Drew Foster', 'Beard sculpt + skin fade'],
-  ['5:30 PM', 'Elise Nguyen', 'Nail studio refill'],
-]
-
-const recentClients = [
-  ['Amara Singh', '12 visits', 'Signed consent'],
-  ['Milo Carter', '4 visits', 'Reference files added'],
-  ['Tessa Cole', '19 visits', 'Balance cleared'],
 ]
 
 const teamAvailability = [
@@ -38,6 +26,26 @@ const teamAvailability = [
 ]
 
 export function DashboardPage() {
+  const defaultStudioId = getDefaultStudioId()
+  const loadAppointments = useCallback(() => getAppointments(defaultStudioId), [defaultStudioId])
+  const loadClients = useCallback(() => getClients(defaultStudioId), [defaultStudioId])
+  const {
+    data: appointments,
+    error: appointmentsError,
+    isLoading: appointmentsLoading,
+  } = useRemoteList(loadAppointments)
+  const {
+    data: clients,
+    error: clientsError,
+    isLoading: clientsLoading,
+  } = useRemoteList(loadClients)
+
+  const todayAppointments = appointments.slice(0, 4)
+  const upcomingAppointments = appointments.slice(0, 3)
+  const recentClients = [...clients]
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+    .slice(0, 3)
+
   return (
     <div className="space-y-6">
       <motion.section
@@ -89,30 +97,34 @@ export function DashboardPage() {
           action={<button className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">View full day</button>}
           title="Today's appointments"
         >
-          <DataTable columns={['Time', 'Client', 'Service', 'Status']}>
-            {appointments.map((appointment) => (
-              <tr key={`${appointment.client}-${appointment.time}`}>
-                <td className="px-4 py-4 text-sm font-semibold text-slate-800">{appointment.time}</td>
-                <td className="px-4 py-4">
-                  <p className="font-semibold text-slate-950">{appointment.client}</p>
-                </td>
-                <td className="px-4 py-4 text-sm text-slate-600">{appointment.service}</td>
-                <td className="px-4 py-4">
-                  <StatusBadge
-                    tone={
-                      appointment.status === 'Checked in'
-                        ? 'success'
-                        : appointment.status === 'Deposit pending'
-                          ? 'attention'
-                          : 'calm'
-                    }
-                  >
-                    {appointment.status}
-                  </StatusBadge>
-                </td>
-              </tr>
-            ))}
-          </DataTable>
+          {appointmentsLoading ? <LoadingState title="Loading appointments..." /> : null}
+          {!appointmentsLoading && appointmentsError ? <ErrorState message={appointmentsError} /> : null}
+          {!appointmentsLoading && !appointmentsError && todayAppointments.length === 0 ? (
+            <EmptyState
+              description="Appointments from the backend will appear here when bookings are added."
+              title="No appointments yet"
+            />
+          ) : null}
+          {!appointmentsLoading && !appointmentsError && todayAppointments.length > 0 ? (
+            <DataTable columns={['Time', 'Client', 'Service', 'Status']}>
+              {todayAppointments.map((appointment) => (
+                <tr key={appointment.id}>
+                  <td className="px-4 py-4 text-sm font-semibold text-slate-800">
+                    {formatTime(appointment.startTime)}
+                  </td>
+                  <td className="px-4 py-4">
+                    <p className="font-semibold text-slate-950">{appointment.customerName}</p>
+                  </td>
+                  <td className="px-4 py-4 text-sm text-slate-600">{appointment.serviceName}</td>
+                  <td className="px-4 py-4">
+                    <StatusBadge tone={appointmentTone(appointment.status)}>
+                      {humanizeEnum(appointment.status)}
+                    </StatusBadge>
+                  </td>
+                </tr>
+              ))}
+            </DataTable>
+          ) : null}
         </SurfaceCard>
 
         <SurfaceCard
@@ -179,18 +191,32 @@ export function DashboardPage() {
           action={<button className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">View CRM</button>}
           title="Recent clients"
         >
-          <div className="space-y-3">
-            {recentClients.map(([name, visits, note]) => (
-              <div
-                key={name}
-                className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"
-              >
-                <p className="font-semibold text-slate-950">{name}</p>
-                <p className="mt-1 text-sm text-slate-500">{visits}</p>
-                <p className="mt-4 text-sm text-slate-600">{note}</p>
-              </div>
-            ))}
-          </div>
+          {clientsLoading ? <LoadingState title="Loading clients..." /> : null}
+          {!clientsLoading && clientsError ? <ErrorState message={clientsError} /> : null}
+          {!clientsLoading && !clientsError && recentClients.length === 0 ? (
+            <EmptyState
+              description="Client records from the backend will appear here once profiles are created."
+              title="No recent clients yet"
+            />
+          ) : null}
+          {!clientsLoading && !clientsError && recentClients.length > 0 ? (
+            <div className="space-y-3">
+              {recentClients.map((client) => (
+                <div
+                  key={client.id}
+                  className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"
+                >
+                  <p className="font-semibold text-slate-950">{client.fullName}</p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Updated {formatDate(client.updatedAt)}
+                  </p>
+                  <p className="mt-4 text-sm text-slate-600">
+                    {client.notes?.trim() ? client.notes : 'No notes added yet.'}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </SurfaceCard>
       </section>
 
@@ -199,20 +225,32 @@ export function DashboardPage() {
           action={<button className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">See all</button>}
           title="Upcoming bookings"
         >
-          <div className="space-y-3">
-            {upcoming.map(([time, client, service]) => (
-              <div
-                key={client}
-                className="flex items-center justify-between gap-4 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"
-              >
-                <div className="min-w-0">
-                  <p className="font-semibold text-slate-950">{client}</p>
-                  <p className="mt-1 text-sm text-slate-500">{service}</p>
+          {appointmentsLoading ? <LoadingState title="Loading bookings..." /> : null}
+          {!appointmentsLoading && appointmentsError ? <ErrorState message={appointmentsError} /> : null}
+          {!appointmentsLoading && !appointmentsError && upcomingAppointments.length === 0 ? (
+            <EmptyState
+              description="As soon as live appointments are in place, upcoming bookings will show here."
+              title="No upcoming bookings yet"
+            />
+          ) : null}
+          {!appointmentsLoading && !appointmentsError && upcomingAppointments.length > 0 ? (
+            <div className="space-y-3">
+              {upcomingAppointments.map((appointment) => (
+                <div
+                  key={appointment.id}
+                  className="flex items-center justify-between gap-4 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"
+                >
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-950">{appointment.customerName}</p>
+                    <p className="mt-1 text-sm text-slate-500">{appointment.serviceName}</p>
+                  </div>
+                  <StatusBadge tone="violet">
+                    {formatDate(appointment.appointmentDate)} • {formatTime(appointment.startTime)}
+                  </StatusBadge>
                 </div>
-                <StatusBadge tone="violet">{time}</StatusBadge>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : null}
         </SurfaceCard>
 
         <div>
@@ -236,4 +274,12 @@ export function DashboardPage() {
       </section>
     </div>
   )
+}
+
+function appointmentTone(status: string) {
+  if (status === 'COMPLETED') return 'success' as const
+  if (status === 'CANCELLED') return 'danger' as const
+  if (status === 'NO_SHOW') return 'attention' as const
+  if (status === 'CONFIRMED') return 'calm' as const
+  return 'violet' as const
 }

@@ -8,4 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ServiceRepository extends JpaRepository<Service, UUID> {
 
     List<Service> findByStudioId(UUID studioId);
+
+    List<Service> findByStudioIdAndIsActiveTrue(UUID studioId);
 }

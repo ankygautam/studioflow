@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from '../components/layout/app-shell'
-import { ProtectedRoute, PublicOnlyRoute } from '../features/auth/route-guards'
+import { ProtectedRoute, PublicOnlyRoute, RoleRoute } from '../features/auth/route-guards'
 import { AnalyticsPage } from '../pages/analytics-page'
 import { AppointmentsPage } from '../pages/appointments-page'
 import { ForgotPasswordPage } from '../pages/auth/forgot-password-page'
@@ -12,6 +12,7 @@ import { DashboardPage } from '../pages/dashboard-page'
 import { FormsPage } from '../pages/forms-page'
 import { PlaceholderPage } from '../pages/placeholder-page'
 import { PaymentsPage } from '../pages/payments-page'
+import { PublicBookingPage } from '../pages/public-booking-page'
 import { ServicesPage } from '../pages/services-page'
 import { SettingsPage } from '../pages/settings-page'
 import { StaffPage } from '../pages/staff-page'
@@ -45,6 +46,14 @@ export function App() {
         }
       />
       <Route
+        path="/book"
+        element={<Navigate replace to="/book/studioflow-hq" />}
+      />
+      <Route
+        path="/book/:studioSlug"
+        element={<PublicBookingPage />}
+      />
+      <Route
         path="/"
         element={
           <ProtectedRoute>
@@ -53,16 +62,98 @@ export function App() {
         }
       >
         <Route index element={<Navigate replace to="/dashboard" />} />
-        <Route path="dashboard" element={<DashboardPage />} />
-        <Route path="calendar" element={<CalendarPage />} />
-        <Route path="appointments" element={<AppointmentsPage />} />
-        <Route path="clients" element={<ClientsPage />} />
-        <Route path="staff" element={<StaffPage />} />
-        <Route path="services" element={<ServicesPage />} />
-        <Route path="payments" element={<PaymentsPage />} />
-        <Route path="forms" element={<FormsPage />} />
-        <Route path="analytics" element={<AnalyticsPage />} />
-        <Route path="settings" element={<SettingsPage />} />
+        <Route
+          path="dashboard"
+          element={
+            <RoleRoute allowedSlugs={['dashboard']}>
+              <DashboardPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="calendar"
+          element={
+            <RoleRoute allowedSlugs={['calendar']}>
+              <CalendarPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="appointments"
+          element={
+            <RoleRoute allowedSlugs={['appointments']}>
+              <AppointmentsPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="clients"
+          element={
+            <RoleRoute allowedSlugs={['clients']}>
+              <ClientsPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="staff"
+          element={
+            <RoleRoute allowedSlugs={['staff']}>
+              <StaffPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="services"
+          element={
+            <RoleRoute allowedSlugs={['services']}>
+              <ServicesPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="payments"
+          element={
+            <RoleRoute allowedSlugs={['payments']}>
+              <PaymentsPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="forms"
+          element={
+            <RoleRoute allowedSlugs={['forms']}>
+              <FormsPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="analytics"
+          element={
+            <RoleRoute allowedSlugs={['analytics']}>
+              <AnalyticsPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="settings"
+          element={
+            <RoleRoute allowedSlugs={['settings']}>
+              <SettingsPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="customer"
+          element={
+            <RoleRoute allowedSlugs={['customer']}>
+              <PlaceholderPage
+                eyebrow="Customer"
+                title="Customer portal"
+                description="Your self-service booking space is being prepared. For now, this account is intentionally limited to protect studio operations."
+              />
+            </RoleRoute>
+          }
+        />
         {navigationItems
           .filter(
             (item) =>

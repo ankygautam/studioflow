@@ -1,15 +1,16 @@
 package com.studioflow.controller;
 
-import com.studioflow.dto.staff.CreateStaffRequest;
+import com.studioflow.dto.staff.StaffCreateRequest;
 import com.studioflow.dto.staff.StaffResponse;
-import com.studioflow.dto.staff.UpdateStaffRequest;
-import com.studioflow.service.StaffManagementService;
+import com.studioflow.dto.staff.StaffUpdateRequest;
+import com.studioflow.service.StaffService;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,37 +26,44 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class StaffController {
 
-    private final StaffManagementService staffManagementService;
+    private final StaffService staffService;
 
     @PostMapping
-    public ResponseEntity<StaffResponse> create(@Valid @RequestBody CreateStaffRequest request) {
-        StaffResponse response = staffManagementService.create(request);
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<StaffResponse> createStaff(
+        @Valid @RequestBody StaffCreateRequest request
+    ) {
+        StaffResponse response = staffService.createStaff(request);
         return ResponseEntity.created(URI.create("/api/staff/" + response.id())).body(response);
     }
 
     @GetMapping
-    public ResponseEntity<List<StaffResponse>> getAll(
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST','STAFF')")
+    public ResponseEntity<List<StaffResponse>> getAllStaff(
         @RequestParam(required = false) UUID studioId
     ) {
-        return ResponseEntity.ok(staffManagementService.getAll(studioId));
+        return ResponseEntity.ok(staffService.getAllStaff(studioId));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<StaffResponse> getById(@PathVariable UUID id) {
-        return ResponseEntity.ok(staffManagementService.getById(id));
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST','STAFF')")
+    public ResponseEntity<StaffResponse> getStaffById(@PathVariable UUID id) {
+        return ResponseEntity.ok(staffService.getStaffById(id));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<StaffResponse> update(
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<StaffResponse> updateStaff(
         @PathVariable UUID id,
-        @Valid @RequestBody UpdateStaffRequest request
+        @Valid @RequestBody StaffUpdateRequest request
     ) {
-        return ResponseEntity.ok(staffManagementService.update(id, request));
+        return ResponseEntity.ok(staffService.updateStaff(id, request));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        staffManagementService.deactivate(id);
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteStaff(@PathVariable UUID id) {
+        staffService.deleteStaff(id);
         return ResponseEntity.noContent().build();
     }
 }

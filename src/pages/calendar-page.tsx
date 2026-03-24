@@ -1,101 +1,120 @@
 import { motion } from 'framer-motion'
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { AppointmentDrawer } from '../components/appointments/appointment-drawer'
 import { SurfaceCard } from '../components/layout/app-shell'
-import { DetailDrawer } from '../components/ui/detail-drawer'
+import { EmptyState, ErrorState, LoadingState } from '../components/ui/async-state'
 import { StatusBadge } from '../components/ui/status-badge'
+import { canCreateBookings } from '../features/auth/authorization'
+import { useAuth } from '../features/auth/use-auth'
+import { useRemoteList } from '../hooks/use-remote-list'
+import { appointmentTone, type AppointmentFormState } from '../lib/appointments'
+import { getAppointments } from '../lib/api/appointments-api'
+import { getDefaultStudioId } from '../lib/api/http'
+import { getServices } from '../lib/api/services-api'
+import { getStaff } from '../lib/api/staff-api'
+import type { AppointmentRecord, AppointmentStatus } from '../lib/api/types'
+import { formatTime, humanizeEnum } from '../lib/formatters'
 
-type BookingStatus = 'Booked' | 'Cancelled' | 'Completed' | 'Confirmed' | 'No-show'
-
-type Booking = {
-  client: string
-  deposit: string
-  id: string
-  service: string
-  staff: string
-  start: number
-  status: BookingStatus
-  summary: string
-}
-
-const staffColumns = [
-  { accent: 'from-[#b7d9ff] to-[#d3d8ff]', id: 'nina', name: 'Nina Hart', role: 'Fine line tattoo' },
-  { accent: 'from-[#b5ead8] to-[#d2f0e7]', id: 'elena', name: 'Elena Cross', role: 'Color specialist' },
-  { accent: 'from-[#f2d3b0] to-[#f4e3c8]', id: 'luis', name: 'Luis Cole', role: 'Barbering' },
-  { accent: 'from-[#d9d0ff] to-[#ebd9ff]', id: 'jules', name: 'Jules Kim', role: 'Piercing' },
-] as const
-
-const bookings: Booking[] = [
-  {
-    client: 'Maya Laurent',
-    deposit: 'Deposit paid',
-    id: 'bk-1',
-    service: 'Fine line consult',
-    staff: 'nina',
-    start: 9,
-    status: 'Confirmed',
-    summary: 'Reference review and stencil direction',
-  },
-  {
-    client: 'Elise Nguyen',
-    deposit: 'Booked',
-    id: 'bk-2',
-    service: 'Nail refill',
-    staff: 'elena',
-    start: 10,
-    status: 'Booked',
-    summary: 'Color refresh and shaping',
-  },
-  {
-    client: 'Drew Foster',
-    deposit: 'Balance due',
-    id: 'bk-3',
-    service: 'Fade + beard sculpt',
-    staff: 'luis',
-    start: 11,
-    status: 'Completed',
-    summary: 'Add hot towel finish',
-  },
-  {
-    client: 'Amara Singh',
-    deposit: 'No-show risk',
-    id: 'bk-4',
-    service: 'Jewelry styling',
-    staff: 'jules',
-    start: 13,
-    status: 'No-show',
-    summary: 'Client asked to confirm final placement',
-  },
-  {
-    client: 'Tessa Cole',
-    deposit: 'Cancelled by client',
-    id: 'bk-5',
-    service: 'Wellness reset',
-    staff: 'elena',
-    start: 15,
-    status: 'Cancelled',
-    summary: 'Reschedule request pending',
-  },
+const hourSlots = Array.from({ length: 10 }, (_, index) => 9 + index)
+const staffAccents = [
+  'from-[#b7d9ff] to-[#d3d8ff]',
+  'from-[#b5ead8] to-[#d2f0e7]',
+  'from-[#f2d3b0] to-[#f4e3c8]',
+  'from-[#d9d0ff] to-[#ebd9ff]',
 ]
 
-const timeLabels = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00']
-
 export function CalendarPage() {
-  const [view, setView] = useState<'Day' | 'Month' | 'Week'>('Day')
-  const [selectedStaff, setSelectedStaff] = useState('All staff')
-  const [selectedStatus, setSelectedStatus] = useState('All statuses')
-  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(bookings[0].id)
+  const { user } = useAuth()
+  const allowCreate = user ? canCreateBookings(user.role) : false
+  const defaultStudioId = getDefaultStudioId()
+  const loadAppointments = useCallback(() => getAppointments(defaultStudioId), [defaultStudioId])
+  const loadStaff = useCallback(() => getStaff(defaultStudioId), [defaultStudioId])
+  const loadServices = useCallback(() => getServices(defaultStudioId), [defaultStudioId])
 
-  const selectedBooking = bookings.find((booking) => booking.id === selectedBookingId) ?? null
-  const visibleBookings = useMemo(
+  const { data: appointments, error: appointmentsError, isLoading: appointmentsLoading, reload } = useRemoteList(loadAppointments)
+  const { data: staffMembers, error: staffError, isLoading: staffLoading } = useRemoteList(loadStaff)
+  const { data: services, error: servicesError, isLoading: servicesLoading } = useRemoteList(loadServices)
+
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [draft, setDraft] = useState<Partial<AppointmentFormState> | null>(null)
+  const [editingAppointment, setEditingAppointment] = useState<AppointmentRecord | null>(null)
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [selectedDate, setSelectedDate] = useState(getTodayDateValue())
+  const [selectedService, setSelectedService] = useState('ALL')
+  const [selectedStaff, setSelectedStaff] = useState('ALL')
+  const [selectedStatus, setSelectedStatus] = useState<'ALL' | AppointmentStatus>('ALL')
+  const [view, setView] = useState<'Day' | 'Month' | 'Week'>('Day')
+
+  const dependenciesLoading = appointmentsLoading || staffLoading || servicesLoading
+  const dependenciesError = appointmentsError || staffError || servicesError
+
+  const visibleAppointments = useMemo(
     () =>
-      bookings.filter((booking) => {
-        const staffMatch = selectedStaff === 'All staff' || booking.staff === selectedStaff
-        const statusMatch =
-          selectedStatus === 'All statuses' || booking.status === selectedStatus
-        return staffMatch && statusMatch
+      appointments.filter((appointment) => {
+        if (appointment.appointmentDate !== selectedDate) {
+          return false
+        }
+
+        if (selectedStaff !== 'ALL' && appointment.staffProfileId !== selectedStaff) {
+          return false
+        }
+
+        if (selectedService !== 'ALL' && appointment.serviceId !== selectedService) {
+          return false
+        }
+
+        if (selectedStatus !== 'ALL' && appointment.status !== selectedStatus) {
+          return false
+        }
+
+        return true
       }),
-    [selectedStaff, selectedStatus],
+    [appointments, selectedDate, selectedService, selectedStaff, selectedStatus],
   )
+
+  useEffect(() => {
+    if (!allowCreate || searchParams.get('newBooking') !== '1' || isDrawerOpen) {
+      return
+    }
+
+    setEditingAppointment(null)
+    setDraft({
+      appointmentDate: selectedDate,
+      source: 'ADMIN_CREATED',
+      status: 'BOOKED',
+    })
+    setIsDrawerOpen(true)
+  }, [allowCreate, isDrawerOpen, searchParams, selectedDate])
+
+  const closeDrawer = () => {
+    setDraft(null)
+    setEditingAppointment(null)
+    setIsDrawerOpen(false)
+
+    if (searchParams.get('newBooking') === '1') {
+      const nextParams = new URLSearchParams(searchParams)
+      nextParams.delete('newBooking')
+      setSearchParams(nextParams)
+    }
+  }
+
+  const openCreateDrawer = (nextDraft?: Partial<AppointmentFormState>) => {
+    setEditingAppointment(null)
+    setDraft({
+      appointmentDate: selectedDate,
+      source: 'ADMIN_CREATED',
+      status: 'BOOKED',
+      ...nextDraft,
+    })
+    setIsDrawerOpen(true)
+  }
+
+  const openEditDrawer = (appointment: AppointmentRecord) => {
+    setDraft(null)
+    setEditingAppointment(appointment)
+    setIsDrawerOpen(true)
+  }
 
   return (
     <div className="space-y-6">
@@ -113,18 +132,26 @@ export function CalendarPage() {
               Booking calendar
             </h1>
             <p className="mt-4 max-w-3xl text-base leading-8 text-slate-600 md:text-lg">
-              A premium timeline for managing day-to-day appointments across
-              staff, services, and booking states without visual clutter.
+              A premium timeline for managing day-to-day appointments across staff, services, and booking states without visual clutter.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <div className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">
-              Monday, March 23
-            </div>
-            <button className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(15,23,42,0.18)]">
-              Create booking
-            </button>
+            <input
+              className="h-12 rounded-full border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-600 outline-none"
+              onChange={(event) => setSelectedDate(event.target.value)}
+              type="date"
+              value={selectedDate}
+            />
+            {allowCreate ? (
+              <button
+                className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
+                onClick={() => openCreateDrawer()}
+                type="button"
+              >
+                New booking
+              </button>
+            ) : null}
           </div>
         </div>
       </motion.section>
@@ -135,15 +162,36 @@ export function CalendarPage() {
             <div className="flex flex-wrap items-center gap-3">
               <ToolbarSelect
                 label="Staff"
-                options={['All staff', ...staffColumns.map((staff) => staff.id)]}
-                value={selectedStaff}
                 onChange={setSelectedStaff}
+                options={[
+                  { label: 'All staff', value: 'ALL' },
+                  ...staffMembers.map((staffMember) => ({
+                    label: staffMember.displayName,
+                    value: staffMember.id,
+                  })),
+                ]}
+                value={selectedStaff}
+              />
+              <ToolbarSelect
+                label="Service"
+                onChange={setSelectedService}
+                options={[
+                  { label: 'All services', value: 'ALL' },
+                  ...services.map((service) => ({ label: service.name, value: service.id })),
+                ]}
+                value={selectedService}
               />
               <ToolbarSelect
                 label="Status"
-                options={['All statuses', 'Booked', 'Confirmed', 'Completed', 'Cancelled', 'No-show']}
+                onChange={(value) => setSelectedStatus(value as 'ALL' | AppointmentStatus)}
+                options={[
+                  { label: 'All statuses', value: 'ALL' },
+                  ...(['BOOKED', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'NO_SHOW'] as const).map((status) => ({
+                    label: humanizeEnum(status),
+                    value: status,
+                  })),
+                ]}
                 value={selectedStatus}
-                onChange={setSelectedStatus}
               />
               <div className="ml-auto flex items-center rounded-full border border-slate-200 bg-slate-50 p-1">
                 {(['Day', 'Week', 'Month'] as const).map((option) => (
@@ -164,144 +212,168 @@ export function CalendarPage() {
               </div>
             </div>
 
-            <div className="overflow-x-auto rounded-[28px] border border-slate-200 bg-slate-50/80">
-              <div className="min-w-[860px]">
-                <div
-                  className="grid border-b border-slate-200 bg-white"
-                  style={{ gridTemplateColumns: `90px repeat(${staffColumns.length}, minmax(180px, 1fr))` }}
-                >
-                  <div className="px-4 py-4 text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
-                    Time
-                  </div>
-                  {staffColumns.map((staff) => (
-                    <div key={staff.id} className="border-l border-slate-200 px-4 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${staff.accent} text-sm font-semibold text-slate-950`}>
-                          {staff.name.slice(0, 2).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-slate-950">{staff.name}</p>
-                          <p className="text-sm text-slate-500">{staff.role}</p>
-                        </div>
-                      </div>
+            {dependenciesLoading ? <LoadingState title="Loading calendar data..." /> : null}
+            {!dependenciesLoading && dependenciesError ? <ErrorState message={dependenciesError} /> : null}
+            {!dependenciesLoading && !dependenciesError && staffMembers.length === 0 ? (
+              <EmptyState
+                action={
+                  allowCreate ? (
+                    <button
+                      className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
+                      onClick={() => openCreateDrawer()}
+                      type="button"
+                    >
+                      New booking
+                    </button>
+                  ) : null
+                }
+                description="Add real staff profiles in the backend so the booking board can render team columns."
+                title="No staff available for the calendar"
+              />
+            ) : null}
+            {!dependenciesLoading && !dependenciesError && staffMembers.length > 0 ? (
+              <div className="overflow-x-auto rounded-[28px] border border-slate-200 bg-slate-50/80">
+                <div className="min-w-[860px]">
+                  <div
+                    className="grid border-b border-slate-200 bg-white"
+                    style={{ gridTemplateColumns: `90px repeat(${staffMembers.length}, minmax(180px, 1fr))` }}
+                  >
+                    <div className="px-4 py-4 text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
+                      Time
                     </div>
-                  ))}
-                </div>
-
-                <div
-                  className="grid"
-                  style={{ gridTemplateColumns: `90px repeat(${staffColumns.length}, minmax(180px, 1fr))` }}
-                >
-                  <div className="bg-white">
-                    {timeLabels.map((label) => (
-                      <div
-                        key={label}
-                        className="flex h-[108px] items-start justify-end border-t border-slate-200 px-4 py-4 text-sm font-semibold text-slate-500"
-                      >
-                        {label}
+                    {staffMembers.map((staffMember, index) => (
+                      <div key={staffMember.id} className="border-l border-slate-200 px-4 py-4">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${staffAccents[index % staffAccents.length]} text-sm font-semibold text-slate-950`}
+                          >
+                            {staffMember.displayName
+                              .split(' ')
+                              .slice(0, 2)
+                              .map((segment) => segment[0]?.toUpperCase())
+                              .join('')}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-slate-950">{staffMember.displayName}</p>
+                            <p className="text-sm text-slate-500">{staffMember.jobTitle || 'Studio staff'}</p>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
 
-                  {staffColumns.map((staff) => (
-                    <div key={staff.id} className="relative border-l border-slate-200 bg-white">
-                      {timeLabels.map((label, index) => (
+                  <div
+                    className="grid"
+                    style={{ gridTemplateColumns: `90px repeat(${staffMembers.length}, minmax(180px, 1fr))` }}
+                  >
+                    <div className="bg-white">
+                      {hourSlots.map((hour) => (
                         <div
-                          key={`${staff.id}-${label}`}
-                          className="h-[108px] border-t border-slate-200"
+                          key={hour}
+                          className="flex h-[108px] items-start justify-end border-t border-slate-200 px-4 py-4 text-sm font-semibold text-slate-500"
                         >
-                          {index === 0 ? null : null}
+                          {formatHourLabel(hour)}
                         </div>
                       ))}
-
-                      {visibleBookings
-                        .filter((booking) => booking.staff === staff.id)
-                        .map((booking) => (
-                          <button
-                            key={booking.id}
-                            className={[
-                              'absolute left-3 right-3 rounded-[22px] border p-4 text-left shadow-[0_16px_36px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5',
-                              booking.status === 'Confirmed'
-                                ? 'border-blue-200 bg-blue-50'
-                                : booking.status === 'Booked'
-                                  ? 'border-violet-200 bg-violet-50'
-                                  : booking.status === 'Completed'
-                                    ? 'border-emerald-200 bg-emerald-50'
-                                    : booking.status === 'Cancelled'
-                                      ? 'border-rose-200 bg-rose-50'
-                                      : 'border-amber-200 bg-amber-50',
-                            ].join(' ')}
-                            onClick={() => setSelectedBookingId(booking.id)}
-                            style={{ top: `${(booking.start - 9) * 108 + 12}px` }}
-                            type="button"
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <p className="text-sm font-semibold text-slate-700">
-                                  {booking.start}:00
-                                </p>
-                                <p className="mt-2 font-semibold text-slate-950">{booking.client}</p>
-                                <p className="mt-1 text-sm text-slate-600">{booking.service}</p>
-                              </div>
-                              <StatusBadge tone={badgeTone(booking.status)}>{booking.status}</StatusBadge>
-                            </div>
-                          </button>
-                        ))}
                     </div>
-                  ))}
+
+                    {staffMembers.map((staffMember) => (
+                      <div key={staffMember.id} className="relative border-l border-slate-200 bg-white">
+                        {hourSlots.map((hour) => (
+                          <button
+                            key={`${staffMember.id}-${hour}`}
+                            className={[
+                              'block h-[108px] w-full border-t border-slate-200 transition',
+                              allowCreate ? 'hover:bg-slate-50/80' : 'cursor-default',
+                            ].join(' ')}
+                            disabled={!allowCreate}
+                            onClick={() => {
+                              if (!allowCreate) {
+                                return
+                              }
+
+                              openCreateDrawer({
+                                appointmentDate: selectedDate,
+                                endTime: `${String(hour + 1).padStart(2, '0')}:00`,
+                                staffProfileId: staffMember.id,
+                                startTime: `${String(hour).padStart(2, '0')}:00`,
+                              })
+                            }}
+                            type="button"
+                          />
+                        ))}
+
+                        {visibleAppointments
+                          .filter((appointment) => appointment.staffProfileId === staffMember.id)
+                          .map((appointment) => (
+                            <button
+                              key={appointment.id}
+                              className={[
+                                'absolute left-3 right-3 z-10 rounded-[22px] border p-4 text-left shadow-[0_16px_36px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5',
+                                appointment.status === 'CONFIRMED'
+                                  ? 'border-blue-200 bg-blue-50'
+                                  : appointment.status === 'BOOKED'
+                                    ? 'border-violet-200 bg-violet-50'
+                                    : appointment.status === 'COMPLETED'
+                                      ? 'border-emerald-200 bg-emerald-50'
+                                      : appointment.status === 'CANCELLED'
+                                        ? 'border-rose-200 bg-rose-50'
+                                        : 'border-amber-200 bg-amber-50',
+                              ].join(' ')}
+                              onClick={() => openEditDrawer(appointment)}
+                              style={appointmentCardStyle(appointment)}
+                              type="button"
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="text-sm font-semibold text-slate-700">
+                                    {formatTime(appointment.startTime)}
+                                  </p>
+                                  <p className="mt-2 font-semibold text-slate-950">{appointment.customerName}</p>
+                                  <p className="mt-1 text-sm text-slate-600">{appointment.serviceName}</p>
+                                </div>
+                                <StatusBadge tone={appointmentTone(appointment.status)}>
+                                  {humanizeEnum(appointment.status)}
+                                </StatusBadge>
+                              </div>
+                            </button>
+                          ))}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : null}
           </div>
         </SurfaceCard>
 
         <div className="space-y-6">
           <SurfaceCard title="Booking states">
             <div className="flex flex-wrap gap-2">
-              {(['Booked', 'Confirmed', 'Completed', 'Cancelled', 'No-show'] as const).map((status) => (
-                <StatusBadge key={status} tone={badgeTone(status)}>
-                  {status}
+              {(['BOOKED', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'NO_SHOW'] as const).map((status) => (
+                <StatusBadge key={status} tone={appointmentTone(status)}>
+                  {humanizeEnum(status)}
                 </StatusBadge>
               ))}
             </div>
             <div className="mt-5 space-y-3">
-              <MiniInsight label="Today fill rate" value="84%" />
-              <MiniInsight label="Pending confirmations" value="5 bookings" />
-              <MiniInsight label="Open prime slots" value="2 after 4 PM" />
+              <MiniInsight label="Bookings on day" value={String(visibleAppointments.length)} />
+              <MiniInsight label="Staff visible" value={String(staffMembers.length)} />
+              <MiniInsight label="Current view" value={`${view} board`} />
             </div>
           </SurfaceCard>
         </div>
       </section>
 
-      <DetailDrawer
-        footer={
-          <div className="flex flex-wrap gap-3">
-            <button className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600">
-              Reschedule
-            </button>
-            <button className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white">
-              Mark complete
-            </button>
-          </div>
-        }
-        onClose={() => setSelectedBookingId(null)}
-        open={Boolean(selectedBooking)}
-        subtitle="Appointment details"
-        title={selectedBooking?.client ?? 'Booking'}
-      >
-        {selectedBooking ? (
-          <div className="space-y-4">
-            <InfoBlock label="Service" value={selectedBooking.service} />
-            <InfoBlock
-              label="Assigned staff"
-              value={staffColumns.find((staff) => staff.id === selectedBooking.staff)?.name ?? ''}
-            />
-            <InfoBlock label="Status" value={selectedBooking.status} />
-            <InfoBlock label="Payment" value={selectedBooking.deposit} />
-            <InfoBlock label="Notes" value={selectedBooking.summary} />
-          </div>
-        ) : null}
-      </DetailDrawer>
+      <AppointmentDrawer
+        appointment={editingAppointment}
+        allowCreate={allowCreate}
+        allowDelete={allowCreate}
+        draft={draft}
+        onClose={closeDrawer}
+        onSaved={reload}
+        open={isDrawerOpen}
+      />
     </div>
   )
 }
@@ -314,7 +386,7 @@ function ToolbarSelect({
 }: {
   label: string
   onChange: (value: string) => void
-  options: string[]
+  options: { label: string; value: string }[]
   value: string
 }) {
   return (
@@ -328,8 +400,8 @@ function ToolbarSelect({
         value={value}
       >
         {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
+          <option key={option.value} value={option.value}>
+            {option.label}
           </option>
         ))}
       </select>
@@ -346,19 +418,29 @@ function MiniInsight({ label, value }: { label: string; value: string }) {
   )
 }
 
-function InfoBlock({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">{label}</p>
-      <p className="mt-2 text-sm leading-7 text-slate-700">{value}</p>
-    </div>
-  )
+function formatHourLabel(hour: number) {
+  const suffix = hour >= 12 ? 'PM' : 'AM'
+  const normalizedHour = hour > 12 ? hour - 12 : hour
+  return `${normalizedHour}:00 ${suffix}`
 }
 
-function badgeTone(status: BookingStatus) {
-  if (status === 'Confirmed') return 'calm' as const
-  if (status === 'Completed') return 'success' as const
-  if (status === 'Cancelled') return 'danger' as const
-  if (status === 'No-show') return 'attention' as const
-  return 'violet' as const
+function appointmentCardStyle(appointment: AppointmentRecord) {
+  const startMinutes = timeToMinutes(appointment.startTime)
+  const endMinutes = timeToMinutes(appointment.endTime)
+  const topOffset = ((startMinutes - 9 * 60) / 60) * 108 + 12
+  const height = Math.max(((endMinutes - startMinutes) / 60) * 108 - 16, 72)
+
+  return {
+    height: `${height}px`,
+    top: `${topOffset}px`,
+  }
+}
+
+function timeToMinutes(value: string) {
+  const [hours, minutes] = value.split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+function getTodayDateValue() {
+  return new Date().toISOString().slice(0, 10)
 }

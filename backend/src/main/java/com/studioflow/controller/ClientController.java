@@ -1,15 +1,16 @@
 package com.studioflow.controller;
 
+import com.studioflow.dto.client.ClientCreateRequest;
 import com.studioflow.dto.client.ClientResponse;
-import com.studioflow.dto.client.CreateClientRequest;
-import com.studioflow.dto.client.UpdateClientRequest;
-import com.studioflow.service.ClientManagementService;
+import com.studioflow.dto.client.ClientUpdateRequest;
+import com.studioflow.service.ClientService;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,37 +26,44 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ClientController {
 
-    private final ClientManagementService clientManagementService;
+    private final ClientService clientService;
 
     @PostMapping
-    public ResponseEntity<ClientResponse> create(@Valid @RequestBody CreateClientRequest request) {
-        ClientResponse response = clientManagementService.create(request);
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST')")
+    public ResponseEntity<ClientResponse> createClient(
+        @Valid @RequestBody ClientCreateRequest request
+    ) {
+        ClientResponse response = clientService.createClient(request);
         return ResponseEntity.created(URI.create("/api/clients/" + response.id())).body(response);
     }
 
     @GetMapping
-    public ResponseEntity<List<ClientResponse>> getAll(
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST')")
+    public ResponseEntity<List<ClientResponse>> getAllClients(
         @RequestParam(required = false) UUID studioId
     ) {
-        return ResponseEntity.ok(clientManagementService.getAll(studioId));
+        return ResponseEntity.ok(clientService.getAllClients(studioId));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ClientResponse> getById(@PathVariable UUID id) {
-        return ResponseEntity.ok(clientManagementService.getById(id));
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST')")
+    public ResponseEntity<ClientResponse> getClientById(@PathVariable UUID id) {
+        return ResponseEntity.ok(clientService.getClientById(id));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ClientResponse> update(
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST')")
+    public ResponseEntity<ClientResponse> updateClient(
         @PathVariable UUID id,
-        @Valid @RequestBody UpdateClientRequest request
+        @Valid @RequestBody ClientUpdateRequest request
     ) {
-        return ResponseEntity.ok(clientManagementService.update(id, request));
+        return ResponseEntity.ok(clientService.updateClient(id, request));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        clientManagementService.deactivate(id);
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST')")
+    public ResponseEntity<Void> deleteClient(@PathVariable UUID id) {
+        clientService.deleteClient(id);
         return ResponseEntity.noContent().build();
     }
 }

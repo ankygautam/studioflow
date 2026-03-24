@@ -1,136 +1,384 @@
-import { useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { SurfaceCard } from '../components/layout/app-shell'
+import { EmptyState, ErrorState, LoadingState } from '../components/ui/async-state'
 import { DetailDrawer } from '../components/ui/detail-drawer'
+import { InputField, TextAreaField, ToggleField } from '../components/ui/form-controls'
+import { PageHeader } from '../components/ui/page-header'
 import { StatusBadge } from '../components/ui/status-badge'
+import { canManageClients } from '../features/auth/authorization'
+import { useAuth } from '../features/auth/use-auth'
+import { useRemoteList } from '../hooks/use-remote-list'
+import { formatDate } from '../lib/formatters'
+import { getConsentFormSubmissions } from '../lib/api/consent-forms-api'
+import { getDefaultStudioId } from '../lib/api/http'
+import { createClient, deleteClient, getClients, updateClient } from '../lib/api/clients-api'
+import type { ClientRecord, ConsentFormStatus, ConsentFormSubmissionRecord } from '../lib/api/types'
 
-const clients = [
-  {
-    consent: 'Signed',
-    email: 'maya@studioflow.co',
-    id: 'client-1',
-    lastVisit: 'Mar 18',
-    name: 'Maya Laurent',
-    note: 'Prefers direct follow-up by text.',
-    phone: '(555) 218-4422',
-  },
-  {
-    consent: 'Pending',
-    email: 'amara@studioflow.co',
-    id: 'client-2',
-    lastVisit: 'Mar 16',
-    name: 'Amara Singh',
-    note: 'Needs jewelry placement approval before booking.',
-    phone: '(555) 392-1882',
-  },
-  {
-    consent: 'Signed',
-    email: 'drew@studioflow.co',
-    id: 'client-3',
-    lastVisit: 'Mar 14',
-    name: 'Drew Foster',
-    note: 'Usually books barber package every 3 weeks.',
-    phone: '(555) 555-8184',
-  },
-] as const
+type ClientFormState = {
+  dateOfBirth: string
+  email: string
+  fullName: string
+  isActive: boolean
+  notes: string
+  phone: string
+  studioId: string
+}
 
 export function ClientsPage() {
-  const [selectedId, setSelectedId] = useState<string>(clients[0].id)
-  const selectedClient = clients.find((client) => client.id === selectedId) ?? clients[0]
+  const { user } = useAuth()
+  const canManage = user ? canManageClients(user.role) : false
+  const defaultStudioId = getDefaultStudioId()
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [mutationError, setMutationError] = useState<string | null>(null)
+  const [editingClient, setEditingClient] = useState<ClientRecord | null>(null)
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof ClientFormState, string>>>({})
+  const [formState, setFormState] = useState<ClientFormState>(createClientForm(defaultStudioId))
+
+  const loadClients = useCallback(() => getClients(defaultStudioId), [defaultStudioId])
+  const { data: clients, error, isLoading, reload } = useRemoteList(loadClients)
+  const loadClientConsent = useCallback(() => {
+    if (!editingClient?.id) {
+      return Promise.resolve([] as ConsentFormSubmissionRecord[])
+    }
+
+    return getConsentFormSubmissions({ customerProfileId: editingClient.id })
+  }, [editingClient?.id])
+  const {
+    data: clientConsentSubmissions,
+    error: clientConsentError,
+    isLoading: clientConsentLoading,
+  } = useRemoteList(loadClientConsent)
+
+  const openCreateDrawer = () => {
+    setEditingClient(null)
+    setMutationError(null)
+    setFormErrors({})
+    setFormState(createClientForm(defaultStudioId))
+    setIsDrawerOpen(true)
+  }
+
+  const openEditDrawer = (client: ClientRecord) => {
+    setEditingClient(client)
+    setMutationError(null)
+    setFormErrors({})
+    setFormState(createClientForm(client.studioId, client))
+    setIsDrawerOpen(true)
+  }
+
+  const closeDrawer = () => {
+    setIsDrawerOpen(false)
+    setEditingClient(null)
+    setMutationError(null)
+    setFormErrors({})
+  }
+
+  const handleSubmit = async () => {
+    const errors = validateClientForm(formState, editingClient?.studioId ?? defaultStudioId)
+    setFormErrors(errors)
+
+    if (Object.keys(errors).length > 0) {
+      return
+    }
+
+    const studioId = editingClient?.studioId ?? defaultStudioId ?? formState.studioId.trim()
+
+    if (!studioId) {
+      setMutationError('Set VITE_STUDIO_ID or provide a studio ID to save client records.')
+      return
+    }
+
+    const payload = {
+      dateOfBirth: formState.dateOfBirth || null,
+      email: formState.email.trim(),
+      fullName: formState.fullName.trim(),
+      isActive: formState.isActive,
+      notes: formState.notes.trim(),
+      phone: formState.phone.trim(),
+      studioId,
+    }
+
+    setIsSaving(true)
+    setMutationError(null)
+
+    try {
+      if (editingClient) {
+        await updateClient(editingClient.id, payload)
+      } else {
+        await createClient(payload)
+      }
+
+      await reload()
+      closeDrawer()
+    } catch (error) {
+      setMutationError(error instanceof Error ? error.message : 'Unable to save client right now.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!editingClient) {
+      return
+    }
+
+    setIsSaving(true)
+    setMutationError(null)
+
+    try {
+      await deleteClient(editingClient.id)
+      await reload()
+      closeDrawer()
+    } catch (error) {
+      setMutationError(error instanceof Error ? error.message : 'Unable to deactivate client right now.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const latestConsent = useMemo(
+    () => clientConsentSubmissions[0] ?? null,
+    [clientConsentSubmissions],
+  )
 
   return (
     <div className="space-y-6">
-      <Hero
+      <PageHeader
+        actions={canManage ? (
+          <button
+            className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
+            onClick={openCreateDrawer}
+            type="button"
+          >
+            Add client
+          </button>
+        ) : undefined}
+        description="A clean CRM-style view for real client records, notes, active status, and backend-linked profile details."
         eyebrow="Clients"
         title="Client relationships"
-        description="A clean CRM-style view for client records, notes, consent visibility, and appointment history."
       />
 
       <section>
         <SurfaceCard title="Client list">
-          <div className="space-y-3">
-            {clients.map((client) => (
-              <button
-                key={client.id}
-                className={[
-                  'w-full rounded-[24px] border px-4 py-4 text-left transition',
-                  selectedId === client.id
-                    ? 'border-slate-300 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.06)]'
-                    : 'border-slate-200 bg-slate-50 hover:bg-white',
-                ].join(' ')}
-                onClick={() => setSelectedId(client.id)}
-                type="button"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-slate-950">{client.name}</p>
-                    <p className="mt-1 text-sm text-slate-500">{client.email}</p>
+          {isLoading ? <LoadingState title="Loading clients..." /> : null}
+          {!isLoading && error ? (
+            <ErrorState
+              action={
+                <button
+                  className="rounded-full border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-600"
+                  onClick={() => void reload()}
+                  type="button"
+                >
+                  Retry
+                </button>
+              }
+              message={error}
+            />
+          ) : null}
+          {!isLoading && !error && clients.length === 0 ? (
+            <EmptyState
+              action={canManage ? (
+                <button
+                  className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
+                  onClick={openCreateDrawer}
+                  type="button"
+                >
+                  Add the first client
+                </button>
+              ) : undefined}
+              description="Real client records from the backend will appear here as soon as they are created."
+              title="No clients found yet"
+            />
+          ) : null}
+          {!isLoading && !error && clients.length > 0 ? (
+            <div className="space-y-3">
+              {clients.map((client) => (
+                <button
+                  key={client.id}
+                  className="w-full rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4 text-left transition hover:bg-white"
+                  onClick={() => openEditDrawer(client)}
+                  type="button"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-slate-950">{client.fullName}</p>
+                      <p className="mt-1 text-sm text-slate-500">{client.email || client.phone || 'No contact details yet'}</p>
+                    </div>
+                    <StatusBadge tone={client.isActive ? 'success' : 'neutral'}>
+                      {client.isActive ? 'Active' : 'Inactive'}
+                    </StatusBadge>
                   </div>
-                  <StatusBadge tone={client.consent === 'Signed' ? 'success' : 'attention'}>
-                    {client.consent}
-                  </StatusBadge>
-                </div>
-                <p className="mt-4 text-sm text-slate-600">{client.note}</p>
-              </button>
-            ))}
-          </div>
+                  <p className="mt-4 text-sm text-slate-600">
+                    {client.notes?.trim() ? client.notes : 'No notes added yet.'}
+                  </p>
+                </button>
+              ))}
+            </div>
+          ) : null}
         </SurfaceCard>
       </section>
 
       <DetailDrawer
         footer={
-          <button className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white">
-            Open full record
-          </button>
-        }
-        onClose={() => setSelectedId('')}
-        open={Boolean(selectedClient && selectedId)}
-        subtitle="Client profile"
-        title={selectedClient.name}
-      >
-        <div className="grid gap-6">
-          <div className="rounded-[26px] border border-slate-200 bg-[linear-gradient(135deg,rgba(183,217,255,0.16),rgba(181,234,216,0.18))] p-5">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Profile</p>
-                <h2 className="mt-3 font-display text-3xl text-slate-950">{selectedClient.name}</h2>
-              </div>
-              <StatusBadge tone={selectedClient.consent === 'Signed' ? 'success' : 'attention'}>
-                {selectedClient.consent} consent
-              </StatusBadge>
+          <div className="flex flex-wrap justify-between gap-3">
+            <div>
+              {editingClient && canManage ? (
+                <button
+                  className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700"
+                  disabled={isSaving}
+                  onClick={() => void handleDelete()}
+                  type="button"
+                >
+                  Deactivate client
+                </button>
+              ) : null}
             </div>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              <InfoCard label="Phone" value={selectedClient.phone} />
-              <InfoCard label="Email" value={selectedClient.email} />
-              <InfoCard label="Last visit" value={selectedClient.lastVisit} />
-              <InfoCard label="Preferred contact" value="Text first" />
+            <div className="flex flex-wrap gap-3">
+              <button
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600"
+                disabled={isSaving}
+                onClick={closeDrawer}
+                type="button"
+              >
+                Cancel
+              </button>
+              <button
+                className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                disabled={isSaving || !canManage}
+                onClick={() => void handleSubmit()}
+                type="button"
+              >
+                {isSaving ? 'Saving...' : editingClient ? 'Save changes' : 'Create client'}
+              </button>
             </div>
           </div>
-
-          <section>
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-400">Notes</p>
-            <div className="mt-3 rounded-[24px] border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm leading-7 text-slate-600">{selectedClient.note}</p>
+        }
+        onClose={closeDrawer}
+        open={isDrawerOpen}
+        subtitle="Client profile"
+        title={editingClient ? editingClient.fullName : 'Add client'}
+      >
+        <div className="space-y-6">
+          {mutationError ? <ErrorState message={mutationError} /> : null}
+          {editingClient ? (
+            <div className="rounded-[26px] border border-slate-200 bg-[linear-gradient(135deg,rgba(183,217,255,0.16),rgba(181,234,216,0.18))] p-5">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Profile</p>
+                  <h2 className="mt-3 font-display text-3xl text-slate-950">{editingClient.fullName}</h2>
+                </div>
+                <StatusBadge tone={editingClient.isActive ? 'success' : 'neutral'}>
+                  {editingClient.isActive ? 'Active record' : 'Inactive record'}
+                </StatusBadge>
+              </div>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <InfoCard label="Phone" value={editingClient.phone || 'Not added'} />
+                <InfoCard label="Email" value={editingClient.email || 'Not added'} />
+                <InfoCard label="Date of birth" value={editingClient.dateOfBirth || 'Not added'} />
+                <InfoCard label="Created" value={formatDate(editingClient.createdAt)} />
+              </div>
             </div>
-          </section>
+          ) : null}
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {!editingClient && !defaultStudioId ? (
+              <InputField
+                error={formErrors.studioId}
+                label="Studio ID"
+                onChange={(event) => setFormState((current) => ({ ...current, studioId: event.target.value }))}
+                placeholder="Paste the studio UUID"
+                value={formState.studioId}
+              />
+            ) : null}
+            <InputField
+              error={formErrors.fullName}
+              label="Full name"
+              onChange={(event) => setFormState((current) => ({ ...current, fullName: event.target.value }))}
+              placeholder="Maya Laurent"
+              value={formState.fullName}
+            />
+            <InputField
+              error={formErrors.email}
+              label="Email"
+              onChange={(event) => setFormState((current) => ({ ...current, email: event.target.value }))}
+              placeholder="maya@studioflow.co"
+              type="email"
+              value={formState.email}
+            />
+            <InputField
+              label="Phone"
+              onChange={(event) => setFormState((current) => ({ ...current, phone: event.target.value }))}
+              placeholder="(555) 123-4567"
+              value={formState.phone}
+            />
+            <InputField
+              label="Date of birth"
+              onChange={(event) => setFormState((current) => ({ ...current, dateOfBirth: event.target.value }))}
+              type="date"
+              value={formState.dateOfBirth}
+            />
+          </div>
+
+          <TextAreaField
+            label="Notes"
+            onChange={(event) => setFormState((current) => ({ ...current, notes: event.target.value }))}
+            placeholder="Preferences, booking notes, or follow-up context."
+            value={formState.notes}
+          />
+
+          <ToggleField
+            checked={formState.isActive}
+            label="Active client"
+            onChange={(checked) => setFormState((current) => ({ ...current, isActive: checked }))}
+          />
 
           <section>
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-400">Consent status</p>
-            <div className="mt-3 rounded-[24px] border border-slate-200 bg-slate-50 p-4">
-              <p className="font-semibold text-slate-950">{selectedClient.consent}</p>
-              <p className="mt-2 text-sm leading-7 text-slate-600">
-                Waiver visibility stays close to the profile so the team can spot outstanding approvals before service begins.
-              </p>
+            <div className="mt-3 space-y-3">
+              {clientConsentLoading ? <LoadingState title="Loading consent status..." /> : null}
+              {!clientConsentLoading && clientConsentError ? (
+                <ErrorState message={clientConsentError} />
+              ) : null}
+              {!clientConsentLoading && !clientConsentError && latestConsent ? (
+                <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-slate-950">{latestConsent.templateTitle}</p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Latest consent update for this client
+                      </p>
+                    </div>
+                    <StatusBadge tone={consentTone(latestConsent.status)}>
+                      {humanizeConsentStatus(latestConsent.status)}
+                    </StatusBadge>
+                  </div>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <InfoCard
+                      label="Signed"
+                      value={latestConsent.signedAt ? formatDate(latestConsent.signedAt) : 'Not signed'}
+                    />
+                    <InfoCard
+                      label="Appointment"
+                      value={latestConsent.appointmentDate ? formatDate(latestConsent.appointmentDate) : 'Not linked'}
+                    />
+                  </div>
+                </div>
+              ) : null}
+              {!clientConsentLoading && !clientConsentError && !latestConsent ? (
+                <div className="rounded-[24px] border border-dashed border-slate-200 bg-slate-50 p-4">
+                  <p className="font-semibold text-slate-950">No consent records yet</p>
+                  <p className="mt-2 text-sm leading-7 text-slate-600">
+                    This client has not been linked to a tracked consent submission yet.
+                  </p>
+                </div>
+              ) : null}
             </div>
           </section>
 
           <section>
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-400">Appointment history</p>
-            <div className="mt-3 space-y-3">
-              {['Fine line consult • Mar 18', 'Touch-up planning • Feb 24', 'Reference review • Jan 12'].map((entry) => (
-                <div key={entry} className="rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                  {entry}
-                </div>
-              ))}
+            <div className="mt-3 rounded-[24px] border border-slate-200 bg-slate-50 p-4 text-sm leading-7 text-slate-600">
+              Appointment history will populate here as connected appointment records expand across the backend.
             </div>
           </section>
         </div>
@@ -139,22 +387,34 @@ export function ClientsPage() {
   )
 }
 
-function Hero({
-  description,
-  eyebrow,
-  title,
-}: {
-  description: string
-  eyebrow: string
-  title: string
-}) {
-  return (
-    <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-[0_18px_44px_rgba(15,23,42,0.05)] md:p-7">
-      <p className="text-xs font-semibold uppercase tracking-[0.38em] text-slate-400">{eyebrow}</p>
-      <h1 className="mt-3 font-display text-4xl text-slate-950">{title}</h1>
-      <p className="mt-4 max-w-3xl text-base leading-8 text-slate-600">{description}</p>
-    </section>
-  )
+function createClientForm(studioId: string | null, client?: ClientRecord): ClientFormState {
+  return {
+    dateOfBirth: client?.dateOfBirth ?? '',
+    email: client?.email ?? '',
+    fullName: client?.fullName ?? '',
+    isActive: client?.isActive ?? true,
+    notes: client?.notes ?? '',
+    phone: client?.phone ?? '',
+    studioId: studioId ?? '',
+  }
+}
+
+function validateClientForm(formState: ClientFormState, studioId: string | null) {
+  const errors: Partial<Record<keyof ClientFormState, string>> = {}
+
+  if (!studioId && !formState.studioId.trim()) {
+    errors.studioId = 'Studio ID is required to create a client.'
+  }
+
+  if (!formState.fullName.trim()) {
+    errors.fullName = 'Full name is required.'
+  }
+
+  if (formState.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formState.email)) {
+    errors.email = 'Enter a valid email address.'
+  }
+
+  return errors
 }
 
 function InfoCard({ label, value }: { label: string; value: string }) {
@@ -164,4 +424,21 @@ function InfoCard({ label, value }: { label: string; value: string }) {
       <p className="mt-2 text-sm font-semibold text-slate-700">{value}</p>
     </div>
   )
+}
+
+function consentTone(status: ConsentFormStatus) {
+  switch (status) {
+    case 'SIGNED':
+      return 'success'
+    case 'PENDING':
+      return 'attention'
+    case 'EXPIRED':
+      return 'danger'
+    default:
+      return 'neutral'
+  }
+}
+
+function humanizeConsentStatus(status: ConsentFormStatus) {
+  return status.charAt(0) + status.slice(1).toLowerCase()
 }

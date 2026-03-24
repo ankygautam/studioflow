@@ -7,7 +7,6 @@ import java.util.UUID;
 public record ClientResponse(
     UUID id,
     UUID studioId,
-    String studioName,
     String fullName,
     String email,
     String phone,
@@ -15,6 +14,7 @@ public record ClientResponse(
     String notes,
     Boolean isActive,
     Instant createdAt,
-    Instant updatedAt
+    Instant updatedAt,
+    String studioName
 ) {
 }
