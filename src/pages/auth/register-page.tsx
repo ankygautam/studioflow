@@ -5,12 +5,10 @@ import { AuthFooterLinkRow } from '../../components/auth/auth-footer-link-row'
 import { AuthHeader } from '../../components/auth/auth-header'
 import { AuthInputField } from '../../components/auth/auth-input-field'
 import { AuthPasswordField } from '../../components/auth/auth-password-field'
-import { AuthSelectField } from '../../components/auth/auth-select-field'
 import { AuthSubmitButton } from '../../components/auth/auth-submit-button'
 import { ValidationMessage } from '../../components/auth/validation-message'
 import { AuthLayout } from '../../components/layout/auth-layout'
-import type { AuthRole } from '../../features/auth/auth-types'
-import { authRoleOptions, getRoleDestination, isValidEmail } from '../../features/auth/auth-utils'
+import { getRoleDestination, isValidEmail } from '../../features/auth/auth-utils'
 import { useAuth } from '../../features/auth/use-auth'
 
 export function RegisterPage() {
@@ -27,7 +25,6 @@ export function RegisterPage() {
     email: 'owner@studioflow.co',
     fullName: 'Avery North',
     password: 'password123',
-    role: 'admin' as AuthRole,
   })
 
   const errors = {
@@ -46,7 +43,6 @@ export function RegisterPage() {
           : '',
     fullName: !form.fullName.trim() ? 'Full name is required' : '',
     password: !form.password.trim() ? 'Password is required' : '',
-    role: !form.role ? 'Role is required' : '',
   }
 
   const isFormValid = Object.values(errors).every((value) => !value)
@@ -60,7 +56,6 @@ export function RegisterPage() {
       email: true,
       fullName: true,
       password: true,
-      role: true,
     })
 
     if (!isFormValid) {
@@ -160,16 +155,13 @@ export function RegisterPage() {
             value={form.businessName}
           />
 
-          <AuthSelectField
-            error={shouldShowError('role') ? errors.role : ''}
-            label="Role"
-            onBlur={() => setTouched((current) => ({ ...current, role: true }))}
-            onChange={(value) =>
-              setForm((current) => ({ ...current, role: value as AuthRole }))
-            }
-            options={authRoleOptions}
-            value={form.role}
-          />
+          <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Account type</p>
+            <p className="mt-2 text-sm font-semibold text-slate-900">Workspace owner</p>
+            <p className="mt-2 text-sm leading-7 text-slate-600">
+              Public signup creates the first admin account for a studio workspace. Staff and receptionist accounts should be added later from inside the app.
+            </p>
+          </div>
 
           <AuthSubmitButton
             disabled={isSubmitting || !isFormValid}

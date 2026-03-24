@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion'
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { AuthFooterLinkRow } from '../../components/auth/auth-footer-link-row'
 import { AuthHeader } from '../../components/auth/auth-header'
 import { AuthInputField } from '../../components/auth/auth-input-field'
 import { AuthPasswordField } from '../../components/auth/auth-password-field'
@@ -136,7 +135,9 @@ export function LoginPage() {
           <span className="font-semibold text-slate-950">password123</span>.
         </div>
 
-        <AuthFooterLinkRow actionLabel="Create an account" prompt="New to StudioFlow?" to="/register" />
+        <div className="mt-6 rounded-[24px] border border-slate-200 bg-white px-4 py-4 text-sm leading-7 text-slate-600">
+          Accounts are provisioned by the studio owner or admin. Use your assigned login details to access the workspace.
+        </div>
       </div>
     </AuthLayout>
   )

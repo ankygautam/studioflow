@@ -4,6 +4,10 @@ import { canAccessRoute } from './authorization'
 import { getRoleDestination } from './auth-utils'
 import { useAuth } from './use-auth'
 
+function requiresAdminOnboarding(user: NonNullable<ReturnType<typeof useAuth>['user']>) {
+  return user.role === 'admin' && (!user.studioId || !user.onboardingCompleted)
+}
+
 export function ProtectedRoute({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth()
   const location = useLocation()
@@ -16,7 +20,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
     return <Navigate replace state={{ from: location }} to="/login" />
   }
 
-  if (user && (!user.studioId || !user.onboardingCompleted) && location.pathname !== '/onboarding') {
+  if (user && requiresAdminOnboarding(user) && location.pathname !== '/onboarding') {
     return <Navigate replace to="/onboarding" />
   }
 
@@ -31,11 +35,34 @@ export function PublicOnlyRoute({ children }: { children: ReactNode }) {
   }
 
   if (isAuthenticated) {
-    if (!user?.studioId || !user.onboardingCompleted) {
+    if (user && requiresAdminOnboarding(user)) {
       return <Navigate replace to="/onboarding" />
     }
 
     return <Navigate replace to={getRoleDestination(user?.role ?? 'admin')} />
+  }
+
+  return <>{children}</>
+}
+
+export function AdminOnboardingRoute({ children }: { children: ReactNode }) {
+  const { isAuthenticated, isLoading, user } = useAuth()
+  const location = useLocation()
+
+  if (isLoading) {
+    return null
+  }
+
+  if (!isAuthenticated || !user) {
+    return <Navigate replace state={{ from: location }} to="/login" />
+  }
+
+  if (user.role !== 'admin') {
+    return <Navigate replace to={getRoleDestination(user.role)} />
+  }
+
+  if (user.studioId && user.onboardingCompleted) {
+    return <Navigate replace to="/dashboard" />
   }
 
   return <>{children}</>

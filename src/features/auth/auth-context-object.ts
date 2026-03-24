@@ -1,5 +1,5 @@
 import { createContext } from 'react'
-import type { AuthRole, AuthUser } from './auth-types'
+import type { AuthUser } from './auth-types'
 
 export type LoginInput = {
   email: string
@@ -13,7 +13,6 @@ export type RegisterInput = {
   email: string
   fullName: string
   password: string
-  role: AuthRole
 }
 
 export type AuthContextValue = {

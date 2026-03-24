@@ -25,7 +25,6 @@ export function register(payload: {
   email: string
   fullName: string
   password: string
-  role: BackendUserRole
 }) {
   return api.post<AuthResponse>('/api/auth/register', payload)
 }

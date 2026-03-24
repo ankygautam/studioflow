@@ -5,6 +5,7 @@ import com.studioflow.dto.auth.AuthRegisterRequest;
 import com.studioflow.dto.auth.AuthResponse;
 import com.studioflow.dto.auth.AuthUserResponse;
 import com.studioflow.entity.User;
+import com.studioflow.enums.UserRole;
 import com.studioflow.exception.BadRequestException;
 import com.studioflow.repository.StaffProfileRepository;
 import com.studioflow.repository.UserRepository;
@@ -39,7 +40,8 @@ public class AuthService {
         user.setFullName(request.fullName().trim());
         user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(request.password()));
-        user.setRole(request.role());
+        // Public registration creates the workspace owner account only.
+        user.setRole(UserRole.ADMIN);
         user.setIsActive(true);
 
         User savedUser = userRepository.save(user);

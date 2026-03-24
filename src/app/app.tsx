@@ -1,11 +1,10 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from '../components/layout/app-shell'
-import { ProtectedRoute, PublicOnlyRoute, RoleRoute } from '../features/auth/route-guards'
+import { AdminOnboardingRoute, ProtectedRoute, PublicOnlyRoute, RoleRoute } from '../features/auth/route-guards'
 import { AnalyticsPage } from '../pages/analytics-page'
 import { AppointmentsPage } from '../pages/appointments-page'
 import { ForgotPasswordPage } from '../pages/auth/forgot-password-page'
 import { LoginPage } from '../pages/auth/login-page'
-import { RegisterPage } from '../pages/auth/register-page'
 import { CalendarPage } from '../pages/calendar-page'
 import { ClientsPage } from '../pages/clients-page'
 import { DashboardPage } from '../pages/dashboard-page'
@@ -33,11 +32,7 @@ export function App() {
       />
       <Route
         path="/register"
-        element={
-          <PublicOnlyRoute>
-            <RegisterPage />
-          </PublicOnlyRoute>
-        }
+        element={<Navigate replace to="/login" />}
       />
       <Route
         path="/forgot-password"
@@ -50,9 +45,9 @@ export function App() {
       <Route
         path="/onboarding"
         element={
-          <ProtectedRoute>
+          <AdminOnboardingRoute>
             <OnboardingPage />
-          </ProtectedRoute>
+          </AdminOnboardingRoute>
         }
       />
       <Route

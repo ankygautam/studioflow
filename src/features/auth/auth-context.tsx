@@ -9,7 +9,7 @@ import {
 } from '../../lib/api/http'
 import { AuthContext, type AuthContextValue } from './auth-context-object'
 import type { AuthUser } from './auth-types'
-import { mapAuthRoleToBackend, mapBackendRole } from './auth-utils'
+import { mapBackendRole } from './auth-utils'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
@@ -98,12 +98,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSelectedLocationIdState(null)
       },
       refreshCurrentUser,
-      register: async ({ email, fullName, password, role }) => {
+      register: async ({ email, fullName, password }) => {
         const response = await registerRequest({
           email,
           fullName,
           password,
-          role: mapAuthRoleToBackend(role),
         })
         const nextUser: AuthUser = {
           email: response.user.email,
