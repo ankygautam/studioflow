@@ -13,6 +13,7 @@ import { FormsPage } from '../pages/forms-page'
 import { PlaceholderPage } from '../pages/placeholder-page'
 import { PaymentsPage } from '../pages/payments-page'
 import { PublicBookingPage } from '../pages/public-booking-page'
+import { PublicBookingManagePage } from '../pages/public-booking-manage-page'
 import { ServicesPage } from '../pages/services-page'
 import { SettingsPage } from '../pages/settings-page'
 import { StaffPage } from '../pages/staff-page'
@@ -52,6 +53,10 @@ export function App() {
       <Route
         path="/book/:studioSlug"
         element={<PublicBookingPage />}
+      />
+      <Route
+        path="/book/:studioSlug/manage"
+        element={<PublicBookingManagePage />}
       />
       <Route
         path="/"

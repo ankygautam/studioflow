@@ -8,6 +8,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.time.Instant;
 import java.util.Date;
+import java.util.Map;
+import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -15,13 +17,16 @@ import org.springframework.stereotype.Service;
 public class JwtService {
 
     private final long expirationMinutes;
+    private final long publicBookingExpirationMinutes;
     private final Key signingKey;
 
     public JwtService(
         @Value("${studioflow.security.jwt.secret}") String secret,
-        @Value("${studioflow.security.jwt.expiration-minutes}") long expirationMinutes
+        @Value("${studioflow.security.jwt.expiration-minutes}") long expirationMinutes,
+        @Value("${studioflow.security.jwt.public-booking-expiration-minutes:30}") long publicBookingExpirationMinutes
     ) {
         this.expirationMinutes = expirationMinutes;
+        this.publicBookingExpirationMinutes = publicBookingExpirationMinutes;
         this.signingKey = Keys.hmacShaKeyFor(normalizeSecret(secret));
     }
 
@@ -35,6 +40,35 @@ public class JwtService {
             .expiration(Date.from(now.plusSeconds(expirationMinutes * 60)))
             .signWith(signingKey)
             .compact();
+    }
+
+    public String generatePublicBookingManageToken(UUID appointmentId, UUID studioId, String bookingReference) {
+        Instant now = Instant.now();
+
+        return Jwts.builder()
+            .subject("public-booking-manage")
+            .claim("purpose", "PUBLIC_BOOKING_MANAGE")
+            .claim("appointmentId", appointmentId.toString())
+            .claim("studioId", studioId.toString())
+            .claim("bookingReference", bookingReference)
+            .issuedAt(Date.from(now))
+            .expiration(Date.from(now.plusSeconds(publicBookingExpirationMinutes * 60)))
+            .signWith(signingKey)
+            .compact();
+    }
+
+    public PublicBookingManageClaims parsePublicBookingManageToken(String token) {
+        Claims claims = parseClaims(token);
+
+        if (!"PUBLIC_BOOKING_MANAGE".equals(claims.get("purpose", String.class))) {
+            throw new IllegalArgumentException("Invalid public booking token");
+        }
+
+        return new PublicBookingManageClaims(
+            UUID.fromString(claims.get("appointmentId", String.class)),
+            UUID.fromString(claims.get("studioId", String.class)),
+            claims.get("bookingReference", String.class)
+        );
     }
 
     public String extractUsername(String token) {
@@ -73,5 +107,12 @@ public class JwtService {
         }
 
         return (trimmed + "-studioflow-jwt-padding-2026").getBytes(StandardCharsets.UTF_8);
+    }
+
+    public record PublicBookingManageClaims(
+        UUID appointmentId,
+        UUID studioId,
+        String bookingReference
+    ) {
     }
 }

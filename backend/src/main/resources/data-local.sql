@@ -244,6 +244,7 @@ INSERT INTO appointments (
     start_time,
     end_time,
     status,
+    booking_reference,
     notes,
     source
 ) VALUES
@@ -259,6 +260,7 @@ INSERT INTO appointments (
     TIME '10:30:00',
     TIME '11:30:00',
     'CONFIRMED',
+    'SF-ADMIN1',
     'Reference review and stencil direction.',
     'ADMIN_CREATED'
 ),
@@ -274,6 +276,7 @@ INSERT INTO appointments (
     TIME '12:00:00',
     TIME '13:15:00',
     'BOOKED',
+    'SF-BOOK01',
     'Client requested a polished finish with added volume.',
     'ONLINE_BOOKING'
 ),
@@ -289,6 +292,7 @@ INSERT INTO appointments (
     TIME '14:00:00',
     TIME '15:00:00',
     'COMPLETED',
+    'SF-COMP01',
     'Hot towel finish included.',
     'STAFF_CREATED'
 );

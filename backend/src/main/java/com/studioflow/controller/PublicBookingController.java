@@ -1,8 +1,13 @@
 package com.studioflow.controller;
 
 import com.studioflow.dto.booking.PublicBookingAvailabilityResponse;
+import com.studioflow.dto.booking.PublicBookingCancelRequest;
 import com.studioflow.dto.booking.PublicBookingConfirmationResponse;
 import com.studioflow.dto.booking.PublicBookingCreateRequest;
+import com.studioflow.dto.booking.PublicBookingLookupRequest;
+import com.studioflow.dto.booking.PublicBookingLookupResponse;
+import com.studioflow.dto.booking.PublicBookingManageResponse;
+import com.studioflow.dto.booking.PublicBookingRescheduleRequest;
 import com.studioflow.dto.booking.PublicBookingServicesResponse;
 import com.studioflow.dto.booking.PublicBookingStaffResponse;
 import com.studioflow.service.PublicBookingService;
@@ -64,5 +69,29 @@ public class PublicBookingController {
             .status(HttpStatus.CREATED)
             .location(URI.create("/api/public/booking/" + studioSlug + "/submit/" + response.appointmentId()))
             .body(response);
+    }
+
+    @PostMapping("/{studioSlug}/lookup")
+    public ResponseEntity<PublicBookingLookupResponse> lookupBooking(
+        @PathVariable String studioSlug,
+        @Valid @RequestBody PublicBookingLookupRequest request
+    ) {
+        return ResponseEntity.ok(publicBookingService.lookupBooking(studioSlug, request));
+    }
+
+    @PostMapping("/{studioSlug}/cancel")
+    public ResponseEntity<PublicBookingManageResponse> cancelBooking(
+        @PathVariable String studioSlug,
+        @Valid @RequestBody PublicBookingCancelRequest request
+    ) {
+        return ResponseEntity.ok(publicBookingService.cancelBooking(studioSlug, request));
+    }
+
+    @PostMapping("/{studioSlug}/reschedule")
+    public ResponseEntity<PublicBookingManageResponse> rescheduleBooking(
+        @PathVariable String studioSlug,
+        @Valid @RequestBody PublicBookingRescheduleRequest request
+    ) {
+        return ResponseEntity.ok(publicBookingService.rescheduleBooking(studioSlug, request));
     }
 }

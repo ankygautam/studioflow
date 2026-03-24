@@ -33,3 +33,4 @@ studioflow:
     jwt:
       secret: ${STUDIOFLOW_JWT_SECRET:studioflow-jwt-secret-key-change-me-2026}
       expiration-minutes: ${STUDIOFLOW_JWT_EXPIRATION_MINUTES:720}
+      public-booking-expiration-minutes: ${STUDIOFLOW_PUBLIC_BOOKING_TOKEN_EXPIRATION_MINUTES:30}

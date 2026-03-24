@@ -1,8 +1,13 @@
 import { api } from './http'
 import type {
   PublicBookingAvailabilityRecord,
+  PublicBookingCancelPayload,
   PublicBookingConfirmationRecord,
   PublicBookingCreatePayload,
+  PublicBookingLookupPayload,
+  PublicBookingLookupRecord,
+  PublicBookingManageRecord,
+  PublicBookingReschedulePayload,
   PublicBookingServicesRecord,
   PublicBookingStaffRecord,
 } from './types'
@@ -33,4 +38,16 @@ export function getPublicBookingAvailability(input: {
 
 export function createPublicBooking(studioSlug: string, payload: PublicBookingCreatePayload) {
   return api.post<PublicBookingConfirmationRecord>(`/api/public/booking/${encodeURIComponent(studioSlug)}/submit`, payload)
+}
+
+export function lookupPublicBooking(studioSlug: string, payload: PublicBookingLookupPayload) {
+  return api.post<PublicBookingLookupRecord>(`/api/public/booking/${encodeURIComponent(studioSlug)}/lookup`, payload)
+}
+
+export function cancelPublicBooking(studioSlug: string, payload: PublicBookingCancelPayload) {
+  return api.post<PublicBookingManageRecord>(`/api/public/booking/${encodeURIComponent(studioSlug)}/cancel`, payload)
+}
+
+export function reschedulePublicBooking(studioSlug: string, payload: PublicBookingReschedulePayload) {
+  return api.post<PublicBookingManageRecord>(`/api/public/booking/${encodeURIComponent(studioSlug)}/reschedule`, payload)
 }

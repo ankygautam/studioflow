@@ -57,6 +57,9 @@ public class Appointment extends BaseEntity {
     @Column(name = "status", nullable = false, length = 40)
     private AppointmentStatus status;
 
+    @Column(name = "booking_reference", unique = true, length = 32)
+    private String bookingReference;
+
     @Column(name = "notes", columnDefinition = "text")
     private String notes;
 

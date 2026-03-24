@@ -527,6 +527,7 @@ export function PublicBookingPage() {
                   <h2 className="mt-3 text-3xl font-semibold text-slate-950">{confirmation.serviceName}</h2>
                   <div className="mt-5 grid gap-3 md:grid-cols-2">
                     <SummaryRow label="Guest" value={confirmation.customerName} />
+                    <SummaryRow label="Reference" value={confirmation.bookingReference} />
                     <SummaryRow label="Specialist" value={confirmation.staffName} />
                     <SummaryRow label="Date" value={formatDate(confirmation.appointmentDate)} />
                     <SummaryRow
@@ -553,11 +554,21 @@ export function PublicBookingPage() {
                     Book another appointment
                   </button>
                   <Link
+                    className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700"
+                    to={`/book/${studioSlug}/manage?reference=${encodeURIComponent(confirmation.bookingReference)}`}
+                  >
+                    Manage this booking
+                  </Link>
+                  <Link
                     className="rounded-full border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-600"
                     to={`/book/${studioSlug}`}
                   >
                     Start another booking
                   </Link>
+                </div>
+                <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-5 py-4 text-sm leading-7 text-slate-600">
+                  <p className="font-semibold text-slate-900">Need help? Contact studio</p>
+                  <p className="mt-2">Save your booking reference and contact the studio directly if you need support beyond simple public changes.</p>
                 </div>
               </section>
             ) : null}

@@ -325,6 +325,7 @@ export interface PublicBookingCreatePayload {
 export interface PublicBookingConfirmationRecord {
   appointmentDate: string
   appointmentId: string
+  bookingReference: string
   customerEmail: string | null
   customerName: string
   customerPhone: string | null
@@ -338,4 +339,56 @@ export interface PublicBookingConfirmationRecord {
   studioId: string
   studioSlug: string
   studioName: string
+}
+
+export interface PublicBookingLookupPayload {
+  bookingReference: string
+  email: string
+  phone: string
+}
+
+export interface PublicBookingLookupRecord {
+  manageToken: string
+  bookingReference: string
+  appointmentId: string
+  studioId: string
+  studioSlug: string
+  studioName: string
+  serviceId: string
+  serviceName: string
+  staffProfileId: string
+  staffName: string
+  customerName: string
+  customerEmail: string | null
+  customerPhone: string | null
+  appointmentDate: string
+  startTime: string
+  endTime: string
+  status: AppointmentStatus
+}
+
+export interface PublicBookingCancelPayload {
+  manageToken: string
+}
+
+export interface PublicBookingReschedulePayload {
+  manageToken: string
+  appointmentDate: string
+  startTime: string
+}
+
+export interface PublicBookingManageRecord {
+  message: string
+  bookingReference: string
+  appointmentId: string
+  studioId: string
+  studioSlug: string
+  studioName: string
+  customerName: string
+  serviceName: string
+  staffName: string
+  appointmentDate: string
+  startTime: string
+  endTime: string
+  status: AppointmentStatus
 }
