@@ -8,7 +8,9 @@ import com.studioflow.enums.UserRole;
 import com.studioflow.repository.AppointmentRepository;
 import com.studioflow.repository.NotificationRepository;
 import com.studioflow.repository.StaffProfileRepository;
+import com.studioflow.repository.UserRepository;
 import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
@@ -16,13 +18,14 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
 @Configuration
-@Profile("local")
+@Profile({"local", "staging"})
 @RequiredArgsConstructor
 public class LocalNotificationSeeder {
 
     private final AppointmentRepository appointmentRepository;
     private final NotificationRepository notificationRepository;
     private final StaffProfileRepository staffProfileRepository;
+    private final UserRepository userRepository;
 
     @Bean
     CommandLineRunner seedLocalNotifications() {
@@ -36,8 +39,12 @@ public class LocalNotificationSeeder {
                 return;
             }
 
+            appointment = appointmentRepository.findDetailedById(appointment.getId()).orElse(appointment);
+
             List<User> internalUsers = staffProfileRepository.findByStudioId(appointment.getStudio().getId()).stream()
                 .map((staffProfile) -> staffProfile.getUser())
+                .filter(Objects::nonNull)
+                .map((user) -> userRepository.findById(user.getId()).orElse(null))
                 .filter((user) -> user != null && user.getRole() != UserRole.CUSTOMER)
                 .distinct()
                 .toList();

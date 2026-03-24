@@ -8,6 +8,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
@@ -22,7 +23,15 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "appointments")
+@Table(
+    name = "appointments",
+    indexes = {
+        @Index(name = "idx_appointments_studio_date", columnList = "studio_id, appointment_date"),
+        @Index(name = "idx_appointments_location_date", columnList = "location_id, appointment_date"),
+        @Index(name = "idx_appointments_staff_date", columnList = "staff_profile_id, appointment_date"),
+        @Index(name = "idx_appointments_booking_reference", columnList = "booking_reference")
+    }
+)
 @Getter
 @Setter
 @NoArgsConstructor

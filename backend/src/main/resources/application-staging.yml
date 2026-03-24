@@ -1,0 +1,31 @@
+spring:
+  datasource:
+    url: ${STUDIOFLOW_DB_URL:jdbc:h2:file:./data/studioflow-staging;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH}
+    driver-class-name: ${STUDIOFLOW_DB_DRIVER:org.h2.Driver}
+    username: ${STUDIOFLOW_DB_USERNAME:sa}
+    password: ${STUDIOFLOW_DB_PASSWORD:}
+  h2:
+    console:
+      enabled: false
+  jpa:
+    database-platform: ${STUDIOFLOW_JPA_PLATFORM:org.hibernate.dialect.H2Dialect}
+    defer-datasource-initialization: true
+    hibernate:
+      ddl-auto: ${STUDIOFLOW_JPA_DDL_AUTO:create-drop}
+  sql:
+    init:
+      mode: always
+      data-locations: classpath:data-local.sql
+
+server:
+  forward-headers-strategy: framework
+
+studioflow:
+  communication:
+    public-base-url: ${STUDIOFLOW_PUBLIC_BASE_URL:https://studioflow-staging.example.com/#}
+
+logging:
+  level:
+    root: INFO
+    com.studioflow: INFO
+    org.springframework.security: WARN

@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ConsentFormSubmissionRepository extends JpaRepository<ConsentFormSubmission, UUID> {
 
+    void deleteByAppointmentId(UUID appointmentId);
+
     List<ConsentFormSubmission> findByStudioId(UUID studioId);
 
     List<ConsentFormSubmission> findByAppointmentId(UUID appointmentId);

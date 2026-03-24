@@ -8,6 +8,8 @@ import com.studioflow.entity.ConsentFormSubmission;
 import com.studioflow.entity.ConsentFormTemplate;
 import com.studioflow.entity.CustomerProfile;
 import com.studioflow.entity.Studio;
+import com.studioflow.enums.AuditActionType;
+import com.studioflow.enums.AuditEntityType;
 import com.studioflow.exception.BadRequestException;
 import com.studioflow.exception.ResourceNotFoundException;
 import com.studioflow.repository.AppointmentRepository;
@@ -34,8 +36,10 @@ public class ConsentFormSubmissionService {
     private final CustomerProfileRepository customerProfileRepository;
     private final AppointmentRepository appointmentRepository;
     private final NotificationService notificationService;
+    private final AuditLogService auditLogService;
 
     public ConsentFormSubmissionResponse createSubmission(ConsentFormSubmissionCreateRequest request) {
+        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN, com.studioflow.enums.UserRole.RECEPTIONIST);
         ConsentFormTemplate template = findTemplate(request.templateId());
         Studio studio = findStudio(currentUserService.requireStudioAccess(request.studioId()));
         CustomerProfile customerProfile = findCustomer(request.customerProfileId());
@@ -54,6 +58,15 @@ public class ConsentFormSubmissionService {
         );
         ConsentFormSubmission savedSubmission = consentFormSubmissionRepository.save(submission);
         notificationService.notifyConsentSubmissionSaved(savedSubmission);
+        auditLogService.log(
+            AuditEntityType.CONSENT_SUBMISSION,
+            savedSubmission.getId(),
+            AuditActionType.CREATED,
+            savedSubmission.getStudio().getId(),
+            savedSubmission.getAppointment() != null ? savedSubmission.getAppointment().getLocation().getId() : null,
+            "Consent submission created",
+            "A consent submission was created for " + savedSubmission.getCustomerProfile().getFullName() + "."
+        );
         return toResponse(savedSubmission);
     }
 
@@ -63,6 +76,7 @@ public class ConsentFormSubmissionService {
         UUID customerProfileId,
         UUID appointmentId
     ) {
+        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN, com.studioflow.enums.UserRole.RECEPTIONIST);
         List<ConsentFormSubmission> submissions;
 
         if (appointmentId != null) {
@@ -88,14 +102,17 @@ public class ConsentFormSubmissionService {
 
     @Transactional(readOnly = true)
     public ConsentFormSubmissionResponse getSubmissionById(UUID id) {
+        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN, com.studioflow.enums.UserRole.RECEPTIONIST);
         ConsentFormSubmission submission = findSubmission(id);
         currentUserService.ensureStudioAccess(submission.getStudio().getId());
         return toResponse(submission);
     }
 
     public ConsentFormSubmissionResponse updateSubmission(UUID id, ConsentFormSubmissionUpdateRequest request) {
+        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN, com.studioflow.enums.UserRole.RECEPTIONIST);
         ConsentFormSubmission submission = findSubmission(id);
         currentUserService.ensureStudioAccess(submission.getStudio().getId());
+        com.studioflow.enums.ConsentFormStatus previousStatus = submission.getStatus();
         ConsentFormTemplate template = findTemplate(request.templateId());
         Studio studio = findStudio(currentUserService.requireStudioAccess(request.studioId()));
         CustomerProfile customerProfile = findCustomer(request.customerProfileId());
@@ -113,13 +130,34 @@ public class ConsentFormSubmissionService {
         );
         ConsentFormSubmission savedSubmission = consentFormSubmissionRepository.save(submission);
         notificationService.notifyConsentSubmissionSaved(savedSubmission);
+        auditLogService.log(
+            AuditEntityType.CONSENT_SUBMISSION,
+            savedSubmission.getId(),
+            previousStatus != savedSubmission.getStatus() ? AuditActionType.STATUS_CHANGED : AuditActionType.UPDATED,
+            savedSubmission.getStudio().getId(),
+            savedSubmission.getAppointment() != null ? savedSubmission.getAppointment().getLocation().getId() : null,
+            previousStatus != savedSubmission.getStatus() ? "Consent status changed" : "Consent submission updated",
+            previousStatus != savedSubmission.getStatus()
+                ? "Consent status changed to " + savedSubmission.getStatus() + "."
+                : "Consent submission details were updated."
+        );
         return toResponse(savedSubmission);
     }
 
     public void deleteSubmission(UUID id) {
+        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN, com.studioflow.enums.UserRole.RECEPTIONIST);
         ConsentFormSubmission submission = findSubmission(id);
         currentUserService.ensureStudioAccess(submission.getStudio().getId());
         consentFormSubmissionRepository.delete(submission);
+        auditLogService.log(
+            AuditEntityType.CONSENT_SUBMISSION,
+            submission.getId(),
+            AuditActionType.DELETED,
+            submission.getStudio().getId(),
+            submission.getAppointment() != null ? submission.getAppointment().getLocation().getId() : null,
+            "Consent submission deleted",
+            "A consent submission for " + submission.getCustomerProfile().getFullName() + " was deleted."
+        );
     }
 
     private ConsentFormTemplate findTemplate(UUID id) {

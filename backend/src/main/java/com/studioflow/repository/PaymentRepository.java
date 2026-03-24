@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PaymentRepository extends JpaRepository<Payment, UUID> {
 
+    void deleteByAppointmentId(UUID appointmentId);
+
     Optional<Payment> findByAppointmentId(UUID appointmentId);
 
     List<Payment> findByAppointmentStudioId(UUID studioId);

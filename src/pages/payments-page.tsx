@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useState } from 'react'
 import { SurfaceCard } from '../components/layout/app-shell'
+import { ActivityTimeline } from '../components/ui/activity-timeline'
 import { EmptyState, ErrorState, LoadingState } from '../components/ui/async-state'
+import { ConfirmDialog } from '../components/ui/confirm-dialog'
 import { DataTable } from '../components/ui/data-table'
 import { DetailDrawer } from '../components/ui/detail-drawer'
 import { InputField, SelectField } from '../components/ui/form-controls'
@@ -9,6 +11,7 @@ import { StatCard } from '../components/ui/stat-card'
 import { StatusBadge } from '../components/ui/status-badge'
 import { useAuth } from '../features/auth/use-auth'
 import { useRemoteList } from '../hooks/use-remote-list'
+import { getAuditLogsByEntity } from '../lib/api/audit-api'
 import { getAppointments } from '../lib/api/appointments-api'
 import { getDefaultStudioId } from '../lib/api/http'
 import { createPayment, deletePayment, getPayments, updatePayment } from '../lib/api/payments-api'
@@ -46,13 +49,25 @@ export function PaymentsPage() {
     error: appointmentsError,
     isLoading: appointmentsLoading,
   } = useRemoteList(loadAppointments)
-
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [mutationError, setMutationError] = useState<string | null>(null)
   const [editingPayment, setEditingPayment] = useState<PaymentRecord | null>(null)
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof PaymentFormState, string>>>({})
   const [formState, setFormState] = useState<PaymentFormState>(createPaymentForm())
+  const loadPaymentActivity = useCallback(() => {
+    if (!editingPayment?.id) {
+      return Promise.resolve([])
+    }
+
+    return getAuditLogsByEntity('PAYMENT', editingPayment.id, editingPayment.locationId)
+  }, [editingPayment?.id, editingPayment?.locationId])
+  const {
+    data: paymentActivity,
+    error: paymentActivityError,
+    isLoading: paymentActivityLoading,
+  } = useRemoteList(loadPaymentActivity)
 
   const summary = useMemo(() => {
     const totalVolume = payments.reduce((sum, payment) => sum + payment.amount, 0)
@@ -87,6 +102,7 @@ export function PaymentsPage() {
     setMutationError(null)
     setFormErrors({})
     setIsDrawerOpen(false)
+    setConfirmDeleteOpen(false)
   }
 
   const handleSubmit = async () => {
@@ -267,7 +283,7 @@ export function PaymentsPage() {
                 <button
                   className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700"
                   disabled={isSaving}
-                  onClick={() => void handleDelete()}
+                  onClick={() => setConfirmDeleteOpen(true)}
                   type="button"
                 >
                   Delete payment
@@ -393,8 +409,32 @@ export function PaymentsPage() {
               value={formState.paidAt}
             />
           </div>
+
+          {editingPayment ? (
+            <section>
+              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-400">Activity history</p>
+              <div className="mt-3">
+                <ActivityTimeline
+                  emptyDescription="Payment activity will appear here as statuses and amounts change."
+                  entries={paymentActivity}
+                  error={paymentActivityError}
+                  isLoading={paymentActivityLoading}
+                />
+              </div>
+            </section>
+          ) : null}
         </div>
       </DetailDrawer>
+
+      <ConfirmDialog
+        confirmLabel="Delete payment"
+        description={`This will remove the payment record for ${editingPayment?.customerName ?? 'this booking'}. Use this only when the entry was created by mistake.`}
+        isConfirming={isSaving}
+        onCancel={() => setConfirmDeleteOpen(false)}
+        onConfirm={() => void handleDelete()}
+        open={confirmDeleteOpen}
+        title="Delete this payment?"
+      />
     </div>
   )
 }

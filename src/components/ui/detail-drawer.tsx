@@ -30,7 +30,7 @@ export function DetailDrawer({
             type="button"
           />
           <motion.aside
-            className="fixed inset-y-0 right-0 z-50 w-full max-w-[420px] border-l border-slate-200 bg-white p-5 shadow-[-24px_0_80px_rgba(15,23,42,0.18)] md:p-6"
+            className="fixed inset-y-0 right-0 z-50 w-screen max-w-none border-l border-slate-200 bg-white p-5 shadow-[-24px_0_80px_rgba(15,23,42,0.18)] sm:max-w-[420px] md:p-6"
             initial={{ x: 40, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 40, opacity: 0 }}
@@ -49,6 +49,7 @@ export function DetailDrawer({
                   </h2>
                 </div>
                 <button
+                  aria-label="Close drawer"
                   className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-500 transition hover:bg-white"
                   onClick={onClose}
                   type="button"
@@ -57,7 +58,7 @@ export function DetailDrawer({
                 </button>
               </div>
               <div className="mt-6 flex-1 overflow-y-auto">{children}</div>
-              {footer ? <div className="mt-6">{footer}</div> : null}
+              {footer ? <div className="mt-6 border-t border-slate-200 pt-4">{footer}</div> : null}
             </div>
           </motion.aside>
         </>

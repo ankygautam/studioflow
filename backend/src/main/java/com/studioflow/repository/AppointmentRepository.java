@@ -5,9 +5,13 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface AppointmentRepository extends JpaRepository<Appointment, UUID> {
+
+    @EntityGraph(attributePaths = {"studio", "location", "customerProfile", "staffProfile", "service"})
+    Optional<Appointment> findDetailedById(UUID id);
 
     boolean existsByBookingReferenceIgnoreCase(String bookingReference);
 

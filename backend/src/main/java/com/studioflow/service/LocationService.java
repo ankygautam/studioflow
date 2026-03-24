@@ -5,6 +5,8 @@ import com.studioflow.dto.location.LocationResponse;
 import com.studioflow.dto.location.LocationUpdateRequest;
 import com.studioflow.entity.Location;
 import com.studioflow.entity.Studio;
+import com.studioflow.enums.AuditActionType;
+import com.studioflow.enums.AuditEntityType;
 import com.studioflow.exception.BadRequestException;
 import com.studioflow.exception.ResourceNotFoundException;
 import com.studioflow.repository.LocationRepository;
@@ -24,17 +26,48 @@ public class LocationService {
     private final CurrentUserService currentUserService;
     private final LocationRepository locationRepository;
     private final StudioRepository studioRepository;
+    private final AuditLogService auditLogService;
 
     public LocationResponse createLocation(LocationCreateRequest request) {
+        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN);
         Studio studio = findStudio(currentUserService.requireStudioAccess(request.studioId()));
         Location location = new Location();
         mapRequest(location, request, studio, request.isActive() != null ? request.isActive() : Boolean.TRUE);
-        return toResponse(locationRepository.save(location));
+        Location savedLocation = locationRepository.save(location);
+        auditLogService.log(
+            AuditEntityType.LOCATION,
+            savedLocation.getId(),
+            AuditActionType.CREATED,
+            savedLocation.getStudio().getId(),
+            savedLocation.getId(),
+            "Location created",
+            savedLocation.getName() + " was added to the studio."
+        );
+        return toResponse(savedLocation);
     }
 
     @Transactional(readOnly = true)
     public List<LocationResponse> getLocations(UUID studioId, boolean activeOnly) {
+        currentUserService.requireAnyRole(
+            com.studioflow.enums.UserRole.ADMIN,
+            com.studioflow.enums.UserRole.RECEPTIONIST,
+            com.studioflow.enums.UserRole.STAFF
+        );
         UUID authorizedStudioId = currentUserService.requireStudioAccess(studioId);
+        if (currentUserService.hasRole(com.studioflow.enums.UserRole.STAFF)) {
+            UUID currentLocationId = currentUserService.getCurrentLocationId();
+            if (currentLocationId == null) {
+                return List.of();
+            }
+
+            Location location = findLocation(currentLocationId);
+            currentUserService.ensureStudioAccess(location.getStudio().getId());
+            if (activeOnly && !Boolean.TRUE.equals(location.getIsActive())) {
+                return List.of();
+            }
+            return List.of(toResponse(location));
+        }
+
         List<Location> locations = activeOnly
             ? locationRepository.findByStudioIdAndIsActiveTrueOrderByNameAsc(authorizedStudioId)
             : locationRepository.findByStudioIdOrderByNameAsc(authorizedStudioId);
@@ -44,24 +77,53 @@ public class LocationService {
 
     @Transactional(readOnly = true)
     public LocationResponse getLocationById(UUID id) {
+        currentUserService.requireAnyRole(
+            com.studioflow.enums.UserRole.ADMIN,
+            com.studioflow.enums.UserRole.RECEPTIONIST,
+            com.studioflow.enums.UserRole.STAFF
+        );
         Location location = findLocation(id);
         currentUserService.ensureStudioAccess(location.getStudio().getId());
+        if (currentUserService.hasRole(com.studioflow.enums.UserRole.STAFF)) {
+            currentUserService.ensureLocationAccess(location.getId());
+        }
         return toResponse(location);
     }
 
     public LocationResponse updateLocation(UUID id, LocationUpdateRequest request) {
+        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN);
         Location location = findLocation(id);
         currentUserService.ensureStudioAccess(location.getStudio().getId());
         Studio studio = findStudio(currentUserService.requireStudioAccess(request.studioId()));
         mapRequest(location, request, studio, request.isActive() != null ? request.isActive() : location.getIsActive());
-        return toResponse(locationRepository.save(location));
+        Location savedLocation = locationRepository.save(location);
+        auditLogService.log(
+            AuditEntityType.LOCATION,
+            savedLocation.getId(),
+            AuditActionType.UPDATED,
+            savedLocation.getStudio().getId(),
+            savedLocation.getId(),
+            "Location updated",
+            savedLocation.getName() + " was updated."
+        );
+        return toResponse(savedLocation);
     }
 
     public void deleteLocation(UUID id) {
+        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN);
         Location location = findLocation(id);
         currentUserService.ensureStudioAccess(location.getStudio().getId());
         location.setIsActive(false);
         locationRepository.save(location);
+        auditLogService.log(
+            AuditEntityType.LOCATION,
+            location.getId(),
+            AuditActionType.DEACTIVATED,
+            location.getStudio().getId(),
+            location.getId(),
+            "Location archived",
+            location.getName() + " was archived."
+        );
     }
 
     public Location findLocation(UUID id) {

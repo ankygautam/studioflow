@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,14 +50,12 @@ public class NotificationService {
         currentUserService.requireAnyRole(UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.STAFF);
 
         UUID currentUserId = currentUserService.getCurrentUserId();
-        List<Notification> notifications = unreadOnly
-            ? notificationRepository.findByUserIdAndIsReadFalseOrderByCreatedAtDesc(currentUserId)
-            : notificationRepository.findByUserIdOrderByCreatedAtDesc(currentUserId);
-
         int safeLimit = limit == null || limit < 1 ? 20 : Math.min(limit, 50);
+        List<Notification> notifications = unreadOnly
+            ? notificationRepository.findByUserIdAndIsReadFalseOrderByCreatedAtDesc(currentUserId, PageRequest.of(0, safeLimit))
+            : notificationRepository.findByUserIdOrderByCreatedAtDesc(currentUserId, PageRequest.of(0, safeLimit));
 
         return notifications.stream()
-            .limit(safeLimit)
             .map(this::toResponse)
             .toList();
     }

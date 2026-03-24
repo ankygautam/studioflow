@@ -28,6 +28,10 @@ public class CurrentUserService {
         return requirePrincipal().getRole();
     }
 
+    public String getCurrentUserName() {
+        return requirePrincipal().getFullName();
+    }
+
     public boolean hasRole(UserRole role) {
         return getCurrentUserRole() == role;
     }

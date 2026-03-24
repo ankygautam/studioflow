@@ -11,6 +11,8 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ReminderDispatchService {
 
     private static final ZoneId DEFAULT_ZONE = ZoneId.of("America/Edmonton");
+    private static final Logger LOGGER = LoggerFactory.getLogger(ReminderDispatchService.class);
 
     private final CommunicationProperties communicationProperties;
     private final AppointmentRepository appointmentRepository;
@@ -32,15 +35,24 @@ public class ReminderDispatchService {
             return;
         }
 
-        LocalDate today = LocalDate.now(DEFAULT_ZONE);
-        LocalDate tomorrow = today.plusDays(1);
-        Instant duplicateThreshold = Instant.now().minusSeconds(60L * 60L * 12L);
+        try {
+            LocalDate today = LocalDate.now(DEFAULT_ZONE);
+            LocalDate tomorrow = today.plusDays(1);
+            Instant duplicateThreshold = Instant.now().minusSeconds(60L * 60L * 12L);
 
-        List<Appointment> appointments = appointmentRepository.findByAppointmentDateBetween(today, tomorrow);
-        appointments.stream()
-            .filter(this::isReminderEligible)
-            .filter((appointment) -> !notificationService.hasRecentReminderNotification(appointment, duplicateThreshold))
-            .forEach((appointment) -> notificationService.notifyAppointmentReminder(appointment, duplicateThreshold));
+            List<Appointment> appointments = appointmentRepository.findByAppointmentDateBetween(today, tomorrow);
+            long dispatched = appointments.stream()
+                .filter(this::isReminderEligible)
+                .filter((appointment) -> !notificationService.hasRecentReminderNotification(appointment, duplicateThreshold))
+                .filter((appointment) -> notificationService.notifyAppointmentReminder(appointment, duplicateThreshold))
+                .count();
+
+            if (dispatched > 0) {
+                LOGGER.info("Dispatched {} appointment reminder notification batches.", dispatched);
+            }
+        } catch (Exception exception) {
+            LOGGER.error("Reminder dispatch failed: {}", exception.getMessage(), exception);
+        }
     }
 
     private boolean isReminderEligible(Appointment appointment) {

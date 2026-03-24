@@ -8,6 +8,10 @@ spring:
     username: ${STUDIOFLOW_DB_USERNAME:}
     # TODO: provide via environment variable or local override, never commit real values.
     password: ${STUDIOFLOW_DB_PASSWORD:}
+    hikari:
+      maximum-pool-size: ${STUDIOFLOW_DB_MAX_POOL_SIZE:10}
+      minimum-idle: ${STUDIOFLOW_DB_MIN_IDLE:2}
+      connection-timeout: ${STUDIOFLOW_DB_CONNECTION_TIMEOUT_MS:30000}
   jpa:
     hibernate:
       # TODO: consider switching to validate once migrations are added.
@@ -33,13 +37,15 @@ spring:
 
 server:
   port: ${STUDIOFLOW_SERVER_PORT:8080}
+  forward-headers-strategy: ${STUDIOFLOW_FORWARD_HEADERS_STRATEGY:none}
 
 studioflow:
   cors:
     allowed-origins:
       - ${STUDIOFLOW_CORS_ORIGIN_1:http://localhost:5173}
       - ${STUDIOFLOW_CORS_ORIGIN_2:http://localhost:5174}
-      - ${STUDIOFLOW_CORS_ORIGIN_3:https://ankygautam.github.io}
+      - ${STUDIOFLOW_CORS_ORIGIN_3:http://localhost:5175}
+      - ${STUDIOFLOW_CORS_ORIGIN_4:https://ankygautam.github.io}
   security:
     jwt:
       secret: ${STUDIOFLOW_JWT_SECRET:studioflow-jwt-secret-key-change-me-2026}
@@ -60,3 +66,10 @@ studioflow:
     reminders:
       enabled: ${STUDIOFLOW_REMINDERS_ENABLED:true}
       cron: ${STUDIOFLOW_REMINDERS_CRON:0 */30 * * * *}
+
+logging:
+  level:
+    root: ${STUDIOFLOW_LOG_LEVEL_ROOT:INFO}
+    com.studioflow: ${STUDIOFLOW_LOG_LEVEL_APP:INFO}
+    org.springframework.security: ${STUDIOFLOW_LOG_LEVEL_SECURITY:WARN}
+    org.hibernate.SQL: ${STUDIOFLOW_LOG_LEVEL_SQL:WARN}

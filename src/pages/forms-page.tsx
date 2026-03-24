@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { SurfaceCard } from '../components/layout/app-shell'
 import { EmptyState, ErrorState, LoadingState } from '../components/ui/async-state'
+import { ConfirmDialog } from '../components/ui/confirm-dialog'
 import { DataTable } from '../components/ui/data-table'
 import { DetailDrawer } from '../components/ui/detail-drawer'
 import { InputField, SelectField, TextAreaField, ToggleField } from '../components/ui/form-controls'
@@ -93,6 +94,8 @@ export function FormsPage() {
   const [submissionSaving, setSubmissionSaving] = useState(false)
   const [templateMutationError, setTemplateMutationError] = useState<string | null>(null)
   const [submissionMutationError, setSubmissionMutationError] = useState<string | null>(null)
+  const [confirmTemplateDeleteOpen, setConfirmTemplateDeleteOpen] = useState(false)
+  const [confirmSubmissionDeleteOpen, setConfirmSubmissionDeleteOpen] = useState(false)
 
   const clientOptions = useMemo(
     () =>
@@ -144,6 +147,7 @@ export function FormsPage() {
     setTemplateMutationError(null)
     setTemplateErrors({})
     setTemplateDrawerOpen(false)
+    setConfirmTemplateDeleteOpen(false)
   }
 
   const openSubmissionCreate = () => {
@@ -167,6 +171,7 @@ export function FormsPage() {
     setSubmissionMutationError(null)
     setSubmissionErrors({})
     setSubmissionDrawerOpen(false)
+    setConfirmSubmissionDeleteOpen(false)
   }
 
   const handleTemplateSubmit = async () => {
@@ -461,7 +466,7 @@ export function FormsPage() {
                 <button
                   className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700"
                   disabled={templateSaving}
-                  onClick={() => void handleTemplateDelete()}
+                  onClick={() => setConfirmTemplateDeleteOpen(true)}
                   type="button"
                 >
                   Deactivate template
@@ -536,7 +541,7 @@ export function FormsPage() {
                 <button
                   className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700"
                   disabled={submissionSaving}
-                  onClick={() => void handleSubmissionDelete()}
+                  onClick={() => setConfirmSubmissionDeleteOpen(true)}
                   type="button"
                 >
                   Delete submission
@@ -679,6 +684,26 @@ export function FormsPage() {
           </div>
         </div>
       </DetailDrawer>
+
+      <ConfirmDialog
+        confirmLabel="Deactivate template"
+        description={`"${editingTemplate?.title ?? 'This template'}" will stay in history but will stop being available for new consent requests.`}
+        isConfirming={templateSaving}
+        onCancel={() => setConfirmTemplateDeleteOpen(false)}
+        onConfirm={() => void handleTemplateDelete()}
+        open={confirmTemplateDeleteOpen}
+        title="Deactivate this template?"
+      />
+
+      <ConfirmDialog
+        confirmLabel="Delete submission"
+        description={`This removes the submission record for ${editingSubmission?.customerName ?? 'this client'}. This should only be used for cleanup or mistakes.`}
+        isConfirming={submissionSaving}
+        onCancel={() => setConfirmSubmissionDeleteOpen(false)}
+        onConfirm={() => void handleSubmissionDelete()}
+        open={confirmSubmissionDeleteOpen}
+        title="Delete this submission?"
+      />
     </div>
   )
 }

@@ -12,6 +12,8 @@ public interface CustomerProfileRepository extends JpaRepository<CustomerProfile
 
     List<CustomerProfile> findByStudioIdAndIsActiveTrue(UUID studioId);
 
+    long countByStudioIdAndIsActiveTrue(UUID studioId);
+
     Optional<CustomerProfile> findByStudioIdAndEmailIgnoreCase(UUID studioId, String email);
 
     Optional<CustomerProfile> findByStudioIdAndPhone(UUID studioId, String phone);

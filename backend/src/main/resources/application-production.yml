@@ -1,0 +1,14 @@
+spring:
+  h2:
+    console:
+      enabled: false
+
+server:
+  forward-headers-strategy: framework
+  shutdown: graceful
+
+logging:
+  level:
+    root: INFO
+    com.studioflow: INFO
+    org.springframework.security: WARN

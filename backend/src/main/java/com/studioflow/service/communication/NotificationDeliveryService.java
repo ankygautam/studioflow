@@ -12,6 +12,8 @@ import com.studioflow.enums.CommunicationDeliveryStatus;
 import com.studioflow.repository.CommunicationLogRepository;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional
 public class NotificationDeliveryService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(NotificationDeliveryService.class);
 
     private final EmailService emailService;
     private final SmsService smsService;
@@ -82,6 +86,34 @@ public class NotificationDeliveryService {
         communicationLog.setSentAt(result.success() ? Instant.now() : null);
         communicationLog.setErrorMessage(result.errorMessage());
         communicationLogRepository.save(communicationLog);
+
+        if (result.success()) {
+            LOGGER.debug(
+                "Communication sent. appointmentId={} reference={} eventType={} channel={}",
+                appointment.getId(),
+                appointment.getBookingReference(),
+                eventType,
+                channel
+            );
+        } else if (result.skipped()) {
+            LOGGER.debug(
+                "Communication skipped. appointmentId={} reference={} eventType={} channel={} reason={}",
+                appointment.getId(),
+                appointment.getBookingReference(),
+                eventType,
+                channel,
+                result.errorMessage()
+            );
+        } else {
+            LOGGER.warn(
+                "Communication failed. appointmentId={} reference={} eventType={} channel={} reason={}",
+                appointment.getId(),
+                appointment.getBookingReference(),
+                eventType,
+                channel,
+                result.errorMessage()
+            );
+        }
     }
 
     public boolean hasRecentSuccessfulReminderDelivery(Appointment appointment, Instant threshold) {

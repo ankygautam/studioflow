@@ -5,7 +5,7 @@ import { EmptyState, ErrorState, LoadingState } from '../components/ui/async-sta
 import { DataTable } from '../components/ui/data-table'
 import { PageHeader } from '../components/ui/page-header'
 import { StatusBadge } from '../components/ui/status-badge'
-import { canCreateBookings } from '../features/auth/authorization'
+import { canCreateBookings, canDeleteAppointments, canEditAppointments } from '../features/auth/authorization'
 import { useAuth } from '../features/auth/use-auth'
 import { useRemoteList } from '../hooks/use-remote-list'
 import { appointmentTone } from '../lib/appointments'
@@ -17,6 +17,8 @@ import { formatDate, formatTime, humanizeEnum } from '../lib/formatters'
 export function AppointmentsPage() {
   const { selectedLocationId, user } = useAuth()
   const allowCreate = user ? canCreateBookings(user.role) : false
+  const allowDelete = user ? canDeleteAppointments(user.role) : false
+  const allowEdit = user ? canEditAppointments(user.role) : false
   const defaultStudioId = getDefaultStudioId()
   const loadAppointments = useCallback(
     () => getAppointments(defaultStudioId, selectedLocationId),
@@ -138,7 +140,11 @@ export function AppointmentsPage() {
                 <td className="px-4 py-4">
                   <button
                     className="font-semibold text-slate-950 transition hover:text-slate-700"
-                    onClick={() => openEditDrawer(appointment)}
+                    onClick={() => {
+                      if (allowEdit) {
+                        openEditDrawer(appointment)
+                      }
+                    }}
                     type="button"
                   >
                     {appointment.customerName}
@@ -164,7 +170,7 @@ export function AppointmentsPage() {
       <AppointmentDrawer
         appointment={editingAppointment}
         allowCreate={allowCreate}
-        allowDelete={allowCreate}
+        allowDelete={allowDelete}
         onClose={closeDrawer}
         onSaved={reload}
         open={isDrawerOpen}

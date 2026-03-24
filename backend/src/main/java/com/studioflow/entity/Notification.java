@@ -8,13 +8,21 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "notifications")
+@Table(
+    name = "notifications",
+    indexes = {
+        @Index(name = "idx_notifications_user_created_at", columnList = "user_id, created_at"),
+        @Index(name = "idx_notifications_user_read_created_at", columnList = "user_id, is_read, created_at"),
+        @Index(name = "idx_notifications_appointment_type_created_at", columnList = "appointment_id, type, created_at")
+    }
+)
 @Getter
 @Setter
 @NoArgsConstructor

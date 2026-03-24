@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { SurfaceCard } from '../components/layout/app-shell'
 import { EmptyState, ErrorState, LoadingState } from '../components/ui/async-state'
+import { ConfirmDialog } from '../components/ui/confirm-dialog'
 import { DataTable } from '../components/ui/data-table'
 import { DetailDrawer } from '../components/ui/detail-drawer'
 import { InputField, SelectField, TextAreaField } from '../components/ui/form-controls'
@@ -41,6 +42,7 @@ export function StaffPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [mutationError, setMutationError] = useState<string | null>(null)
   const [editingStaff, setEditingStaff] = useState<StaffRecord | null>(null)
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof StaffFormState, string>>>({})
   const [formState, setFormState] = useState<StaffFormState>(createStaffForm(defaultStudioId))
 
@@ -65,6 +67,7 @@ export function StaffPage() {
     setEditingStaff(null)
     setMutationError(null)
     setFormErrors({})
+    setConfirmDeleteOpen(false)
   }
 
   const handleSubmit = async () => {
@@ -220,7 +223,7 @@ export function StaffPage() {
                 <button
                   className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700"
                   disabled={isSaving}
-                  onClick={() => void handleDelete()}
+                  onClick={() => setConfirmDeleteOpen(true)}
                   type="button"
                 >
                   Mark inactive
@@ -319,6 +322,16 @@ export function StaffPage() {
           />
         </div>
       </DetailDrawer>
+
+      <ConfirmDialog
+        confirmLabel="Mark inactive"
+        description={`${editingStaff?.displayName ?? 'This staff profile'} will be kept for history, but will no longer appear as active in day-to-day scheduling.`}
+        isConfirming={isSaving}
+        onCancel={() => setConfirmDeleteOpen(false)}
+        onConfirm={() => void handleDelete()}
+        open={confirmDeleteOpen}
+        title="Mark this staff profile inactive?"
+      />
     </div>
   )
 }

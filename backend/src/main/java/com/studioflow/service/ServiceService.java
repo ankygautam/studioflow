@@ -4,6 +4,8 @@ import com.studioflow.dto.service.ServiceCreateRequest;
 import com.studioflow.dto.service.ServiceResponse;
 import com.studioflow.dto.service.ServiceUpdateRequest;
 import com.studioflow.entity.Studio;
+import com.studioflow.enums.AuditActionType;
+import com.studioflow.enums.AuditEntityType;
 import com.studioflow.exception.BadRequestException;
 import com.studioflow.exception.ResourceNotFoundException;
 import com.studioflow.repository.ServiceRepository;
@@ -23,8 +25,10 @@ public class ServiceService {
     private final CurrentUserService currentUserService;
     private final ServiceRepository serviceRepository;
     private final StudioRepository studioRepository;
+    private final AuditLogService auditLogService;
 
     public ServiceResponse createService(ServiceCreateRequest request) {
+        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN);
         validateDeposit(request.depositRequired(), request.depositAmount());
 
         Studio studio = findStudio(currentUserService.requireStudioAccess(request.studioId()));
@@ -36,11 +40,26 @@ public class ServiceService {
             request.isActive() != null ? request.isActive() : Boolean.TRUE
         );
 
-        return toResponse(serviceRepository.save(service));
+        com.studioflow.entity.Service savedService = serviceRepository.save(service);
+        auditLogService.log(
+            AuditEntityType.SERVICE,
+            savedService.getId(),
+            AuditActionType.CREATED,
+            savedService.getStudio().getId(),
+            null,
+            "Service created",
+            savedService.getName() + " was added to the service catalog."
+        );
+        return toResponse(savedService);
     }
 
     @Transactional(readOnly = true)
     public List<ServiceResponse> getAllServices(UUID studioId) {
+        currentUserService.requireAnyRole(
+            com.studioflow.enums.UserRole.ADMIN,
+            com.studioflow.enums.UserRole.RECEPTIONIST,
+            com.studioflow.enums.UserRole.STAFF
+        );
         UUID authorizedStudioId = currentUserService.requireStudioAccess(studioId);
         List<com.studioflow.entity.Service> services = serviceRepository.findByStudioId(authorizedStudioId);
 
@@ -51,12 +70,18 @@ public class ServiceService {
 
     @Transactional(readOnly = true)
     public ServiceResponse getServiceById(UUID id) {
+        currentUserService.requireAnyRole(
+            com.studioflow.enums.UserRole.ADMIN,
+            com.studioflow.enums.UserRole.RECEPTIONIST,
+            com.studioflow.enums.UserRole.STAFF
+        );
         com.studioflow.entity.Service service = findService(id);
         currentUserService.ensureStudioAccess(service.getStudio().getId());
         return toResponse(service);
     }
 
     public ServiceResponse updateService(UUID id, ServiceUpdateRequest request) {
+        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN);
         validateDeposit(request.depositRequired(), request.depositAmount());
 
         com.studioflow.entity.Service service = findService(id);
@@ -69,14 +94,34 @@ public class ServiceService {
             request.isActive() != null ? request.isActive() : service.getIsActive()
         );
 
-        return toResponse(serviceRepository.save(service));
+        com.studioflow.entity.Service savedService = serviceRepository.save(service);
+        auditLogService.log(
+            AuditEntityType.SERVICE,
+            savedService.getId(),
+            AuditActionType.UPDATED,
+            savedService.getStudio().getId(),
+            null,
+            "Service updated",
+            savedService.getName() + " was updated in the service catalog."
+        );
+        return toResponse(savedService);
     }
 
     public void deleteService(UUID id) {
+        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN);
         com.studioflow.entity.Service service = findService(id);
         currentUserService.ensureStudioAccess(service.getStudio().getId());
         service.setIsActive(false);
         serviceRepository.save(service);
+        auditLogService.log(
+            AuditEntityType.SERVICE,
+            service.getId(),
+            AuditActionType.DEACTIVATED,
+            service.getStudio().getId(),
+            null,
+            "Service deactivated",
+            service.getName() + " was deactivated."
+        );
     }
 
     private Studio findStudio(UUID studioId) {

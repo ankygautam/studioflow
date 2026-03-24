@@ -1,4 +1,5 @@
-const DEFAULT_API_URL = 'http://localhost:8080'
+import { appConfig } from '../app-config'
+
 const AUTH_LOCAL_KEY = 'studioflow-auth-token-local'
 const AUTH_SESSION_KEY = 'studioflow-auth-token-session'
 const LOCATION_LOCAL_KEY = 'studioflow-auth-location-local'
@@ -22,9 +23,7 @@ let authLocationId =
     : window.localStorage.getItem(LOCATION_LOCAL_KEY) ?? window.sessionStorage.getItem(LOCATION_SESSION_KEY)
 
 function normalizeBaseUrl() {
-  const configuredBaseUrl = import.meta.env.VITE_API_URL?.trim()
-  const baseUrl = configuredBaseUrl && configuredBaseUrl.length > 0 ? configuredBaseUrl : DEFAULT_API_URL
-  return baseUrl.replace(/\/$/, '')
+  return appConfig.apiUrl
 }
 
 export class ApiError extends Error {

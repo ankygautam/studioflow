@@ -16,6 +16,7 @@ export function canAccessRoute(role: AuthRole, slug: string) {
     case 'forms':
       return role === 'admin' || role === 'receptionist'
     case 'analytics':
+    case 'audit-logs':
     case 'settings':
       return role === 'admin'
     case 'customer':
@@ -38,6 +39,22 @@ export function canViewAppointments(role: AuthRole) {
 }
 
 export function canCreateBookings(role: AuthRole) {
+  return role === 'admin' || role === 'receptionist'
+}
+
+export function canEditAppointments(role: AuthRole) {
+  return role === 'admin' || role === 'receptionist' || role === 'staff'
+}
+
+export function canEditAppointmentDetails(role: AuthRole) {
+  return role === 'admin' || role === 'receptionist'
+}
+
+export function canUpdateAppointmentStatus(role: AuthRole) {
+  return role === 'admin' || role === 'receptionist' || role === 'staff'
+}
+
+export function canDeleteAppointments(role: AuthRole) {
   return role === 'admin' || role === 'receptionist'
 }
 
@@ -67,4 +84,16 @@ export function canViewAnalytics(role: AuthRole) {
 
 export function canManageSettings(role: AuthRole) {
   return role === 'admin'
+}
+
+export function canViewAuditHistory(role: AuthRole) {
+  return role === 'admin'
+}
+
+export function canViewAuditLogs(role: AuthRole) {
+  return canViewAuditHistory(role)
+}
+
+export function canCancelAppointments(role: AuthRole) {
+  return role === 'admin' || role === 'receptionist'
 }

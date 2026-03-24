@@ -1,50 +1,125 @@
 import { motion } from 'framer-motion'
-import { DrawerPreview } from '../components/ui/drawer-preview'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { SurfaceCard } from '../components/layout/app-shell'
+import { ActivityFeed } from '../components/ui/activity-feed'
 import { EmptyState, ErrorState, LoadingState } from '../components/ui/async-state'
 import { DataTable } from '../components/ui/data-table'
 import { StatusBadge } from '../components/ui/status-badge'
-import { SurfaceCard } from '../components/layout/app-shell'
-import { useCallback } from 'react'
+import { canViewAuditHistory } from '../features/auth/authorization'
+import { useAuth } from '../features/auth/use-auth'
 import { useRemoteList } from '../hooks/use-remote-list'
+import { getAuditLogs } from '../lib/api/audit-api'
 import { getAppointments } from '../lib/api/appointments-api'
-import { getClients } from '../lib/api/clients-api'
+import { getConsentFormSubmissions } from '../lib/api/consent-forms-api'
 import { getDefaultStudioId } from '../lib/api/http'
-import { formatDate, formatTime, humanizeEnum } from '../lib/formatters'
-
-const stats = [
-  { label: "Today's bookings", subtext: '6 check-ins completed', value: '28' },
-  { label: 'Revenue today', subtext: '+12.4% vs last Tuesday', value: '$4,860' },
-  { label: 'Pending deposits', subtext: '8 clients awaiting payment', value: '$790' },
-  { label: 'Staff available', subtext: '11 on floor, 3 on flex hold', value: '14' },
-]
-
-const teamAvailability = [
-  { load: '4 bookings', name: 'Nina Hart', role: 'Tattoo Artist', state: 'Open after 3 PM' },
-  { load: '5 bookings', name: 'Elena Cross', role: 'Color Specialist', state: 'Booked steady' },
-  { load: '3 bookings', name: 'Luis Cole', role: 'Barber', state: 'Walk-ins enabled' },
-  { load: '2 bookings', name: 'Jules Kim', role: 'Piercing Artist', state: 'Open after 1 PM' },
-]
+import { getNotifications, getUnreadNotificationCount } from '../lib/api/notifications-api'
+import { getPayments } from '../lib/api/payments-api'
+import type { NotificationRecord } from '../lib/api/types'
+import { formatCurrency, formatDate, formatTime, humanizeEnum } from '../lib/formatters'
 
 export function DashboardPage() {
+  const navigate = useNavigate()
+  const { selectedLocationId, user } = useAuth()
   const defaultStudioId = getDefaultStudioId()
-  const loadAppointments = useCallback(() => getAppointments(defaultStudioId), [defaultStudioId])
-  const loadClients = useCallback(() => getClients(defaultStudioId), [defaultStudioId])
-  const {
-    data: appointments,
-    error: appointmentsError,
-    isLoading: appointmentsLoading,
-  } = useRemoteList(loadAppointments)
-  const {
-    data: clients,
-    error: clientsError,
-    isLoading: clientsLoading,
-  } = useRemoteList(loadClients)
+  const canViewActivity = user ? canViewAuditHistory(user.role) : false
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [unreadCountError, setUnreadCountError] = useState<string | null>(null)
 
-  const todayAppointments = appointments.slice(0, 4)
-  const upcomingAppointments = appointments.slice(0, 3)
-  const recentClients = [...clients]
-    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
-    .slice(0, 3)
+  const loadAppointments = useCallback(
+    () => getAppointments(defaultStudioId, selectedLocationId),
+    [defaultStudioId, selectedLocationId],
+  )
+  const loadPayments = useCallback(
+    () => getPayments({ locationId: selectedLocationId, studioId: defaultStudioId }),
+    [defaultStudioId, selectedLocationId],
+  )
+  const loadNotifications = useCallback(
+    () => getNotifications({ limit: 4, unreadOnly: true }),
+    [],
+  )
+  const loadConsentSubmissions = useCallback(
+    () => getConsentFormSubmissions({ studioId: defaultStudioId }),
+    [defaultStudioId],
+  )
+  const loadAuditLogs = useCallback(
+    () => (canViewActivity ? getAuditLogs({ limit: 5, locationId: selectedLocationId }) : Promise.resolve([])),
+    [canViewActivity, selectedLocationId],
+  )
+
+  const { data: appointments, error: appointmentsError, isLoading: appointmentsLoading } = useRemoteList(loadAppointments)
+  const { data: payments } = useRemoteList(loadPayments)
+  const { data: unreadNotifications, error: notificationsError, isLoading: notificationsLoading } = useRemoteList(loadNotifications)
+  const { data: consentSubmissions, error: consentError, isLoading: consentLoading } = useRemoteList(loadConsentSubmissions)
+  const {
+    data: auditLogs,
+    error: auditError,
+    isLoading: auditLoading,
+    reload: reloadAuditLogs,
+  } = useRemoteList(loadAuditLogs)
+
+  useEffect(() => {
+    let active = true
+
+    void getUnreadNotificationCount()
+      .then((response) => {
+        if (active) {
+          setUnreadCount(response.unreadCount)
+          setUnreadCountError(null)
+        }
+      })
+      .catch((error) => {
+        if (active) {
+          setUnreadCountError(error instanceof Error ? error.message : 'Unable to load unread count.')
+        }
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const today = getTodayDateValue()
+  const todayAppointments = useMemo(
+    () => appointments.filter((appointment) => appointment.appointmentDate === today).slice(0, 5),
+    [appointments, today],
+  )
+  const upcomingAppointments = useMemo(
+    () =>
+      [...appointments]
+        .filter((appointment) => appointment.appointmentDate >= today && appointment.status !== 'CANCELLED')
+        .sort((left, right) =>
+          `${left.appointmentDate}T${left.startTime}`.localeCompare(`${right.appointmentDate}T${right.startTime}`),
+        )
+        .slice(0, 4),
+    [appointments, today],
+  )
+  const pendingConsent = useMemo(
+    () => consentSubmissions.filter((submission) => submission.status === 'PENDING').slice(0, 3),
+    [consentSubmissions],
+  )
+  const todayRevenue = useMemo(
+    () =>
+      payments
+        .filter((payment) => payment.appointmentDate === today)
+        .reduce((sum, payment) => sum + payment.amount, 0),
+    [payments, today],
+  )
+  const pendingDeposits = useMemo(
+    () =>
+      payments
+        .filter((payment) => payment.paymentStatus !== 'PAID')
+        .reduce((sum, payment) => sum + payment.depositAmount, 0),
+    [payments],
+  )
+  const paidRecords = useMemo(
+    () => payments.filter((payment) => payment.paymentStatus === 'PAID').length,
+    [payments],
+  )
+  const completedToday = useMemo(
+    () => todayAppointments.filter((appointment) => appointment.status === 'COMPLETED').length,
+    [todayAppointments],
+  )
 
   return (
     <div className="space-y-6">
@@ -59,50 +134,80 @@ export function DashboardPage() {
               StudioFlow Workspace
             </p>
             <h1 className="mt-3 font-display text-4xl text-slate-950 md:text-5xl">
-              Run a calmer, sharper booking day
+              Keep the day moving with less friction
             </h1>
             <p className="mt-4 max-w-3xl text-base leading-8 text-slate-600 md:text-lg">
-              A polished command center for managing appointments, keeping staff
-              balanced, and giving clients a premium experience across tattoo,
-              beauty, barber, salon, and wellness workflows.
+              Focus the team on today&apos;s bookings, urgent client follow-up, and the location context that matters right now.
             </p>
+            <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-500">
+              <StatusBadge tone={selectedLocationId ? 'calm' : 'neutral'}>
+                {selectedLocationId ? 'Location filtered' : 'All active locations'}
+              </StatusBadge>
+              <span>{todayAppointments.length} bookings today</span>
+              <span>{unreadCount} unread alerts</span>
+            </div>
           </div>
-          <button className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(15,23,42,0.18)]">
-            Open calendar
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <button
+              className="rounded-full border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-700"
+              onClick={() => navigate('/appointments')}
+              type="button"
+            >
+              Open appointments
+            </button>
+            <button
+              className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
+              onClick={() => navigate('/calendar')}
+              type="button"
+            >
+              Open calendar
+            </button>
+          </div>
         </div>
       </motion.section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat, index) => (
-          <motion.div
-            key={stat.label}
-            animate={{ opacity: 1, y: 0 }}
-            initial={{ opacity: 0, y: 16 }}
-            transition={{ delay: index * 0.05, duration: 0.24 }}
-          >
-            <div className="rounded-[28px] border border-slate-200 bg-[linear-gradient(135deg,rgba(255,255,255,0.95),rgba(240,245,252,0.85))] p-5 shadow-[0_18px_44px_rgba(15,23,42,0.04)]">
-              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">
-                {stat.label}
-              </p>
-              <p className="mt-4 font-display text-4xl text-slate-950">{stat.value}</p>
-              <p className="mt-4 text-sm text-slate-500">{stat.subtext}</p>
-            </div>
-          </motion.div>
-        ))}
+        <MetricCard
+          helper={`${completedToday} completed so far`}
+          label="Today's bookings"
+          value={String(todayAppointments.length)}
+        />
+        <MetricCard
+          helper="Based on live appointment-linked payments"
+          label="Revenue snapshot"
+          value={formatCurrency(todayRevenue)}
+        />
+        <MetricCard
+          helper="Deposits still awaiting payment completion"
+          label="Pending deposits"
+          value={formatCurrency(pendingDeposits)}
+        />
+        <MetricCard
+          helper={unreadCountError ? 'Unread count is temporarily unavailable' : 'Unread reminders and team activity'}
+          label="Unread alerts"
+          value={String(unreadCount)}
+        />
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
         <SurfaceCard
-          action={<button className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">View full day</button>}
+          action={
+            <button
+              className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600"
+              onClick={() => navigate('/calendar')}
+              type="button"
+            >
+              View full day
+            </button>
+          }
           title="Today's appointments"
         >
-          {appointmentsLoading ? <LoadingState title="Loading appointments..." /> : null}
+          {appointmentsLoading ? <LoadingState title="Loading today's bookings..." /> : null}
           {!appointmentsLoading && appointmentsError ? <ErrorState message={appointmentsError} /> : null}
           {!appointmentsLoading && !appointmentsError && todayAppointments.length === 0 ? (
             <EmptyState
-              description="Appointments from the backend will appear here when bookings are added."
-              title="No appointments yet"
+              description="Bookings scheduled for today will appear here as soon as the calendar fills up."
+              title="No appointments today"
             />
           ) : null}
           {!appointmentsLoading && !appointmentsError && todayAppointments.length > 0 ? (
@@ -113,7 +218,10 @@ export function DashboardPage() {
                     {formatTime(appointment.startTime)}
                   </td>
                   <td className="px-4 py-4">
-                    <p className="font-semibold text-slate-950">{appointment.customerName}</p>
+                    <div className="space-y-1">
+                      <p className="font-semibold text-slate-950">{appointment.customerName}</p>
+                      <p className="text-xs uppercase tracking-[0.16em] text-slate-400">{appointment.locationName}</p>
+                    </div>
                   </td>
                   <td className="px-4 py-4 text-sm text-slate-600">{appointment.serviceName}</td>
                   <td className="px-4 py-4">
@@ -127,159 +235,261 @@ export function DashboardPage() {
           ) : null}
         </SurfaceCard>
 
-        <SurfaceCard
-          action={<button className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">This week</button>}
-          title="Revenue summary"
-        >
-          <div className="rounded-[26px] border border-slate-200 bg-slate-50 p-5">
-            <div className="flex items-end justify-between gap-4">
-              <div>
-                <p className="text-sm text-slate-500">Gross revenue</p>
-                <p className="mt-3 font-display text-5xl text-slate-950">$29.3k</p>
+        <SurfaceCard title="Operational pulse">
+          <div className="space-y-4">
+            <PulseMetric
+              label="Paid records"
+              value={String(paidRecords)}
+              tone="success"
+            />
+            <PulseMetric
+              label="Pending forms"
+              value={String(pendingConsent.length)}
+              tone={pendingConsent.length > 0 ? 'attention' : 'neutral'}
+            />
+            <PulseMetric
+              label="Unread notifications"
+              value={String(unreadCount)}
+              tone={unreadCount > 0 ? 'calm' : 'neutral'}
+            />
+
+            <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-semibold text-slate-950">Upcoming bookings</p>
+                <button
+                  className="text-sm font-semibold text-slate-500 transition hover:text-slate-900"
+                  onClick={() => navigate('/appointments')}
+                  type="button"
+                >
+                  See all
+                </button>
               </div>
-              <StatusBadge tone="success">+10.8%</StatusBadge>
-            </div>
-            <div className="mt-6 flex h-44 items-end gap-3">
-              {[64, 72, 76, 82, 91, 96, 68].map((height, index) => (
-                <div key={height} className="flex flex-1 flex-col items-center gap-2">
-                  <div className="flex h-36 w-full items-end rounded-[20px] bg-white px-2 py-2">
-                    <div
-                      className={[
-                        'w-full rounded-[16px]',
-                        index === 4
-                          ? 'bg-[linear-gradient(180deg,#8691ff_0%,#a6c5ff_100%)]'
-                          : 'bg-[linear-gradient(180deg,#b7d9ff_0%,#b5ead8_100%)]',
-                      ].join(' ')}
-                      style={{ height: `${height}%` }}
-                    />
-                  </div>
-                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][index]}
-                  </span>
+
+              {appointmentsLoading ? <div className="mt-3"><LoadingState title="Loading upcoming bookings..." /></div> : null}
+              {!appointmentsLoading && !appointmentsError && upcomingAppointments.length === 0 ? (
+                <div className="mt-3">
+                  <EmptyState
+                    description="As new bookings come in, the next few appointments will stay surfaced here."
+                    title="No upcoming bookings"
+                  />
                 </div>
-              ))}
+              ) : null}
+              {!appointmentsLoading && !appointmentsError && upcomingAppointments.length > 0 ? (
+                <div className="mt-3 space-y-3">
+                  {upcomingAppointments.map((appointment) => (
+                    <button
+                      key={appointment.id}
+                      className="flex w-full items-center justify-between gap-4 rounded-[20px] border border-slate-200 bg-white px-4 py-3 text-left transition hover:border-slate-300"
+                      onClick={() => navigate('/appointments')}
+                      type="button"
+                    >
+                      <div>
+                        <p className="font-semibold text-slate-950">{appointment.customerName}</p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {formatDate(appointment.appointmentDate)} at {formatTime(appointment.startTime)}
+                        </p>
+                      </div>
+                      <StatusBadge tone={appointmentTone(appointment.status)}>
+                        {humanizeEnum(appointment.status)}
+                      </StatusBadge>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </div>
           </div>
         </SurfaceCard>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
         <SurfaceCard
-          action={<button className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">Open schedule</button>}
-          title="Staff availability snapshot"
+          action={
+            <button
+              className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600"
+              onClick={() => navigate('/forms')}
+              type="button"
+            >
+              Open forms
+            </button>
+          }
+          title="Forms and reminders"
         >
-          <div className="space-y-3">
-            {teamAvailability.map((member) => (
-              <div
-                key={member.name}
-                className="flex items-center justify-between gap-4 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"
-              >
-                <div className="min-w-0">
-                  <p className="font-semibold text-slate-950">{member.name}</p>
-                  <p className="mt-1 text-sm text-slate-500">{member.role}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-slate-700">{member.load}</p>
-                  <p className="mt-1 text-sm text-slate-500">{member.state}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </SurfaceCard>
-
-        <SurfaceCard
-          action={<button className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">View CRM</button>}
-          title="Recent clients"
-        >
-          {clientsLoading ? <LoadingState title="Loading clients..." /> : null}
-          {!clientsLoading && clientsError ? <ErrorState message={clientsError} /> : null}
-          {!clientsLoading && !clientsError && recentClients.length === 0 ? (
+          {consentLoading ? <LoadingState title="Loading consent records..." /> : null}
+          {!consentLoading && consentError ? <ErrorState message={consentError} /> : null}
+          {!consentLoading && !consentError && pendingConsent.length === 0 ? (
             <EmptyState
-              description="Client records from the backend will appear here once profiles are created."
-              title="No recent clients yet"
+              description="Pending consent requests will surface here when a client still needs to review or sign a form."
+              title="No pending forms"
             />
           ) : null}
-          {!clientsLoading && !clientsError && recentClients.length > 0 ? (
+          {!consentLoading && !consentError && pendingConsent.length > 0 ? (
             <div className="space-y-3">
-              {recentClients.map((client) => (
+              {pendingConsent.map((submission) => (
                 <div
-                  key={client.id}
+                  key={submission.id}
                   className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"
                 >
-                  <p className="font-semibold text-slate-950">{client.fullName}</p>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Updated {formatDate(client.updatedAt)}
-                  </p>
-                  <p className="mt-4 text-sm text-slate-600">
-                    {client.notes?.trim() ? client.notes : 'No notes added yet.'}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : null}
-        </SurfaceCard>
-      </section>
-
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-        <SurfaceCard
-          action={<button className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">See all</button>}
-          title="Upcoming bookings"
-        >
-          {appointmentsLoading ? <LoadingState title="Loading bookings..." /> : null}
-          {!appointmentsLoading && appointmentsError ? <ErrorState message={appointmentsError} /> : null}
-          {!appointmentsLoading && !appointmentsError && upcomingAppointments.length === 0 ? (
-            <EmptyState
-              description="As soon as live appointments are in place, upcoming bookings will show here."
-              title="No upcoming bookings yet"
-            />
-          ) : null}
-          {!appointmentsLoading && !appointmentsError && upcomingAppointments.length > 0 ? (
-            <div className="space-y-3">
-              {upcomingAppointments.map((appointment) => (
-                <div
-                  key={appointment.id}
-                  className="flex items-center justify-between gap-4 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"
-                >
-                  <div className="min-w-0">
-                    <p className="font-semibold text-slate-950">{appointment.customerName}</p>
-                    <p className="mt-1 text-sm text-slate-500">{appointment.serviceName}</p>
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-slate-950">{submission.customerName}</p>
+                      <p className="mt-1 text-sm text-slate-500">{submission.templateTitle}</p>
+                    </div>
+                    <StatusBadge tone="attention">Pending</StatusBadge>
                   </div>
-                  <StatusBadge tone="violet">
-                    {formatDate(appointment.appointmentDate)} • {formatTime(appointment.startTime)}
-                  </StatusBadge>
+                  {submission.appointmentDate ? (
+                    <p className="mt-3 text-sm text-slate-600">
+                      Linked to {formatDate(submission.appointmentDate)}
+                      {submission.appointmentStartTime ? ` at ${formatTime(submission.appointmentStartTime)}` : ''}
+                    </p>
+                  ) : null}
                 </div>
               ))}
             </div>
           ) : null}
+
+          <div className="mt-5 rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="font-semibold text-slate-950">Unread notifications</p>
+              <button
+                className="text-sm font-semibold text-slate-500 transition hover:text-slate-900"
+                onClick={() => navigate('/appointments')}
+                type="button"
+              >
+                Open workspace
+              </button>
+            </div>
+            {notificationsLoading ? <div className="mt-3"><LoadingState title="Loading notifications..." /></div> : null}
+            {!notificationsLoading && notificationsError ? <div className="mt-3"><ErrorState message={notificationsError} /></div> : null}
+            {!notificationsLoading && !notificationsError && unreadNotifications.length === 0 ? (
+              <div className="mt-3">
+                <EmptyState
+                  description="Fresh reminders, bookings, and client-facing activity will appear here when the day picks up."
+                  title="No unread notifications"
+                />
+              </div>
+            ) : null}
+            {!notificationsLoading && !notificationsError && unreadNotifications.length > 0 ? (
+              <div className="mt-3 space-y-3">
+                {unreadNotifications.map((notification) => (
+                  <NotificationPreview
+                    key={notification.id}
+                    notification={notification}
+                    onOpen={() => navigate(notification.actionUrl ?? '/appointments')}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </div>
         </SurfaceCard>
 
-        <div>
-          <DrawerPreview title="Appointment details">
-            <div className="space-y-3">
-              <div className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Client</p>
-                <p className="mt-2 font-semibold text-slate-950">Maya Laurent</p>
-              </div>
-              <div className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Service</p>
-                <p className="mt-2 font-semibold text-slate-950">Fine line tattoo consult</p>
-              </div>
-              <div className="flex gap-2">
-                <StatusBadge tone="success">Checked in</StatusBadge>
-                <StatusBadge tone="calm">Deposit paid</StatusBadge>
-              </div>
-            </div>
-          </DrawerPreview>
-        </div>
+        <SurfaceCard
+          action={canViewActivity ? (
+            <button
+              className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600"
+              onClick={() => navigate('/audit-logs')}
+              type="button"
+            >
+              View audit logs
+            </button>
+          ) : undefined}
+          title={canViewActivity ? 'Recent team activity' : 'Activity overview'}
+        >
+          {canViewActivity ? (
+            <ActivityFeed
+              entries={auditLogs}
+              error={auditError}
+              isLoading={auditLoading}
+              onRetry={() => void reloadAuditLogs()}
+            />
+          ) : (
+            <EmptyState
+              description="Operational activity history is available for admin accounts so the workspace can stay calm and accountable."
+              title="Activity is managed by your workspace admin"
+            />
+          )}
+        </SurfaceCard>
       </section>
     </div>
   )
 }
 
+function MetricCard({
+  helper,
+  label,
+  value,
+}: {
+  helper: string
+  label: string
+  value: string
+}) {
+  return (
+    <div className="rounded-[28px] border border-slate-200 bg-[linear-gradient(135deg,rgba(255,255,255,0.95),rgba(240,245,252,0.85))] p-5 shadow-[0_18px_44px_rgba(15,23,42,0.04)]">
+      <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">{label}</p>
+      <p className="mt-4 font-display text-4xl text-slate-950">{value}</p>
+      <p className="mt-4 text-sm text-slate-500">{helper}</p>
+    </div>
+  )
+}
+
+function PulseMetric({
+  label,
+  tone,
+  value,
+}: {
+  label: string
+  tone: 'attention' | 'calm' | 'neutral' | 'success'
+  value: string
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-4">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">{label}</p>
+        <p className="mt-2 text-2xl font-semibold text-slate-950">{value}</p>
+      </div>
+      <StatusBadge tone={tone}>{label}</StatusBadge>
+    </div>
+  )
+}
+
+function NotificationPreview({
+  notification,
+  onOpen,
+}: {
+  notification: NotificationRecord
+  onOpen: () => void
+}) {
+  return (
+    <button
+      className="w-full rounded-[20px] border border-slate-200 bg-white px-4 py-4 text-left transition hover:border-slate-300"
+      onClick={onOpen}
+      type="button"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-semibold text-slate-950">{notification.title}</p>
+        <StatusBadge tone="calm">{humanizeEnum(notification.type)}</StatusBadge>
+      </div>
+      <p className="mt-2 text-sm leading-7 text-slate-600">{notification.message}</p>
+    </button>
+  )
+}
+
 function appointmentTone(status: string) {
-  if (status === 'COMPLETED') return 'success' as const
-  if (status === 'CANCELLED') return 'danger' as const
-  if (status === 'NO_SHOW') return 'attention' as const
-  if (status === 'CONFIRMED') return 'calm' as const
-  return 'violet' as const
+  switch (status) {
+    case 'COMPLETED':
+      return 'success'
+    case 'CONFIRMED':
+      return 'calm'
+    case 'BOOKED':
+      return 'neutral'
+    case 'NO_SHOW':
+      return 'danger'
+    case 'CANCELLED':
+      return 'danger'
+    default:
+      return 'neutral'
+  }
+}
+
+function getTodayDateValue() {
+  return new Date().toISOString().slice(0, 10)
 }

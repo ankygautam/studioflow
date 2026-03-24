@@ -10,6 +10,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface CommunicationLogRepository extends JpaRepository<CommunicationLog, UUID> {
 
+    void deleteByAppointmentId(UUID appointmentId);
+
     boolean existsByAppointmentIdAndEventTypeAndDeliveryStatusAndSentAtAfter(
         UUID appointmentId,
         CommunicationEventType eventType,

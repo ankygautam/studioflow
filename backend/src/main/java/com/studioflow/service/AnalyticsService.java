@@ -143,13 +143,13 @@ public class AnalyticsService {
 
     private long loadClientCount(UUID studioId) {
         return studioId != null
-            ? customerProfileRepository.findByStudioIdAndIsActiveTrue(studioId).size()
+            ? customerProfileRepository.countByStudioIdAndIsActiveTrue(studioId)
             : customerProfileRepository.findAll().stream().filter(customer -> Boolean.TRUE.equals(customer.getIsActive())).count();
     }
 
     private long loadActiveServiceCount(UUID studioId) {
         return studioId != null
-            ? serviceRepository.findByStudioIdAndIsActiveTrue(studioId).size()
+            ? serviceRepository.countByStudioIdAndIsActiveTrue(studioId)
             : serviceRepository.findAll().stream().filter(service -> Boolean.TRUE.equals(service.getIsActive())).count();
     }
 

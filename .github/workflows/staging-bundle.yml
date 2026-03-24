@@ -1,0 +1,38 @@
+name: Prepare Staging Bundle
+
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+
+jobs:
+  staging-bundle:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+      - run: npm ci
+      - run: npm run build:staging
+        env:
+          VITE_API_URL: ${{ vars.STUDIOFLOW_STAGING_API_URL || 'http://localhost:8080' }}
+          VITE_APP_BASE_PATH: /
+          VITE_APP_ENV: staging
+      - run: mvn -DskipTests package
+        working-directory: backend
+      - uses: actions/upload-artifact@v4
+        with:
+          name: studioflow-staging-frontend
+          path: dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: studioflow-staging-backend
+          path: backend/target/*.jar

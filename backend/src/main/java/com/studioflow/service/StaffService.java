@@ -7,6 +7,8 @@ import com.studioflow.entity.Location;
 import com.studioflow.entity.StaffProfile;
 import com.studioflow.entity.Studio;
 import com.studioflow.entity.User;
+import com.studioflow.enums.AuditActionType;
+import com.studioflow.enums.AuditEntityType;
 import com.studioflow.enums.StaffStatus;
 import com.studioflow.exception.BadRequestException;
 import com.studioflow.exception.ResourceNotFoundException;
@@ -30,8 +32,10 @@ public class StaffService {
     private final UserRepository userRepository;
     private final StudioRepository studioRepository;
     private final LocationRepository locationRepository;
+    private final AuditLogService auditLogService;
 
     public StaffResponse createStaff(StaffCreateRequest request) {
+        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN);
         User user = findUser(request.userId());
         validateLinkedUser(user, null);
         Studio studio = findStudio(currentUserService.requireStudioAccess(request.studioId()));
@@ -41,13 +45,38 @@ public class StaffService {
         StaffProfile staffProfile = new StaffProfile();
         mapCreateRequest(staffProfile, request, user, studio, primaryLocation);
 
-        return toResponse(staffProfileRepository.save(staffProfile));
+        StaffProfile savedStaffProfile = staffProfileRepository.save(staffProfile);
+        auditLogService.log(
+            AuditEntityType.STAFF,
+            savedStaffProfile.getId(),
+            AuditActionType.CREATED,
+            savedStaffProfile.getStudio().getId(),
+            savedStaffProfile.getPrimaryLocation() != null ? savedStaffProfile.getPrimaryLocation().getId() : null,
+            "Staff profile created",
+            savedStaffProfile.getDisplayName() + " was added to the team roster."
+        );
+        return toResponse(savedStaffProfile);
     }
 
     @Transactional(readOnly = true)
     public List<StaffResponse> getAllStaff(UUID studioId, UUID locationId) {
+        currentUserService.requireAnyRole(
+            com.studioflow.enums.UserRole.ADMIN,
+            com.studioflow.enums.UserRole.RECEPTIONIST,
+            com.studioflow.enums.UserRole.STAFF
+        );
         UUID authorizedStudioId = currentUserService.requireStudioAccess(studioId);
         UUID authorizedLocationId = locationId != null ? currentUserService.requireLocationAccess(locationId) : null;
+        if (currentUserService.hasRole(com.studioflow.enums.UserRole.STAFF)) {
+            StaffProfile currentStaffProfile = currentUserService.requireCurrentStaffProfile();
+
+            if (authorizedLocationId != null && currentStaffProfile.getPrimaryLocation() != null) {
+                currentUserService.ensureLocationAccess(authorizedLocationId);
+            }
+
+            return List.of(toResponse(currentStaffProfile));
+        }
+
         List<StaffProfile> staffProfiles = authorizedLocationId != null
             ? staffProfileRepository.findByStudioIdAndPrimaryLocationId(authorizedStudioId, authorizedLocationId)
             : staffProfileRepository.findByStudioId(authorizedStudioId);
@@ -59,12 +88,21 @@ public class StaffService {
 
     @Transactional(readOnly = true)
     public StaffResponse getStaffById(UUID id) {
+        currentUserService.requireAnyRole(
+            com.studioflow.enums.UserRole.ADMIN,
+            com.studioflow.enums.UserRole.RECEPTIONIST,
+            com.studioflow.enums.UserRole.STAFF
+        );
         StaffProfile staffProfile = findStaffProfile(id);
         currentUserService.ensureStudioAccess(staffProfile.getStudio().getId());
+        if (currentUserService.hasRole(com.studioflow.enums.UserRole.STAFF)) {
+            currentUserService.ensureAssignedStaff(staffProfile);
+        }
         return toResponse(staffProfile);
     }
 
     public StaffResponse updateStaff(UUID id, StaffUpdateRequest request) {
+        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN);
         StaffProfile staffProfile = findStaffProfile(id);
         currentUserService.ensureStudioAccess(staffProfile.getStudio().getId());
         User user = findUser(request.userId());
@@ -74,14 +112,34 @@ public class StaffService {
         validateLocation(studio, primaryLocation);
 
         mapUpdateRequest(staffProfile, request, user, studio, primaryLocation);
-        return toResponse(staffProfileRepository.save(staffProfile));
+        StaffProfile savedStaffProfile = staffProfileRepository.save(staffProfile);
+        auditLogService.log(
+            AuditEntityType.STAFF,
+            savedStaffProfile.getId(),
+            AuditActionType.UPDATED,
+            savedStaffProfile.getStudio().getId(),
+            savedStaffProfile.getPrimaryLocation() != null ? savedStaffProfile.getPrimaryLocation().getId() : null,
+            "Staff profile updated",
+            savedStaffProfile.getDisplayName() + " was updated."
+        );
+        return toResponse(savedStaffProfile);
     }
 
     public void deleteStaff(UUID id) {
+        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN);
         StaffProfile staffProfile = findStaffProfile(id);
         currentUserService.ensureStudioAccess(staffProfile.getStudio().getId());
         staffProfile.setStatus(StaffStatus.INACTIVE);
         staffProfileRepository.save(staffProfile);
+        auditLogService.log(
+            AuditEntityType.STAFF,
+            staffProfile.getId(),
+            AuditActionType.DEACTIVATED,
+            staffProfile.getStudio().getId(),
+            staffProfile.getPrimaryLocation() != null ? staffProfile.getPrimaryLocation().getId() : null,
+            "Staff profile deactivated",
+            staffProfile.getDisplayName() + " was marked inactive."
+        );
     }
 
     private User findUser(UUID userId) {

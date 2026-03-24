@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useState } from 'react'
 import { SurfaceCard } from '../components/layout/app-shell'
+import { ActivityTimeline } from '../components/ui/activity-timeline'
 import { EmptyState, ErrorState, LoadingState } from '../components/ui/async-state'
+import { ConfirmDialog } from '../components/ui/confirm-dialog'
 import { DetailDrawer } from '../components/ui/detail-drawer'
 import { InputField, TextAreaField, ToggleField } from '../components/ui/form-controls'
 import { PageHeader } from '../components/ui/page-header'
@@ -9,6 +11,7 @@ import { canManageClients } from '../features/auth/authorization'
 import { useAuth } from '../features/auth/use-auth'
 import { useRemoteList } from '../hooks/use-remote-list'
 import { formatDate } from '../lib/formatters'
+import { getAuditLogsByEntity } from '../lib/api/audit-api'
 import { getConsentFormSubmissions } from '../lib/api/consent-forms-api'
 import { getDefaultStudioId } from '../lib/api/http'
 import { createClient, deleteClient, getClients, updateClient } from '../lib/api/clients-api'
@@ -32,6 +35,7 @@ export function ClientsPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [mutationError, setMutationError] = useState<string | null>(null)
   const [editingClient, setEditingClient] = useState<ClientRecord | null>(null)
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof ClientFormState, string>>>({})
   const [formState, setFormState] = useState<ClientFormState>(createClientForm(defaultStudioId))
 
@@ -49,6 +53,18 @@ export function ClientsPage() {
     error: clientConsentError,
     isLoading: clientConsentLoading,
   } = useRemoteList(loadClientConsent)
+  const loadClientActivity = useCallback(() => {
+    if (!editingClient?.id) {
+      return Promise.resolve([])
+    }
+
+    return getAuditLogsByEntity('CLIENT', editingClient.id)
+  }, [editingClient?.id])
+  const {
+    data: clientActivity,
+    error: clientActivityError,
+    isLoading: clientActivityLoading,
+  } = useRemoteList(loadClientActivity)
 
   const openCreateDrawer = () => {
     setEditingClient(null)
@@ -71,6 +87,7 @@ export function ClientsPage() {
     setEditingClient(null)
     setMutationError(null)
     setFormErrors({})
+    setConfirmDeleteOpen(false)
   }
 
   const handleSubmit = async () => {
@@ -226,7 +243,7 @@ export function ClientsPage() {
                 <button
                   className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700"
                   disabled={isSaving}
-                  onClick={() => void handleDelete()}
+                  onClick={() => setConfirmDeleteOpen(true)}
                   type="button"
                 >
                   Deactivate client
@@ -376,13 +393,28 @@ export function ClientsPage() {
           </section>
 
           <section>
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-400">Appointment history</p>
-            <div className="mt-3 rounded-[24px] border border-slate-200 bg-slate-50 p-4 text-sm leading-7 text-slate-600">
-              Appointment history will populate here as connected appointment records expand across the backend.
+            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-400">Activity history</p>
+            <div className="mt-3">
+              <ActivityTimeline
+                emptyDescription="Client activity will appear here as the team updates profile details and relationship records."
+                entries={clientActivity}
+                error={clientActivityError}
+                isLoading={clientActivityLoading}
+              />
             </div>
           </section>
         </div>
       </DetailDrawer>
+
+      <ConfirmDialog
+        confirmLabel="Deactivate client"
+        description={`${editingClient?.fullName ?? 'This client'} will be kept for reporting and appointment history, but the profile will be marked inactive.`}
+        isConfirming={isSaving}
+        onCancel={() => setConfirmDeleteOpen(false)}
+        onConfirm={() => void handleDelete()}
+        open={confirmDeleteOpen}
+        title="Deactivate this client?"
+      />
     </div>
   )
 }

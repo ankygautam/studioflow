@@ -8,6 +8,8 @@ import com.studioflow.entity.Service;
 import com.studioflow.entity.StaffProfile;
 import com.studioflow.entity.Studio;
 import com.studioflow.entity.User;
+import com.studioflow.enums.AuditActionType;
+import com.studioflow.enums.AuditEntityType;
 import com.studioflow.enums.StaffStatus;
 import com.studioflow.enums.UserRole;
 import com.studioflow.exception.BadRequestException;
@@ -33,6 +35,7 @@ public class StudioOnboardingService {
     private final LocationRepository locationRepository;
     private final ServiceRepository serviceRepository;
     private final StaffProfileRepository staffProfileRepository;
+    private final com.studioflow.service.AuditLogService auditLogService;
 
     public StudioOnboardingResponse onboard(StudioOnboardingRequest request) {
         if (currentUserService.getCurrentUserRole() == UserRole.CUSTOMER) {
@@ -98,6 +101,15 @@ public class StudioOnboardingService {
 
         savedStudio.setOnboardingCompleted(true);
         studioRepository.save(savedStudio);
+        auditLogService.log(
+            AuditEntityType.ONBOARDING,
+            savedStudio.getId(),
+            AuditActionType.COMPLETED,
+            savedStudio.getId(),
+            savedLocation.getId(),
+            "Studio onboarding completed",
+            savedStudio.getName() + " finished onboarding and is ready to operate."
+        );
 
         return new StudioOnboardingResponse(
             savedStudio.getId(),

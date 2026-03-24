@@ -18,7 +18,7 @@ public class NoopSmsService implements SmsService {
 
     @Override
     public DeliveryAttemptResult send(SmsMessage smsMessage) {
-        LOGGER.info("Skipping SMS delivery to {}. {}", smsMessage.to(), reason);
+        LOGGER.debug("Skipping SMS delivery because the channel is disabled. {}", reason);
         return DeliveryAttemptResult.skipped(reason);
     }
 }

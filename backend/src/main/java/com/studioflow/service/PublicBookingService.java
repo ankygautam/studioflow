@@ -46,12 +46,16 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;
 
 @org.springframework.stereotype.Service
 @RequiredArgsConstructor
 @Transactional
 public class PublicBookingService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(PublicBookingService.class);
 
     private static final LocalTime DEFAULT_START = LocalTime.of(9, 0);
     private static final LocalTime DEFAULT_END = LocalTime.of(17, 0);
@@ -188,6 +192,7 @@ public class PublicBookingService {
 
     public PublicBookingConfirmationResponse createBooking(String studioSlug, @Valid PublicBookingCreateRequest request) {
         if (request.appointmentDate().isBefore(LocalDate.now())) {
+            LOGGER.warn("Public booking rejected because the requested date is in the past. studioSlug={}", studioSlug);
             throw new BadRequestException("Please choose today or a future date");
         }
 
@@ -195,6 +200,7 @@ public class PublicBookingService {
         Location location = findLocation(request.locationId());
 
         if (!studio.getId().equals(request.studioId())) {
+            LOGGER.warn("Public booking rejected because the request studio did not match the route. studioSlug={}", studioSlug);
             throw new BadRequestException("Booking request does not match the selected studio");
         }
 
@@ -208,6 +214,15 @@ public class PublicBookingService {
             .anyMatch(slot -> slot.startTime().equals(request.startTime()) && slot.endTime().equals(endTime));
 
         if (!available) {
+            LOGGER.warn(
+                "Public booking rejected because the selected slot is no longer available. studioSlug={} locationId={} serviceId={} staffProfileId={} date={} startTime={}",
+                studioSlug,
+                request.locationId(),
+                request.serviceId(),
+                request.staffProfileId(),
+                request.appointmentDate(),
+                request.startTime()
+            );
             throw new BadRequestException("This time slot is no longer available. Please choose another one.");
         }
 
@@ -229,6 +244,13 @@ public class PublicBookingService {
 
         Appointment savedAppointment = appointmentRepository.save(appointment);
         notificationService.notifyAppointmentCreated(savedAppointment);
+        LOGGER.info(
+            "Public booking created. appointmentId={} reference={} studioId={} locationId={}",
+            savedAppointment.getId(),
+            savedAppointment.getBookingReference(),
+            studio.getId(),
+            location.getId()
+        );
 
         return new PublicBookingConfirmationResponse(
             savedAppointment.getId(),
@@ -257,6 +279,7 @@ public class PublicBookingService {
         Studio studio = resolveStudio(studioSlug);
         Appointment appointment = findBookingForLookup(studio, request.bookingReference());
         validateLookupRequest(appointment, request);
+        LOGGER.info("Public booking lookup succeeded. reference={} studioId={}", appointment.getBookingReference(), studio.getId());
 
         return toLookupResponse(studio, appointment);
     }
@@ -273,17 +296,20 @@ public class PublicBookingService {
         }
 
         if (appointment.getStatus() == AppointmentStatus.COMPLETED || appointment.getStatus() == AppointmentStatus.NO_SHOW) {
+            LOGGER.warn("Public cancel rejected because the booking is no longer customer-manageable. appointmentId={} status={}", appointment.getId(), appointment.getStatus());
             throw new BadRequestException("This booking can no longer be cancelled from the public portal.");
         }
 
         appointment.setStatus(AppointmentStatus.CANCELLED);
         Appointment savedAppointment = appointmentRepository.save(appointment);
         notificationService.notifyAppointmentUpdated(savedAppointment, previousDate, previousStartTime, previousStatus);
+        LOGGER.info("Public booking cancelled. appointmentId={} reference={}", savedAppointment.getId(), savedAppointment.getBookingReference());
         return toManageResponse(studio, savedAppointment, "Your booking has been cancelled.");
     }
 
     public PublicBookingManageResponse rescheduleBooking(String studioSlug, @Valid PublicBookingRescheduleRequest request) {
         if (request.appointmentDate().isBefore(LocalDate.now())) {
+            LOGGER.warn("Public reschedule rejected because the requested date is in the past. studioSlug={}", studioSlug);
             throw new BadRequestException("Please choose today or a future date");
         }
 
@@ -294,6 +320,7 @@ public class PublicBookingService {
         AppointmentStatus previousStatus = appointment.getStatus();
 
         if (appointment.getStatus() == AppointmentStatus.CANCELLED || appointment.getStatus() == AppointmentStatus.COMPLETED || appointment.getStatus() == AppointmentStatus.NO_SHOW) {
+            LOGGER.warn("Public reschedule rejected because the booking is no longer customer-manageable. appointmentId={} status={}", appointment.getId(), appointment.getStatus());
             throw new BadRequestException("This booking can no longer be rescheduled from the public portal.");
         }
 
@@ -309,6 +336,7 @@ public class PublicBookingService {
             .anyMatch(slot -> slot.startTime().equals(request.startTime()) && slot.endTime().equals(endTime));
 
         if (!available) {
+            LOGGER.warn("Public reschedule rejected because the selected slot is unavailable. appointmentId={} requestedDate={} requestedStart={}", appointment.getId(), request.appointmentDate(), request.startTime());
             throw new BadRequestException("That time is no longer available. Please choose another slot.");
         }
 
@@ -319,6 +347,13 @@ public class PublicBookingService {
 
         Appointment savedAppointment = appointmentRepository.save(appointment);
         notificationService.notifyAppointmentUpdated(savedAppointment, previousDate, previousStartTime, previousStatus);
+        LOGGER.info(
+            "Public booking rescheduled. appointmentId={} reference={} newDate={} newStartTime={}",
+            savedAppointment.getId(),
+            savedAppointment.getBookingReference(),
+            savedAppointment.getAppointmentDate(),
+            savedAppointment.getStartTime()
+        );
         return toManageResponse(studio, savedAppointment, "Your booking has been rescheduled.");
     }
 
@@ -502,10 +537,12 @@ public class PublicBookingService {
         try {
             claims = jwtService.parsePublicBookingManageToken(manageToken);
         } catch (IllegalArgumentException | JwtException exception) {
+            LOGGER.warn("Public booking manage token validation failed.");
             throw new BadRequestException("Booking access could not be verified. Please look up your booking again.");
         }
 
         if (!studio.getId().equals(claims.studioId())) {
+            LOGGER.warn("Public booking manage token studio mismatch. studioId={} tokenStudioId={}", studio.getId(), claims.studioId());
             throw new BadRequestException("Booking access could not be verified. Please look up your booking again.");
         }
 
@@ -513,10 +550,12 @@ public class PublicBookingService {
             .orElseThrow(() -> new ResourceNotFoundException(LOOKUP_FAILURE_MESSAGE));
 
         if (!appointment.getStudio().getId().equals(studio.getId())) {
+            LOGGER.warn("Public booking manage lookup crossed studio boundaries. appointmentId={} studioId={}", appointment.getId(), studio.getId());
             throw new ResourceNotFoundException(LOOKUP_FAILURE_MESSAGE);
         }
 
         if (appointment.getBookingReference() == null || !appointment.getBookingReference().equalsIgnoreCase(claims.bookingReference())) {
+            LOGGER.warn("Public booking manage token reference mismatch. appointmentId={}", appointment.getId());
             throw new BadRequestException("Booking access could not be verified. Please look up your booking again.");
         }
 

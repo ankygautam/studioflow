@@ -89,6 +89,7 @@ export function AppShell() {
           <div className="rounded-[28px] border border-white/70 bg-white/88 px-4 py-3 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur md:px-6">
             <div className="flex flex-wrap items-center gap-3">
               <button
+                aria-label="Open navigation"
                 className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-700 transition hover:bg-white lg:hidden"
                 onClick={() => setMobileNavOpen(true)}
                 type="button"
@@ -123,6 +124,7 @@ export function AppShell() {
 
                 <div className="relative">
                   <button
+                    aria-label={notificationsOpen ? 'Close notifications' : 'Open notifications'}
                     className="relative inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-700 transition hover:border-slate-300 hover:bg-white"
                     onClick={() => {
                       const nextOpen = !notificationsOpen
@@ -243,7 +245,11 @@ export function AppShell() {
                   </AnimatePresence>
                 </div>
 
-                <button className="hidden h-12 items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 text-left transition hover:border-slate-300 hover:bg-white sm:inline-flex">
+                <button
+                  aria-label="Current user and location"
+                  className="hidden h-12 items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 text-left transition hover:border-slate-300 hover:bg-white sm:inline-flex"
+                  type="button"
+                >
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[linear-gradient(135deg,#b7d9ff,#b5ead8)] text-sm font-semibold text-slate-950">
                     {initials}
                   </div>
@@ -475,6 +481,13 @@ function ShellIcon({ icon }: { icon: NavigationItem['icon'] | 'bell' | 'chevron'
       return (
         <svg className={common} fill="none" viewBox="0 0 24 24">
           <path d="M4 19.5h16M7 16V10M12 16V6M17 16v-3" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+        </svg>
+      )
+    case 'audit':
+      return (
+        <svg className={common} fill="none" viewBox="0 0 24 24">
+          <path d="M12 3.5 5 6.5V12c0 4 2.5 6.7 7 8.5 4.5-1.8 7-4.5 7-8.5V6.5l-7-3Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.8" />
+          <path d="M9.5 11.8 11.3 13.6l3.4-3.8" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
         </svg>
       )
     case 'settings':

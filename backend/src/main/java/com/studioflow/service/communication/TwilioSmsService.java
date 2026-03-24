@@ -43,14 +43,14 @@ public class TwilioSmsService implements SmsService {
                 return DeliveryAttemptResult.sent();
             }
 
-            LOGGER.warn("SMS delivery failed for {} with status {}", smsMessage.to(), response.statusCode());
+            LOGGER.warn("SMS delivery failed for {} with status {}", maskTarget(smsMessage.to()), response.statusCode());
             return DeliveryAttemptResult.failed("HTTP " + response.statusCode());
         } catch (IOException | InterruptedException exception) {
             if (exception instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
 
-            LOGGER.warn("SMS delivery failed for {}: {}", smsMessage.to(), exception.getMessage());
+            LOGGER.warn("SMS delivery failed for {}: {}", maskTarget(smsMessage.to()), exception.getMessage());
             return DeliveryAttemptResult.failed(exception.getMessage());
         }
     }
@@ -68,5 +68,18 @@ public class TwilioSmsService implements SmsService {
 
     private String encode(String value) {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+    private String maskTarget(String value) {
+        if (value == null || value.isBlank()) {
+            return "***";
+        }
+
+        String digits = value.replaceAll("\\D", "");
+        if (digits.length() <= 4) {
+            return "***";
+        }
+
+        return "***" + digits.substring(digits.length() - 4);
     }
 }

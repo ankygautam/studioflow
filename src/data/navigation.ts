@@ -4,6 +4,7 @@ export type NavigationItem = {
   icon:
     | 'analytics'
     | 'appointments'
+    | 'audit'
     | 'calendar'
     | 'clients'
     | 'consent'
@@ -79,6 +80,13 @@ export const navigationItems: NavigationItem[] = [
     icon: 'analytics',
     label: 'Analytics',
     slug: 'analytics',
+  },
+  {
+    description: 'Track who changed what across bookings, clients, payments, and settings.',
+    eyebrow: 'Governance',
+    icon: 'audit',
+    label: 'Audit Logs',
+    slug: 'audit-logs',
   },
   {
     description: 'Studio settings, business profile, and workflow preferences.',

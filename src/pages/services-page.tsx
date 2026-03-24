@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { SurfaceCard } from '../components/layout/app-shell'
 import { EmptyState, ErrorState, LoadingState } from '../components/ui/async-state'
+import { ConfirmDialog } from '../components/ui/confirm-dialog'
 import { DataTable } from '../components/ui/data-table'
 import { DetailDrawer } from '../components/ui/detail-drawer'
 import { InputField, SelectField, TextAreaField, ToggleField } from '../components/ui/form-controls'
@@ -52,6 +53,7 @@ export function ServicesPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [mutationError, setMutationError] = useState<string | null>(null)
   const [editingService, setEditingService] = useState<ServiceRecord | null>(null)
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof ServiceFormState, string>>>({})
   const [formState, setFormState] = useState<ServiceFormState>(createServiceForm(defaultStudioId))
 
@@ -84,6 +86,7 @@ export function ServicesPage() {
     setEditingService(null)
     setMutationError(null)
     setFormErrors({})
+    setConfirmDeleteOpen(false)
   }
 
   const handleSubmit = async () => {
@@ -254,7 +257,7 @@ export function ServicesPage() {
                 <button
                   className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700"
                   disabled={isSaving}
-                  onClick={() => void handleDelete()}
+                  onClick={() => setConfirmDeleteOpen(true)}
                   type="button"
                 >
                   Deactivate service
@@ -378,6 +381,16 @@ export function ServicesPage() {
           </div>
         </div>
       </DetailDrawer>
+
+      <ConfirmDialog
+        confirmLabel="Deactivate service"
+        description={`"${editingService?.name ?? 'This service'}" will be removed from active booking choices, but its history will stay intact.`}
+        isConfirming={isSaving}
+        onCancel={() => setConfirmDeleteOpen(false)}
+        onConfirm={() => void handleDelete()}
+        open={confirmDeleteOpen}
+        title="Deactivate this service?"
+      />
     </div>
   )
 }

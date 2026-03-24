@@ -18,7 +18,7 @@ public class NoopEmailService implements EmailService {
 
     @Override
     public DeliveryAttemptResult send(EmailMessage emailMessage) {
-        LOGGER.info("Skipping email delivery to {}. {}", emailMessage.to(), reason);
+        LOGGER.debug("Skipping email delivery because the channel is disabled. {}", reason);
         return DeliveryAttemptResult.skipped(reason);
     }
 }

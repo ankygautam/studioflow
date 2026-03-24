@@ -9,7 +9,10 @@ export function DataTable({
 }) {
   return (
     <div className="overflow-hidden rounded-[24px] border border-slate-200">
-      <div className="overflow-x-auto">
+      <div className="border-b border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 md:hidden">
+        Scroll to view all columns
+      </div>
+      <div className="overflow-x-auto overscroll-x-contain">
         <table className="min-w-full text-left">
           <thead className="bg-slate-50">
             <tr>

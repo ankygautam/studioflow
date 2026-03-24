@@ -20,7 +20,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Configuration
-@Profile("local")
+@Profile({"local", "staging"})
 @RequiredArgsConstructor
 public class LocalAuthSeeder {
 
@@ -74,7 +74,7 @@ public class LocalAuthSeeder {
         staffProfile.setDisplayName(seedUser.fullName());
         staffProfile.setJobTitle(defaultJobTitle(seedUser.role()));
         staffProfile.setPhone("(555) 555-0100");
-        staffProfile.setBio("Local demo auth profile for StudioFlow.");
+        staffProfile.setBio("Demo auth profile for StudioFlow.");
         staffProfile.setAvatarUrl("");
         staffProfile.setStatus(StaffStatus.ACTIVE);
 

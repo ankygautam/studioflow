@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
+import {
+  canEditAppointmentDetails,
+  canUpdateAppointmentStatus,
+} from '../../features/auth/authorization'
 import { useAuth } from '../../features/auth/use-auth'
+import { getAuditLogsByEntity } from '../../lib/api/audit-api'
 import { getClients } from '../../lib/api/clients-api'
 import { getConsentFormSubmissions } from '../../lib/api/consent-forms-api'
 import { getDefaultStudioId } from '../../lib/api/http'
@@ -18,6 +23,8 @@ import {
   validateAppointmentForm,
 } from '../../lib/appointments'
 import { formatDate, formatRelativeTime, humanizeEnum } from '../../lib/formatters'
+import { ActivityTimeline } from '../ui/activity-timeline'
+import { ConfirmDialog } from '../ui/confirm-dialog'
 import { DetailDrawer } from '../ui/detail-drawer'
 import { ErrorState, LoadingState } from '../ui/async-state'
 import { InputField, SelectField, TextAreaField } from '../ui/form-controls'
@@ -42,8 +49,10 @@ export function AppointmentDrawer({
   onSaved,
   open,
 }: AppointmentDrawerProps) {
-  const { selectedLocationId } = useAuth()
+  const { selectedLocationId, user } = useAuth()
   const defaultStudioId = getDefaultStudioId()
+  const canEditDetails = user ? canEditAppointmentDetails(user.role) : false
+  const canEditStatus = user ? canUpdateAppointmentStatus(user.role) : false
   const studioId = appointment?.studioId ?? defaultStudioId
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof AppointmentFormState, string>>>({})
   const [formState, setFormState] = useState<AppointmentFormState>(
@@ -57,6 +66,7 @@ export function AppointmentDrawer({
   )
   const [isSaving, setIsSaving] = useState(false)
   const [mutationError, setMutationError] = useState<string | null>(null)
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
 
   const loadClients = useCallback(() => getClients(studioId), [studioId])
   const loadLocations = useCallback(() => getLocations(studioId, true), [studioId])
@@ -72,6 +82,13 @@ export function AppointmentDrawer({
 
     return getConsentFormSubmissions({ appointmentId: appointment.id })
   }, [appointment?.id])
+  const loadAuditLogs = useCallback(() => {
+    if (!appointment?.id) {
+      return Promise.resolve([])
+    }
+
+    return getAuditLogsByEntity('APPOINTMENT', appointment.id, appointment.locationId)
+  }, [appointment?.id, appointment?.locationId])
 
   const { data: clients, error: clientsError, isLoading: clientsLoading } = useRemoteList(loadClients)
   const { data: locations, error: locationsError, isLoading: locationsLoading } = useRemoteList(loadLocations)
@@ -82,6 +99,11 @@ export function AppointmentDrawer({
     error: consentError,
     isLoading: consentLoading,
   } = useRemoteList(loadConsentSubmissions)
+  const {
+    data: auditLogs,
+    error: auditError,
+    isLoading: auditLoading,
+  } = useRemoteList(loadAuditLogs)
 
   useEffect(() => {
     if (!open) {
@@ -90,6 +112,7 @@ export function AppointmentDrawer({
 
     setFormErrors({})
     setMutationError(null)
+    setConfirmDeleteOpen(false)
     setFormState(
       mergeAppointmentDraft(
         createAppointmentForm(studioId, appointment ?? undefined),
@@ -183,6 +206,7 @@ export function AppointmentDrawer({
   }
 
   return (
+    <>
     <DetailDrawer
       footer={
         <div className="flex flex-wrap justify-between gap-3">
@@ -191,7 +215,7 @@ export function AppointmentDrawer({
               <button
                 className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700"
                 disabled={isSaving}
-                onClick={() => void handleDelete()}
+                onClick={() => setConfirmDeleteOpen(true)}
                 type="button"
               >
                 Delete appointment
@@ -277,6 +301,7 @@ export function AppointmentDrawer({
                 staffProfileId: '',
               }))
             }
+            disabled={appointment ? !canEditDetails : false}
             value={formState.locationId}
           >
             <option value="">Select a location</option>
@@ -292,6 +317,7 @@ export function AppointmentDrawer({
             onChange={(event) =>
               setFormState((current) => ({ ...current, customerProfileId: event.target.value }))
             }
+            disabled={appointment ? !canEditDetails : false}
             value={formState.customerProfileId}
           >
             <option value="">Select a client</option>
@@ -307,6 +333,7 @@ export function AppointmentDrawer({
             onChange={(event) =>
               setFormState((current) => ({ ...current, staffProfileId: event.target.value }))
             }
+            disabled={appointment ? !canEditDetails : false}
             value={formState.staffProfileId}
           >
             <option value="">Select a staff member</option>
@@ -320,6 +347,7 @@ export function AppointmentDrawer({
             error={formErrors.serviceId}
             label="Service"
             onChange={(event) => setFormState((current) => ({ ...current, serviceId: event.target.value }))}
+            disabled={appointment ? !canEditDetails : false}
             value={formState.serviceId}
           >
             <option value="">Select a service</option>
@@ -335,6 +363,7 @@ export function AppointmentDrawer({
             onChange={(event) =>
               setFormState((current) => ({ ...current, appointmentDate: event.target.value }))
             }
+            disabled={appointment ? !canEditDetails : false}
             type="date"
             value={formState.appointmentDate}
           />
@@ -342,6 +371,7 @@ export function AppointmentDrawer({
             error={formErrors.startTime}
             label="Start time"
             onChange={(event) => setFormState((current) => ({ ...current, startTime: event.target.value }))}
+            disabled={appointment ? !canEditDetails : false}
             type="time"
             value={formState.startTime}
           />
@@ -349,6 +379,7 @@ export function AppointmentDrawer({
             error={formErrors.endTime}
             label="End time"
             onChange={(event) => setFormState((current) => ({ ...current, endTime: event.target.value }))}
+            disabled={appointment ? !canEditDetails : false}
             type="time"
             value={formState.endTime}
           />
@@ -358,6 +389,7 @@ export function AppointmentDrawer({
             onChange={(event) =>
               setFormState((current) => ({ ...current, status: event.target.value as AppointmentFormState['status'] }))
             }
+            disabled={appointment ? !canEditStatus : false}
             value={formState.status}
           >
             {appointmentStatuses.map((status) => (
@@ -372,6 +404,7 @@ export function AppointmentDrawer({
             onChange={(event) =>
               setFormState((current) => ({ ...current, source: event.target.value as AppointmentFormState['source'] }))
             }
+            disabled={appointment ? !canEditDetails : false}
             value={formState.source}
           >
             {appointmentSources.map((source) => (
@@ -386,6 +419,7 @@ export function AppointmentDrawer({
           label="Notes"
           onChange={(event) => setFormState((current) => ({ ...current, notes: event.target.value }))}
           placeholder="Add prep details, reminders, or scheduling context."
+          disabled={appointment ? !canEditStatus : false}
           value={formState.notes}
         />
 
@@ -460,8 +494,32 @@ export function AppointmentDrawer({
             </div>
           </section>
         ) : null}
+
+        {appointment ? (
+          <section>
+            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-400">Activity history</p>
+            <div className="mt-3">
+              <ActivityTimeline
+                emptyDescription="This booking’s activity timeline will appear here as the team updates status, timing, and assignment."
+                entries={auditLogs}
+                error={auditError}
+                isLoading={auditLoading}
+              />
+            </div>
+          </section>
+        ) : null}
       </div>
     </DetailDrawer>
+      <ConfirmDialog
+        confirmLabel="Delete appointment"
+        description={`This will permanently remove the booking for ${appointment?.customerName ?? 'this client'} from the schedule.`}
+        isConfirming={isSaving}
+        onCancel={() => setConfirmDeleteOpen(false)}
+        onConfirm={() => void handleDelete()}
+        open={confirmDeleteOpen}
+        title="Delete this appointment?"
+      />
+    </>
   )
 }
 

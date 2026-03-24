@@ -42,8 +42,17 @@ public class SmtpEmailService implements EmailService {
             javaMailSender.send(mimeMessage);
             return DeliveryAttemptResult.sent();
         } catch (Exception exception) {
-            LOGGER.warn("Email delivery failed for {}: {}", emailMessage.to(), exception.getMessage());
+            LOGGER.warn("Email delivery failed for {}: {}", maskTarget(emailMessage.to()), exception.getMessage());
             return DeliveryAttemptResult.failed(exception.getMessage());
         }
+    }
+
+    private String maskTarget(String value) {
+        int atIndex = value.indexOf('@');
+        if (atIndex <= 1) {
+            return "***";
+        }
+
+        return value.charAt(0) + "***" + value.substring(atIndex);
     }
 }

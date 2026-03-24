@@ -5,6 +5,8 @@ import com.studioflow.dto.client.ClientResponse;
 import com.studioflow.dto.client.ClientUpdateRequest;
 import com.studioflow.entity.CustomerProfile;
 import com.studioflow.entity.Studio;
+import com.studioflow.enums.AuditActionType;
+import com.studioflow.enums.AuditEntityType;
 import com.studioflow.exception.ResourceNotFoundException;
 import com.studioflow.repository.CustomerProfileRepository;
 import com.studioflow.repository.StudioRepository;
@@ -22,8 +24,10 @@ public class ClientService {
     private final CurrentUserService currentUserService;
     private final CustomerProfileRepository customerProfileRepository;
     private final StudioRepository studioRepository;
+    private final AuditLogService auditLogService;
 
     public ClientResponse createClient(ClientCreateRequest request) {
+        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN, com.studioflow.enums.UserRole.RECEPTIONIST);
         Studio studio = findStudio(currentUserService.requireStudioAccess(request.studioId()));
         CustomerProfile client = new CustomerProfile();
 
@@ -34,11 +38,22 @@ public class ClientService {
             request.isActive() != null ? request.isActive() : Boolean.TRUE
         );
 
-        return toResponse(customerProfileRepository.save(client));
+        CustomerProfile savedClient = customerProfileRepository.save(client);
+        auditLogService.log(
+            AuditEntityType.CLIENT,
+            savedClient.getId(),
+            AuditActionType.CREATED,
+            savedClient.getStudio().getId(),
+            null,
+            "Client created",
+            savedClient.getFullName() + " was added to the client list."
+        );
+        return toResponse(savedClient);
     }
 
     @Transactional(readOnly = true)
     public List<ClientResponse> getAllClients(UUID studioId) {
+        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN, com.studioflow.enums.UserRole.RECEPTIONIST);
         UUID authorizedStudioId = currentUserService.requireStudioAccess(studioId);
         List<CustomerProfile> clients = customerProfileRepository.findByStudioId(authorizedStudioId);
 
@@ -49,12 +64,14 @@ public class ClientService {
 
     @Transactional(readOnly = true)
     public ClientResponse getClientById(UUID id) {
+        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN, com.studioflow.enums.UserRole.RECEPTIONIST);
         CustomerProfile client = findClient(id);
         currentUserService.ensureStudioAccess(client.getStudio().getId());
         return toResponse(client);
     }
 
     public ClientResponse updateClient(UUID id, ClientUpdateRequest request) {
+        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN, com.studioflow.enums.UserRole.RECEPTIONIST);
         CustomerProfile client = findClient(id);
         currentUserService.ensureStudioAccess(client.getStudio().getId());
         Studio studio = findStudio(currentUserService.requireStudioAccess(request.studioId()));
@@ -66,14 +83,34 @@ public class ClientService {
             request.isActive() != null ? request.isActive() : client.getIsActive()
         );
 
-        return toResponse(customerProfileRepository.save(client));
+        CustomerProfile savedClient = customerProfileRepository.save(client);
+        auditLogService.log(
+            AuditEntityType.CLIENT,
+            savedClient.getId(),
+            AuditActionType.UPDATED,
+            savedClient.getStudio().getId(),
+            null,
+            "Client updated",
+            savedClient.getFullName() + " was updated."
+        );
+        return toResponse(savedClient);
     }
 
     public void deleteClient(UUID id) {
+        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN, com.studioflow.enums.UserRole.RECEPTIONIST);
         CustomerProfile client = findClient(id);
         currentUserService.ensureStudioAccess(client.getStudio().getId());
         client.setIsActive(false);
         customerProfileRepository.save(client);
+        auditLogService.log(
+            AuditEntityType.CLIENT,
+            client.getId(),
+            AuditActionType.DEACTIVATED,
+            client.getStudio().getId(),
+            null,
+            "Client deactivated",
+            client.getFullName() + " was marked inactive."
+        );
     }
 
     private Studio findStudio(UUID studioId) {

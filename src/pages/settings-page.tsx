@@ -1,11 +1,15 @@
 import { useCallback, useMemo, useState } from 'react'
 import { SurfaceCard } from '../components/layout/app-shell'
+import { ActivityFeed } from '../components/ui/activity-feed'
 import { DetailDrawer } from '../components/ui/detail-drawer'
 import { EmptyState, ErrorState, LoadingState } from '../components/ui/async-state'
+import { ConfirmDialog } from '../components/ui/confirm-dialog'
 import { InputField, SelectField, ToggleField } from '../components/ui/form-controls'
 import { PageHeader } from '../components/ui/page-header'
+import { canViewAuditHistory } from '../features/auth/authorization'
 import { useAuth } from '../features/auth/use-auth'
 import { useRemoteList } from '../hooks/use-remote-list'
+import { getAuditLogs } from '../lib/api/audit-api'
 import { createLocation, deleteLocation, getLocations, updateLocation } from '../lib/api/locations-api'
 import type { LocationRecord, LocationUpsertPayload } from '../lib/api/types'
 
@@ -30,9 +34,21 @@ export function SettingsPage() {
   const [formErrors, setFormErrors] = useState<LocationFormErrors>({})
   const [isSaving, setIsSaving] = useState(false)
   const [mutationError, setMutationError] = useState<string | null>(null)
+  const [confirmDeleteLocation, setConfirmDeleteLocation] = useState<LocationRecord | null>(null)
 
   const loadLocations = useCallback(() => getLocations(user?.studioId), [user?.studioId])
   const { data: locations, error, isLoading, reload } = useRemoteList(loadLocations)
+  const canViewActivity = user ? canViewAuditHistory(user.role) : false
+  const loadAuditLogs = useCallback(
+    () => (canViewActivity ? getAuditLogs({ limit: 8, locationId: selectedLocationId }) : Promise.resolve([])),
+    [canViewActivity, selectedLocationId],
+  )
+  const {
+    data: auditLogs,
+    error: auditError,
+    isLoading: auditLoading,
+    reload: reloadAuditLogs,
+  } = useRemoteList(loadAuditLogs)
 
   const activeLocationCount = useMemo(
     () => locations.filter((location) => location.isActive).length,
@@ -88,6 +104,9 @@ export function SettingsPage() {
       }
 
       await reload()
+      if (canViewActivity) {
+        await reloadAuditLogs()
+      }
       setIsDrawerOpen(false)
     } catch (nextError) {
       setMutationError(nextError instanceof Error ? nextError.message : 'Unable to save the location right now.')
@@ -103,6 +122,9 @@ export function SettingsPage() {
         setSelectedLocationId(null)
       }
       await reload()
+      if (canViewActivity) {
+        await reloadAuditLogs()
+      }
     } catch (nextError) {
       setMutationError(nextError instanceof Error ? nextError.message : 'Unable to archive this location right now.')
     }
@@ -215,7 +237,7 @@ export function SettingsPage() {
                               ? 'border-rose-200/20 bg-rose-500/10 text-white'
                               : 'border-rose-200 bg-rose-50 text-rose-700',
                           ].join(' ')}
-                          onClick={() => void handleDelete(location)}
+                          onClick={() => setConfirmDeleteLocation(location)}
                           type="button"
                         >
                           Archive
@@ -247,6 +269,18 @@ export function SettingsPage() {
               Location selection now scopes the calendar, appointments, and public booking experience. Services remain studio-level for now to keep multi-location rollout practical and clean.
             </div>
           </SurfaceCard>
+
+          {canViewActivity ? (
+            <SurfaceCard title="Activity history">
+              <ActivityFeed
+                emptyDescription="Admin activity will appear here as the team changes locations, onboarding settings, and operational records."
+                entries={auditLogs}
+                error={auditError}
+                isLoading={auditLoading}
+                onRetry={() => void reloadAuditLogs()}
+              />
+            </SurfaceCard>
+          ) : null}
         </div>
       </div>
 
@@ -353,6 +387,20 @@ export function SettingsPage() {
           />
         </div>
       </DetailDrawer>
+
+      <ConfirmDialog
+        confirmLabel="Archive location"
+        description={`${confirmDeleteLocation?.name ?? 'This location'} will be archived and removed from active switching and public booking selection.`}
+        isConfirming={isSaving}
+        onCancel={() => setConfirmDeleteLocation(null)}
+        onConfirm={() => {
+          if (confirmDeleteLocation) {
+            void handleDelete(confirmDeleteLocation).finally(() => setConfirmDeleteLocation(null))
+          }
+        }}
+        open={Boolean(confirmDeleteLocation)}
+        title="Archive this location?"
+      />
     </div>
   )
 }

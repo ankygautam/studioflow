@@ -1,23 +1,27 @@
+import { lazy, Suspense, type ComponentType, type ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from '../components/layout/app-shell'
+import { LoadingState } from '../components/ui/async-state'
 import { AdminOnboardingRoute, ProtectedRoute, PublicOnlyRoute, RoleRoute } from '../features/auth/route-guards'
-import { AnalyticsPage } from '../pages/analytics-page'
-import { AppointmentsPage } from '../pages/appointments-page'
 import { ForgotPasswordPage } from '../pages/auth/forgot-password-page'
 import { LoginPage } from '../pages/auth/login-page'
-import { CalendarPage } from '../pages/calendar-page'
-import { ClientsPage } from '../pages/clients-page'
-import { DashboardPage } from '../pages/dashboard-page'
-import { FormsPage } from '../pages/forms-page'
-import { OnboardingPage } from '../pages/onboarding-page'
 import { PlaceholderPage } from '../pages/placeholder-page'
-import { PaymentsPage } from '../pages/payments-page'
 import { PublicBookingPage } from '../pages/public-booking-page'
 import { PublicBookingManagePage } from '../pages/public-booking-manage-page'
-import { ServicesPage } from '../pages/services-page'
-import { SettingsPage } from '../pages/settings-page'
-import { StaffPage } from '../pages/staff-page'
 import { navigationItems } from '../data/navigation'
+
+const AnalyticsPage = lazyNamed(() => import('../pages/analytics-page'), 'AnalyticsPage')
+const AuditLogsPage = lazyNamed(() => import('../pages/audit-logs-page'), 'AuditLogsPage')
+const AppointmentsPage = lazyNamed(() => import('../pages/appointments-page'), 'AppointmentsPage')
+const CalendarPage = lazyNamed(() => import('../pages/calendar-page'), 'CalendarPage')
+const ClientsPage = lazyNamed(() => import('../pages/clients-page'), 'ClientsPage')
+const DashboardPage = lazyNamed(() => import('../pages/dashboard-page'), 'DashboardPage')
+const FormsPage = lazyNamed(() => import('../pages/forms-page'), 'FormsPage')
+const OnboardingPage = lazyNamed(() => import('../pages/onboarding-page'), 'OnboardingPage')
+const PaymentsPage = lazyNamed(() => import('../pages/payments-page'), 'PaymentsPage')
+const ServicesPage = lazyNamed(() => import('../pages/services-page'), 'ServicesPage')
+const SettingsPage = lazyNamed(() => import('../pages/settings-page'), 'SettingsPage')
+const StaffPage = lazyNamed(() => import('../pages/staff-page'), 'StaffPage')
 
 export function App() {
   return (
@@ -46,7 +50,9 @@ export function App() {
         path="/onboarding"
         element={
           <AdminOnboardingRoute>
-            <OnboardingPage />
+            <RouteLoader>
+              <OnboardingPage />
+            </RouteLoader>
           </AdminOnboardingRoute>
         }
       />
@@ -83,7 +89,9 @@ export function App() {
           path="dashboard"
           element={
             <RoleRoute allowedSlugs={['dashboard']}>
-              <DashboardPage />
+              <RouteLoader>
+                <DashboardPage />
+              </RouteLoader>
             </RoleRoute>
           }
         />
@@ -91,7 +99,9 @@ export function App() {
           path="calendar"
           element={
             <RoleRoute allowedSlugs={['calendar']}>
-              <CalendarPage />
+              <RouteLoader>
+                <CalendarPage />
+              </RouteLoader>
             </RoleRoute>
           }
         />
@@ -99,7 +109,9 @@ export function App() {
           path="appointments"
           element={
             <RoleRoute allowedSlugs={['appointments']}>
-              <AppointmentsPage />
+              <RouteLoader>
+                <AppointmentsPage />
+              </RouteLoader>
             </RoleRoute>
           }
         />
@@ -107,7 +119,9 @@ export function App() {
           path="clients"
           element={
             <RoleRoute allowedSlugs={['clients']}>
-              <ClientsPage />
+              <RouteLoader>
+                <ClientsPage />
+              </RouteLoader>
             </RoleRoute>
           }
         />
@@ -115,7 +129,9 @@ export function App() {
           path="staff"
           element={
             <RoleRoute allowedSlugs={['staff']}>
-              <StaffPage />
+              <RouteLoader>
+                <StaffPage />
+              </RouteLoader>
             </RoleRoute>
           }
         />
@@ -123,7 +139,9 @@ export function App() {
           path="services"
           element={
             <RoleRoute allowedSlugs={['services']}>
-              <ServicesPage />
+              <RouteLoader>
+                <ServicesPage />
+              </RouteLoader>
             </RoleRoute>
           }
         />
@@ -131,7 +149,9 @@ export function App() {
           path="payments"
           element={
             <RoleRoute allowedSlugs={['payments']}>
-              <PaymentsPage />
+              <RouteLoader>
+                <PaymentsPage />
+              </RouteLoader>
             </RoleRoute>
           }
         />
@@ -139,7 +159,9 @@ export function App() {
           path="forms"
           element={
             <RoleRoute allowedSlugs={['forms']}>
-              <FormsPage />
+              <RouteLoader>
+                <FormsPage />
+              </RouteLoader>
             </RoleRoute>
           }
         />
@@ -147,7 +169,19 @@ export function App() {
           path="analytics"
           element={
             <RoleRoute allowedSlugs={['analytics']}>
-              <AnalyticsPage />
+              <RouteLoader>
+                <AnalyticsPage />
+              </RouteLoader>
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="audit-logs"
+          element={
+            <RoleRoute allowedSlugs={['audit-logs']}>
+              <RouteLoader>
+                <AuditLogsPage />
+              </RouteLoader>
             </RoleRoute>
           }
         />
@@ -155,7 +189,9 @@ export function App() {
           path="settings"
           element={
             <RoleRoute allowedSlugs={['settings']}>
-              <SettingsPage />
+              <RouteLoader>
+                <SettingsPage />
+              </RouteLoader>
             </RoleRoute>
           }
         />
@@ -184,6 +220,7 @@ export function App() {
                 'payments',
                 'forms',
                 'analytics',
+                'audit-logs',
                 'settings',
               ].includes(
                 item.slug,
@@ -206,4 +243,22 @@ export function App() {
       <Route path="*" element={<Navigate replace to="/dashboard" />} />
     </Routes>
   )
+}
+
+function RouteLoader({ children }: { children: ReactNode }) {
+  return (
+    <Suspense fallback={<div className="p-4 md:p-6"><LoadingState title="Loading workspace..." /></div>}>
+      {children}
+    </Suspense>
+  )
+}
+
+function lazyNamed<T extends Record<string, ComponentType<unknown>>>(
+  loader: () => Promise<T>,
+  exportName: keyof T,
+) {
+  return lazy(async () => {
+    const module = await loader()
+    return { default: module[exportName] }
+  })
 }

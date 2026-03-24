@@ -5,6 +5,8 @@ import com.studioflow.dto.consent.ConsentFormTemplateResponse;
 import com.studioflow.dto.consent.ConsentFormTemplateUpdateRequest;
 import com.studioflow.entity.ConsentFormTemplate;
 import com.studioflow.entity.Studio;
+import com.studioflow.enums.AuditActionType;
+import com.studioflow.enums.AuditEntityType;
 import com.studioflow.exception.ResourceNotFoundException;
 import com.studioflow.repository.ConsentFormTemplateRepository;
 import com.studioflow.repository.StudioRepository;
@@ -23,17 +25,30 @@ public class ConsentFormTemplateService {
     private final CurrentUserService currentUserService;
     private final ConsentFormTemplateRepository consentFormTemplateRepository;
     private final StudioRepository studioRepository;
+    private final AuditLogService auditLogService;
 
     public ConsentFormTemplateResponse createTemplate(ConsentFormTemplateCreateRequest request) {
+        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN, com.studioflow.enums.UserRole.RECEPTIONIST);
         Studio studio = findStudio(currentUserService.requireStudioAccess(request.studioId()));
 
         ConsentFormTemplate template = new ConsentFormTemplate();
         mapRequest(template, request, studio);
-        return toResponse(consentFormTemplateRepository.save(template));
+        ConsentFormTemplate savedTemplate = consentFormTemplateRepository.save(template);
+        auditLogService.log(
+            AuditEntityType.CONSENT_TEMPLATE,
+            savedTemplate.getId(),
+            AuditActionType.CREATED,
+            savedTemplate.getStudio().getId(),
+            null,
+            "Consent template created",
+            savedTemplate.getTitle() + " was added to consent templates."
+        );
+        return toResponse(savedTemplate);
     }
 
     @Transactional(readOnly = true)
     public List<ConsentFormTemplateResponse> getAllTemplates(UUID studioId) {
+        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN, com.studioflow.enums.UserRole.RECEPTIONIST);
         UUID authorizedStudioId = currentUserService.requireStudioAccess(studioId);
         List<ConsentFormTemplate> templates = consentFormTemplateRepository.findByStudioId(authorizedStudioId);
 
@@ -45,24 +60,46 @@ public class ConsentFormTemplateService {
 
     @Transactional(readOnly = true)
     public ConsentFormTemplateResponse getTemplateById(UUID id) {
+        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN, com.studioflow.enums.UserRole.RECEPTIONIST);
         ConsentFormTemplate template = findTemplate(id);
         currentUserService.ensureStudioAccess(template.getStudio().getId());
         return toResponse(template);
     }
 
     public ConsentFormTemplateResponse updateTemplate(UUID id, ConsentFormTemplateUpdateRequest request) {
+        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN, com.studioflow.enums.UserRole.RECEPTIONIST);
         ConsentFormTemplate template = findTemplate(id);
         currentUserService.ensureStudioAccess(template.getStudio().getId());
         Studio studio = findStudio(currentUserService.requireStudioAccess(request.studioId()));
         mapRequest(template, request, studio);
-        return toResponse(consentFormTemplateRepository.save(template));
+        ConsentFormTemplate savedTemplate = consentFormTemplateRepository.save(template);
+        auditLogService.log(
+            AuditEntityType.CONSENT_TEMPLATE,
+            savedTemplate.getId(),
+            AuditActionType.UPDATED,
+            savedTemplate.getStudio().getId(),
+            null,
+            "Consent template updated",
+            savedTemplate.getTitle() + " was updated."
+        );
+        return toResponse(savedTemplate);
     }
 
     public void deleteTemplate(UUID id) {
+        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN, com.studioflow.enums.UserRole.RECEPTIONIST);
         ConsentFormTemplate template = findTemplate(id);
         currentUserService.ensureStudioAccess(template.getStudio().getId());
         template.setIsActive(false);
         consentFormTemplateRepository.save(template);
+        auditLogService.log(
+            AuditEntityType.CONSENT_TEMPLATE,
+            template.getId(),
+            AuditActionType.DEACTIVATED,
+            template.getStudio().getId(),
+            null,
+            "Consent template deactivated",
+            template.getTitle() + " was deactivated."
+        );
     }
 
     private Studio findStudio(UUID id) {

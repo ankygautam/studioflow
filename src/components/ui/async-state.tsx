@@ -13,14 +13,16 @@ export function LoadingState({ title = 'Loading data...' }: { title?: string }) 
 
 export function ErrorState({
   action,
+  title = 'Something needs attention',
   message,
 }: {
   action?: ReactNode
   message: string
+  title?: string
 }) {
   return (
     <div className="rounded-[28px] border border-rose-200 bg-rose-50/60 p-6">
-      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-rose-500">Connection issue</p>
+      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-rose-500">{title}</p>
       <p className="mt-3 text-sm leading-7 text-rose-700">{message}</p>
       {action ? <div className="mt-4">{action}</div> : null}
     </div>
@@ -42,6 +44,17 @@ export function EmptyState({
       <h3 className="mt-3 text-xl font-semibold text-slate-900">{title}</h3>
       <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-500">{description}</p>
       {action ? <div className="mt-5">{action}</div> : null}
+    </div>
+  )
+}
+
+export function SavingState({ title = 'Saving changes...' }: { title?: string }) {
+  return (
+    <div className="rounded-[22px] border border-slate-200 bg-slate-50/80 px-4 py-4">
+      <div className="flex items-center gap-3">
+        <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-slate-400" />
+        <p className="text-sm font-medium text-slate-500">{title}</p>
+      </div>
     </div>
   )
 }

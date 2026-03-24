@@ -36,6 +36,34 @@ export type NotificationType =
   | 'CONSENT_PENDING'
   | 'CONSENT_SIGNED'
 
+export type AuditEntityType =
+  | 'APPOINTMENT'
+  | 'PAYMENT'
+  | 'CLIENT'
+  | 'STAFF'
+  | 'SERVICE'
+  | 'CONSENT_TEMPLATE'
+  | 'CONSENT_SUBMISSION'
+  | 'LOCATION'
+  | 'SETTINGS'
+  | 'AUTH'
+  | 'ONBOARDING'
+
+export type AuditActionType =
+  | 'CREATED'
+  | 'UPDATED'
+  | 'DELETED'
+  | 'DEACTIVATED'
+  | 'RESCHEDULED'
+  | 'CANCELLED'
+  | 'STATUS_CHANGED'
+  | 'ASSIGNED'
+  | 'UNASSIGNED'
+  | 'LOGIN'
+  | 'LOGOUT'
+  | 'PERMISSION_DENIED'
+  | 'COMPLETED'
+
 export type PaymentStatus = 'PENDING' | 'PARTIAL' | 'PAID' | 'FAILED'
 
 export type PaymentMethod = 'CASH' | 'CARD' | 'ETRANSFER' | 'OTHER'
@@ -274,6 +302,22 @@ export interface NotificationRecord {
 
 export interface NotificationUnreadCountRecord {
   unreadCount: number
+}
+
+export interface AuditLogRecord {
+  actionType: AuditActionType
+  actorName: string
+  actorRole: 'ADMIN' | 'STAFF' | 'RECEPTIONIST' | 'CUSTOMER' | null
+  createdAt: string
+  description: string
+  entityId: string | null
+  entityType: AuditEntityType
+  id: string
+  locationId: string | null
+  locationName: string | null
+  metadataJson: string | null
+  studioId: string
+  title: string
 }
 
 export interface ConsentFormTemplateRecord {

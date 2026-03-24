@@ -20,7 +20,7 @@ export function useNotifications(enabled: boolean) {
       return
     }
 
-    setIsLoading(true)
+    setIsLoading((current) => current || notifications.length === 0)
     setError(null)
 
     try {
@@ -36,7 +36,7 @@ export function useNotifications(enabled: boolean) {
     } finally {
       setIsLoading(false)
     }
-  }, [enabled])
+  }, [enabled, notifications.length])
 
   useEffect(() => {
     void refresh()
