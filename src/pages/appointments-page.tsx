@@ -15,10 +15,13 @@ import type { AppointmentRecord } from '../lib/api/types'
 import { formatDate, formatTime, humanizeEnum } from '../lib/formatters'
 
 export function AppointmentsPage() {
-  const { user } = useAuth()
+  const { selectedLocationId, user } = useAuth()
   const allowCreate = user ? canCreateBookings(user.role) : false
   const defaultStudioId = getDefaultStudioId()
-  const loadAppointments = useCallback(() => getAppointments(defaultStudioId), [defaultStudioId])
+  const loadAppointments = useCallback(
+    () => getAppointments(defaultStudioId, selectedLocationId),
+    [defaultStudioId, selectedLocationId],
+  )
   const { data: appointments, error, isLoading, reload } = useRemoteList(loadAppointments)
 
   const [filterValue, setFilterValue] = useState<'THIS_WEEK' | 'TODAY' | 'NEXT_7_DAYS'>('THIS_WEEK')
@@ -129,7 +132,7 @@ export function AppointmentsPage() {
           />
         ) : null}
         {!isLoading && !error && visibleAppointments.length > 0 ? (
-          <DataTable columns={['Client', 'Date', 'Time', 'Service', 'Status']}>
+          <DataTable columns={['Client', 'Location', 'Date', 'Time', 'Service', 'Status']}>
             {visibleAppointments.map((appointment) => (
               <tr key={appointment.id}>
                 <td className="px-4 py-4">
@@ -141,6 +144,7 @@ export function AppointmentsPage() {
                     {appointment.customerName}
                   </button>
                 </td>
+                <td className="px-4 py-4 text-sm text-slate-600">{appointment.locationName}</td>
                 <td className="px-4 py-4 text-sm text-slate-600">{formatDate(appointment.appointmentDate)}</td>
                 <td className="px-4 py-4 text-sm text-slate-600">
                   {formatTime(appointment.startTime)} - {formatTime(appointment.endTime)}

@@ -33,6 +33,7 @@ public class ConsentFormSubmissionService {
     private final StudioRepository studioRepository;
     private final CustomerProfileRepository customerProfileRepository;
     private final AppointmentRepository appointmentRepository;
+    private final NotificationService notificationService;
 
     public ConsentFormSubmissionResponse createSubmission(ConsentFormSubmissionCreateRequest request) {
         ConsentFormTemplate template = findTemplate(request.templateId());
@@ -51,7 +52,9 @@ public class ConsentFormSubmissionService {
             customerProfile,
             appointment
         );
-        return toResponse(consentFormSubmissionRepository.save(submission));
+        ConsentFormSubmission savedSubmission = consentFormSubmissionRepository.save(submission);
+        notificationService.notifyConsentSubmissionSaved(savedSubmission);
+        return toResponse(savedSubmission);
     }
 
     @Transactional(readOnly = true)
@@ -108,7 +111,9 @@ public class ConsentFormSubmissionService {
             customerProfile,
             appointment
         );
-        return toResponse(consentFormSubmissionRepository.save(submission));
+        ConsentFormSubmission savedSubmission = consentFormSubmissionRepository.save(submission);
+        notificationService.notifyConsentSubmissionSaved(savedSubmission);
+        return toResponse(savedSubmission);
     }
 
     public void deleteSubmission(UUID id) {

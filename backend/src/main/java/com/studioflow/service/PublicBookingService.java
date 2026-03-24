@@ -4,6 +4,7 @@ import com.studioflow.dto.booking.PublicBookingAvailabilityResponse;
 import com.studioflow.dto.booking.PublicBookingCancelRequest;
 import com.studioflow.dto.booking.PublicBookingConfirmationResponse;
 import com.studioflow.dto.booking.PublicBookingCreateRequest;
+import com.studioflow.dto.booking.PublicBookingLocationItem;
 import com.studioflow.dto.booking.PublicBookingLookupRequest;
 import com.studioflow.dto.booking.PublicBookingLookupResponse;
 import com.studioflow.dto.booking.PublicBookingManageResponse;
@@ -16,6 +17,7 @@ import com.studioflow.dto.booking.PublicBookingTimeSlot;
 import com.studioflow.entity.Appointment;
 import com.studioflow.entity.Availability;
 import com.studioflow.entity.CustomerProfile;
+import com.studioflow.entity.Location;
 import com.studioflow.entity.Service;
 import com.studioflow.entity.StaffProfile;
 import com.studioflow.entity.Studio;
@@ -28,6 +30,7 @@ import com.studioflow.exception.ResourceNotFoundException;
 import com.studioflow.repository.AppointmentRepository;
 import com.studioflow.repository.AvailabilityRepository;
 import com.studioflow.repository.CustomerProfileRepository;
+import com.studioflow.repository.LocationRepository;
 import com.studioflow.repository.ServiceRepository;
 import com.studioflow.repository.StaffProfileRepository;
 import com.studioflow.repository.StaffServiceRepository;
@@ -61,16 +64,29 @@ public class PublicBookingService {
 
     private final StudioRepository studioRepository;
     private final ServiceRepository serviceRepository;
+    private final LocationRepository locationRepository;
     private final StaffProfileRepository staffProfileRepository;
     private final StaffServiceRepository staffServiceRepository;
     private final AvailabilityRepository availabilityRepository;
     private final AppointmentRepository appointmentRepository;
     private final CustomerProfileRepository customerProfileRepository;
     private final JwtService jwtService;
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public PublicBookingServicesResponse getServices(String studioSlug) {
         Studio studio = resolveStudio(studioSlug);
+        List<PublicBookingLocationItem> locations = locationRepository.findByStudioIdAndIsActiveTrueOrderByNameAsc(studio.getId())
+            .stream()
+            .map(location -> new PublicBookingLocationItem(
+                location.getId(),
+                location.getName(),
+                location.getSlug(),
+                location.getCity(),
+                location.getProvinceOrState(),
+                location.getTimezone()
+            ))
+            .toList();
         List<PublicBookingServiceItem> services = serviceRepository.findByStudioIdAndIsActiveTrue(studio.getId())
             .stream()
             .sorted(Comparator.comparing(Service::getName))
@@ -91,16 +107,18 @@ public class PublicBookingService {
             toSlug(studio),
             studio.getName(),
             studio.getTimezone(),
+            locations,
             services
         );
     }
 
     @Transactional(readOnly = true)
-    public PublicBookingStaffResponse getStaff(String studioSlug, UUID serviceId) {
+    public PublicBookingStaffResponse getStaff(String studioSlug, UUID serviceId, UUID locationId) {
         Studio studio = resolveStudio(studioSlug);
         Service service = findService(serviceId);
+        Location location = findLocation(locationId);
 
-        if (!service.getStudio().getId().equals(studio.getId()) || !Boolean.TRUE.equals(service.getIsActive())) {
+        if (!service.getStudio().getId().equals(studio.getId()) || !Boolean.TRUE.equals(service.getIsActive()) || !location.getStudio().getId().equals(studio.getId())) {
             throw new ResourceNotFoundException("Service not found for this studio");
         }
 
@@ -110,14 +128,11 @@ public class PublicBookingService {
             .distinct()
             .toList();
 
-        List<StaffProfile> availableStaff = staffProfileRepository.findByStudioIdAndStatusAndUserRole(
-            studio.getId(),
-            StaffStatus.ACTIVE,
-            UserRole.STAFF
-        );
+        List<StaffProfile> availableStaff = staffProfileRepository.findByStudioIdAndStatusAndUserRole(studio.getId(), StaffStatus.ACTIVE, UserRole.STAFF);
 
         List<PublicBookingStaffItem> staff = availableStaff
             .stream()
+            .filter(staffProfile -> staffProfile.getPrimaryLocation() == null || staffProfile.getPrimaryLocation().getId().equals(location.getId()))
             .filter(staffProfile -> assignedStaffIds.isEmpty() || assignedStaffIds.contains(staffProfile.getId()))
             .sorted(Comparator.comparing(StaffProfile::getDisplayName, String.CASE_INSENSITIVE_ORDER))
             .map(staffProfile -> new PublicBookingStaffItem(
@@ -129,12 +144,13 @@ public class PublicBookingService {
             ))
             .toList();
 
-        return new PublicBookingStaffResponse(studio.getId(), toSlug(studio), service.getId(), staff);
+        return new PublicBookingStaffResponse(studio.getId(), location.getId(), toSlug(studio), service.getId(), staff);
     }
 
     @Transactional(readOnly = true)
     public PublicBookingAvailabilityResponse getAvailability(
         String studioSlug,
+        UUID locationId,
         UUID serviceId,
         UUID staffProfileId,
         LocalDate date
@@ -143,6 +159,7 @@ public class PublicBookingService {
             Studio studio = resolveStudio(studioSlug);
             return new PublicBookingAvailabilityResponse(
                 studio.getId(),
+                locationId,
                 toSlug(studio),
                 serviceId,
                 staffProfileId,
@@ -152,13 +169,15 @@ public class PublicBookingService {
         }
 
         Studio studio = resolveStudio(studioSlug);
+        Location location = findLocation(locationId);
         Service service = findService(serviceId);
         StaffProfile staffProfile = findStaffProfile(staffProfileId);
-        ensureSameStudio(studio, service, staffProfile);
+        ensureSameStudio(studio, location, service, staffProfile);
 
-        List<PublicBookingTimeSlot> slots = buildSlots(staffProfile, service, date);
+        List<PublicBookingTimeSlot> slots = buildSlots(staffProfile, service, location, date);
         return new PublicBookingAvailabilityResponse(
             studio.getId(),
+            location.getId(),
             toSlug(studio),
             service.getId(),
             staffProfile.getId(),
@@ -173,6 +192,7 @@ public class PublicBookingService {
         }
 
         Studio studio = resolveStudio(studioSlug);
+        Location location = findLocation(request.locationId());
 
         if (!studio.getId().equals(request.studioId())) {
             throw new BadRequestException("Booking request does not match the selected studio");
@@ -180,10 +200,10 @@ public class PublicBookingService {
 
         Service service = findService(request.serviceId());
         StaffProfile staffProfile = findStaffProfile(request.staffProfileId());
-        ensureSameStudio(studio, service, staffProfile);
+        ensureSameStudio(studio, location, service, staffProfile);
 
         LocalTime endTime = request.startTime().plusMinutes(service.getDurationMinutes());
-        boolean available = buildSlots(staffProfile, service, request.appointmentDate())
+        boolean available = buildSlots(staffProfile, service, location, request.appointmentDate())
             .stream()
             .anyMatch(slot -> slot.startTime().equals(request.startTime()) && slot.endTime().equals(endTime));
 
@@ -195,6 +215,7 @@ public class PublicBookingService {
 
         Appointment appointment = new Appointment();
         appointment.setStudio(studio);
+        appointment.setLocation(location);
         appointment.setCustomerProfile(customerProfile);
         appointment.setStaffProfile(staffProfile);
         appointment.setService(service);
@@ -207,6 +228,7 @@ public class PublicBookingService {
         appointment.setSource(AppointmentSource.ONLINE_BOOKING);
 
         Appointment savedAppointment = appointmentRepository.save(appointment);
+        notificationService.notifyAppointmentCreated(savedAppointment);
 
         return new PublicBookingConfirmationResponse(
             savedAppointment.getId(),
@@ -214,6 +236,8 @@ public class PublicBookingService {
             studio.getId(),
             toSlug(studio),
             studio.getName(),
+            location.getId(),
+            location.getName(),
             customerProfile.getFullName(),
             customerProfile.getEmail(),
             customerProfile.getPhone(),
@@ -240,6 +264,9 @@ public class PublicBookingService {
     public PublicBookingManageResponse cancelBooking(String studioSlug, @Valid PublicBookingCancelRequest request) {
         Studio studio = resolveStudio(studioSlug);
         Appointment appointment = resolveManagedAppointment(studio, request.manageToken());
+        LocalDate previousDate = appointment.getAppointmentDate();
+        LocalTime previousStartTime = appointment.getStartTime();
+        AppointmentStatus previousStatus = appointment.getStatus();
 
         if (appointment.getStatus() == AppointmentStatus.CANCELLED) {
             return toManageResponse(studio, appointment, "This booking is already cancelled.");
@@ -251,6 +278,7 @@ public class PublicBookingService {
 
         appointment.setStatus(AppointmentStatus.CANCELLED);
         Appointment savedAppointment = appointmentRepository.save(appointment);
+        notificationService.notifyAppointmentUpdated(savedAppointment, previousDate, previousStartTime, previousStatus);
         return toManageResponse(studio, savedAppointment, "Your booking has been cancelled.");
     }
 
@@ -261,6 +289,9 @@ public class PublicBookingService {
 
         Studio studio = resolveStudio(studioSlug);
         Appointment appointment = resolveManagedAppointment(studio, request.manageToken());
+        LocalDate previousDate = appointment.getAppointmentDate();
+        LocalTime previousStartTime = appointment.getStartTime();
+        AppointmentStatus previousStatus = appointment.getStatus();
 
         if (appointment.getStatus() == AppointmentStatus.CANCELLED || appointment.getStatus() == AppointmentStatus.COMPLETED || appointment.getStatus() == AppointmentStatus.NO_SHOW) {
             throw new BadRequestException("This booking can no longer be rescheduled from the public portal.");
@@ -270,6 +301,7 @@ public class PublicBookingService {
         boolean available = buildSlots(
             appointment.getStaffProfile(),
             appointment.getService(),
+            appointment.getLocation(),
             request.appointmentDate(),
             appointment.getId()
         )
@@ -286,16 +318,18 @@ public class PublicBookingService {
         appointment.setStatus(AppointmentStatus.BOOKED);
 
         Appointment savedAppointment = appointmentRepository.save(appointment);
+        notificationService.notifyAppointmentUpdated(savedAppointment, previousDate, previousStartTime, previousStatus);
         return toManageResponse(studio, savedAppointment, "Your booking has been rescheduled.");
     }
 
-    private List<PublicBookingTimeSlot> buildSlots(StaffProfile staffProfile, Service service, LocalDate date) {
-        return buildSlots(staffProfile, service, date, null);
+    private List<PublicBookingTimeSlot> buildSlots(StaffProfile staffProfile, Service service, Location location, LocalDate date) {
+        return buildSlots(staffProfile, service, location, date, null);
     }
 
     private List<PublicBookingTimeSlot> buildSlots(
         StaffProfile staffProfile,
         Service service,
+        Location location,
         LocalDate date,
         UUID ignoredAppointmentId
     ) {
@@ -319,7 +353,9 @@ public class PublicBookingService {
 
         return blocks.stream()
             .flatMap(block -> block.toSlots(duration).stream())
-            .filter(slot -> existingAppointments.stream().noneMatch(existing -> overlaps(slot, existing, ignoredAppointmentId)))
+            .filter(slot -> existingAppointments.stream()
+                .filter(existing -> existing.getLocation().getId().equals(location.getId()))
+                .noneMatch(existing -> overlaps(slot, existing, ignoredAppointmentId)))
             .sorted(Comparator.comparing(PublicBookingTimeSlot::startTime))
             .toList();
     }
@@ -380,8 +416,17 @@ public class PublicBookingService {
             .orElseThrow(() -> new ResourceNotFoundException("Staff profile not found"));
     }
 
-    private void ensureSameStudio(Studio studio, Service service, StaffProfile staffProfile) {
+    private Location findLocation(UUID id) {
+        return locationRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Location not found"));
+    }
+
+    private void ensureSameStudio(Studio studio, Location location, Service service, StaffProfile staffProfile) {
         UUID studioId = studio.getId();
+
+        if (!location.getStudio().getId().equals(studioId) || !Boolean.TRUE.equals(location.getIsActive())) {
+            throw new BadRequestException("Selected location is not available for this studio");
+        }
 
         if (!service.getStudio().getId().equals(studioId)) {
             throw new BadRequestException("Selected service is not available for this studio");
@@ -389,6 +434,10 @@ public class PublicBookingService {
 
         if (!staffProfile.getStudio().getId().equals(studioId) || staffProfile.getStatus() != StaffStatus.ACTIVE) {
             throw new BadRequestException("Selected staff member is not available for this studio");
+        }
+
+        if (staffProfile.getPrimaryLocation() != null && !staffProfile.getPrimaryLocation().getId().equals(location.getId())) {
+            throw new BadRequestException("Selected staff member is not available at this location");
         }
     }
 
@@ -431,6 +480,8 @@ public class PublicBookingService {
             studio.getId(),
             toSlug(studio),
             studio.getName(),
+            appointment.getLocation().getId(),
+            appointment.getLocation().getName(),
             appointment.getService().getId(),
             appointment.getService().getName(),
             appointment.getStaffProfile().getId(),
@@ -480,6 +531,8 @@ public class PublicBookingService {
             studio.getId(),
             toSlug(studio),
             studio.getName(),
+            appointment.getLocation().getId(),
+            appointment.getLocation().getName(),
             appointment.getCustomerProfile().getFullName(),
             appointment.getService().getName(),
             appointment.getStaffProfile().getDisplayName(),

@@ -71,6 +71,33 @@ public class CurrentUserService {
         return requireCurrentStaffProfile().getStudio().getId();
     }
 
+    public UUID getCurrentLocationId() {
+        StaffProfile staffProfile = requireCurrentStaffProfile();
+        return staffProfile.getPrimaryLocation() != null ? staffProfile.getPrimaryLocation().getId() : null;
+    }
+
+    public UUID requireLocationAccess(UUID requestedLocationId) {
+        if (requestedLocationId == null) {
+            return getCurrentLocationId();
+        }
+
+        ensureLocationAccess(requestedLocationId);
+        return requestedLocationId;
+    }
+
+    public void ensureLocationAccess(UUID requestedLocationId) {
+        StaffProfile staffProfile = requireCurrentStaffProfile();
+
+        if (staffProfile.getPrimaryLocation() == null) {
+            ensureStudioAccess(staffProfile.getStudio().getId());
+            return;
+        }
+
+        if (!staffProfile.getPrimaryLocation().getId().equals(requestedLocationId) && getCurrentUserRole() == UserRole.STAFF) {
+            throw new AccessDeniedException("You cannot access another location's records");
+        }
+    }
+
     public void ensureAssignedStaff(StaffProfile staffProfile) {
         if (!staffProfile.getUser().getId().equals(getCurrentUserId())) {
             throw new AccessDeniedException("You can only access appointments assigned to you");

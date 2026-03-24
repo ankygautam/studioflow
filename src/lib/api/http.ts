@@ -1,6 +1,8 @@
 const DEFAULT_API_URL = 'http://localhost:8080'
 const AUTH_LOCAL_KEY = 'studioflow-auth-token-local'
 const AUTH_SESSION_KEY = 'studioflow-auth-token-session'
+const LOCATION_LOCAL_KEY = 'studioflow-auth-location-local'
+const LOCATION_SESSION_KEY = 'studioflow-auth-location-session'
 const STUDIO_LOCAL_KEY = 'studioflow-auth-studio-local'
 const STUDIO_SESSION_KEY = 'studioflow-auth-studio-session'
 
@@ -13,6 +15,11 @@ let authStudioId =
   typeof window === 'undefined'
     ? null
     : window.localStorage.getItem(STUDIO_LOCAL_KEY) ?? window.sessionStorage.getItem(STUDIO_SESSION_KEY)
+
+let authLocationId =
+  typeof window === 'undefined'
+    ? null
+    : window.localStorage.getItem(LOCATION_LOCAL_KEY) ?? window.sessionStorage.getItem(LOCATION_SESSION_KEY)
 
 function normalizeBaseUrl() {
   const configuredBaseUrl = import.meta.env.VITE_API_URL?.trim()
@@ -100,23 +107,37 @@ export const api = {
   put: <T>(path: string, body: unknown) => request<T>(path, { body, method: 'PUT' }),
 }
 
-export function persistAuthToken(token: string, remember: boolean, studioId?: string | null) {
+export function persistAuthToken(
+  token: string,
+  remember: boolean,
+  studioId?: string | null,
+  locationId?: string | null,
+) {
   authToken = token
   authStudioId = studioId ?? null
+  authLocationId = locationId ?? null
   window.localStorage.removeItem(AUTH_LOCAL_KEY)
   window.sessionStorage.removeItem(AUTH_SESSION_KEY)
   window.localStorage.removeItem(STUDIO_LOCAL_KEY)
   window.sessionStorage.removeItem(STUDIO_SESSION_KEY)
+  window.localStorage.removeItem(LOCATION_LOCAL_KEY)
+  window.sessionStorage.removeItem(LOCATION_SESSION_KEY)
 
   if (remember) {
     window.localStorage.setItem(AUTH_LOCAL_KEY, token)
     if (studioId) {
       window.localStorage.setItem(STUDIO_LOCAL_KEY, studioId)
     }
+    if (locationId) {
+      window.localStorage.setItem(LOCATION_LOCAL_KEY, locationId)
+    }
   } else {
     window.sessionStorage.setItem(AUTH_SESSION_KEY, token)
     if (studioId) {
       window.sessionStorage.setItem(STUDIO_SESSION_KEY, studioId)
+    }
+    if (locationId) {
+      window.sessionStorage.setItem(LOCATION_SESSION_KEY, locationId)
     }
   }
 }
@@ -124,10 +145,13 @@ export function persistAuthToken(token: string, remember: boolean, studioId?: st
 export function clearAuthToken() {
   authToken = null
   authStudioId = null
+  authLocationId = null
   window.localStorage.removeItem(AUTH_LOCAL_KEY)
   window.sessionStorage.removeItem(AUTH_SESSION_KEY)
   window.localStorage.removeItem(STUDIO_LOCAL_KEY)
   window.sessionStorage.removeItem(STUDIO_SESSION_KEY)
+  window.localStorage.removeItem(LOCATION_LOCAL_KEY)
+  window.sessionStorage.removeItem(LOCATION_SESSION_KEY)
 }
 
 export function getStoredAuthToken() {
@@ -141,4 +165,33 @@ export function getDefaultStudioId() {
   }
 
   return authStudioId
+}
+
+export function getDefaultLocationId() {
+  const locationId = import.meta.env.VITE_LOCATION_ID?.trim()
+  if (locationId && locationId.length > 0) {
+    return locationId
+  }
+
+  return authLocationId
+}
+
+export function persistSelectedLocationId(locationId: string | null) {
+  authLocationId = locationId
+
+  window.localStorage.removeItem(LOCATION_LOCAL_KEY)
+  window.sessionStorage.removeItem(LOCATION_SESSION_KEY)
+
+  if (!locationId) {
+    return
+  }
+
+  const hasLocalAuth = window.localStorage.getItem(AUTH_LOCAL_KEY)
+
+  if (hasLocalAuth) {
+    window.localStorage.setItem(LOCATION_LOCAL_KEY, locationId)
+    return
+  }
+
+  window.sessionStorage.setItem(LOCATION_SESSION_KEY, locationId)
 }

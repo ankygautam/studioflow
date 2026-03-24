@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { EmptyState, ErrorState, LoadingState } from '../components/ui/async-state'
 import { InputField, SelectField, TextAreaField } from '../components/ui/form-controls'
 import { useAuth } from '../features/auth/use-auth'
@@ -14,6 +14,7 @@ import type {
   PublicBookableServiceRecord,
   PublicBookableStaffRecord,
   PublicBookingConfirmationRecord,
+  PublicBookingLocationRecord,
   PublicBookingSlotRecord,
 } from '../lib/api/types'
 import { formatCurrency, formatDate, formatTime, humanizeEnum } from '../lib/formatters'
@@ -24,6 +25,7 @@ type BookingFormState = {
   appointmentDate: string
   email: string
   fullName: string
+  locationId: string
   notes: string
   phone: string
   serviceId: string
@@ -34,12 +36,14 @@ type BookingFormState = {
   studioId: string
 }
 
-type BookingFormErrors = Partial<Record<'appointmentDate' | 'email' | 'fullName' | 'phone' | 'serviceId' | 'slotStartTime' | 'staffProfileId', string>>
+type BookingFormErrors = Partial<Record<'appointmentDate' | 'email' | 'fullName' | 'locationId' | 'phone' | 'serviceId' | 'slotStartTime' | 'staffProfileId', string>>
 
 export function PublicBookingPage() {
   const { user } = useAuth()
-  const { studioSlug = 'studioflow-hq' } = useParams()
+  const navigate = useNavigate()
+  const { studioSlug = 'studioflow-hq', locationSlug } = useParams()
   const [step, setStep] = useState<BookingStep>('service')
+  const [locations, setLocations] = useState<PublicBookingLocationRecord[]>([])
   const [services, setServices] = useState<PublicBookableServiceRecord[]>([])
   const [staff, setStaff] = useState<PublicBookableStaffRecord[]>([])
   const [slots, setSlots] = useState<PublicBookingSlotRecord[]>([])
@@ -59,6 +63,7 @@ export function PublicBookingPage() {
     appointmentDate: '',
     email: user?.email ?? '',
     fullName: user?.fullName ?? '',
+    locationId: '',
     notes: '',
     phone: '',
     serviceId: '',
@@ -73,10 +78,33 @@ export function PublicBookingPage() {
     () => services.find((item) => item.id === formState.serviceId) ?? null,
     [formState.serviceId, services],
   )
+  const selectedLocation = useMemo(
+    () => locations.find((item) => item.id === formState.locationId) ?? null,
+    [formState.locationId, locations],
+  )
   const selectedStaff = useMemo(
     () => staff.find((item) => item.id === formState.staffProfileId) ?? null,
     [formState.staffProfileId, staff],
   )
+
+  useEffect(() => {
+    if (!locationSlug || !locations.length) {
+      return
+    }
+
+    const matchedLocation = locations.find((location) => location.slug === locationSlug)
+    if (matchedLocation && matchedLocation.id !== formState.locationId) {
+      setFormState((current) => ({
+        ...current,
+        appointmentDate: '',
+        locationId: matchedLocation.id,
+        slotEndTime: '',
+        slotLabel: '',
+        slotStartTime: '',
+        staffProfileId: '',
+      }))
+    }
+  }, [formState.locationId, locationSlug, locations])
 
   useEffect(() => {
     let active = true
@@ -87,10 +115,17 @@ export function PublicBookingPage() {
     void getPublicBookingServices(studioSlug)
       .then((response) => {
         if (!active) return
+        setLocations(response.locations)
         setServices(response.services)
         setStudioName(response.studioName)
         setStudioTimezone(response.timezone)
-        setFormState((current) => ({ ...current, studioId: response.studioId }))
+        setFormState((current) => ({
+          ...current,
+          locationId:
+            current.locationId ||
+            (response.locations.length === 1 ? response.locations[0]?.id ?? '' : ''),
+          studioId: response.studioId,
+        }))
       })
       .catch((error) => {
         if (!active) return
@@ -108,7 +143,7 @@ export function PublicBookingPage() {
   }, [studioSlug])
 
   useEffect(() => {
-    if (!formState.serviceId || !formState.studioId) {
+    if (!formState.locationId || !formState.serviceId || !formState.studioId) {
       setStaff([])
       return
     }
@@ -117,7 +152,7 @@ export function PublicBookingPage() {
     setLoadingStaff(true)
     setStaffError(null)
 
-    void getPublicBookingStaff(studioSlug, formState.serviceId)
+    void getPublicBookingStaff(studioSlug, formState.serviceId, formState.locationId)
       .then((response) => {
         if (!active) return
         setStaff(response.staff)
@@ -135,10 +170,10 @@ export function PublicBookingPage() {
     return () => {
       active = false
     }
-  }, [formState.serviceId, formState.studioId, studioSlug])
+  }, [formState.locationId, formState.serviceId, formState.studioId, studioSlug])
 
   useEffect(() => {
-    if (!formState.appointmentDate || !formState.serviceId || !formState.staffProfileId || !formState.studioId) {
+    if (!formState.appointmentDate || !formState.locationId || !formState.serviceId || !formState.staffProfileId || !formState.studioId) {
       setSlots([])
       return
     }
@@ -149,6 +184,7 @@ export function PublicBookingPage() {
 
     void getPublicBookingAvailability({
       date: formState.appointmentDate,
+      locationId: formState.locationId,
       serviceId: formState.serviceId,
       staffProfileId: formState.staffProfileId,
       studioSlug,
@@ -170,7 +206,7 @@ export function PublicBookingPage() {
     return () => {
       active = false
     }
-  }, [formState.appointmentDate, formState.serviceId, formState.staffProfileId, formState.studioId, studioSlug])
+  }, [formState.appointmentDate, formState.locationId, formState.serviceId, formState.staffProfileId, formState.studioId, studioSlug])
 
   const handleServiceSelect = (service: PublicBookableServiceRecord) => {
     setFormState((current) => ({
@@ -212,6 +248,7 @@ export function PublicBookingPage() {
         appointmentDate: formState.appointmentDate,
         email: formState.email.trim(),
         fullName: formState.fullName.trim(),
+        locationId: formState.locationId,
         notes: formState.notes.trim(),
         phone: formState.phone.trim(),
         serviceId: formState.serviceId,
@@ -237,6 +274,7 @@ export function PublicBookingPage() {
       appointmentDate: '',
       email: user?.email ?? '',
       fullName: user?.fullName ?? '',
+      locationId: formState.locationId,
       notes: '',
       phone: '',
       serviceId: '',
@@ -283,8 +321,46 @@ export function PublicBookingPage() {
               <section className="mt-8 space-y-5">
                 <SectionIntro
                   title="Choose a service"
-                  description="Start with the service you want booked. Everything else will adapt around that choice."
+                  description="Start with the location if this studio books across more than one space, then choose the service you want booked."
                 />
+                {!loadingServices && !servicesError && locations.length > 1 ? (
+                  <SelectField
+                    error={formErrors.locationId}
+                    label="Location"
+                    onChange={(event) =>
+                      {
+                        const nextLocationId = event.target.value
+                        const nextLocation = locations.find((location) => location.id === nextLocationId)
+                        setFormState((current) => ({
+                          ...current,
+                          appointmentDate: '',
+                          locationId: nextLocationId,
+                          slotEndTime: '',
+                          slotLabel: '',
+                          slotStartTime: '',
+                          staffProfileId: '',
+                        }))
+                        if (nextLocation) {
+                          navigate(`/book/${studioSlug}/${nextLocation.slug}`, { replace: true })
+                        }
+                      }
+                    }
+                    value={formState.locationId}
+                  >
+                    <option value="">Choose a location</option>
+                    {locations.map((location) => (
+                      <option key={location.id} value={location.id}>
+                        {location.name}
+                      </option>
+                    ))}
+                  </SelectField>
+                ) : null}
+                {!loadingServices && !servicesError && locations.length === 1 && selectedLocation ? (
+                  <div className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Location</p>
+                    <p className="mt-2 text-base font-semibold text-slate-900">{selectedLocation.name}</p>
+                  </div>
+                ) : null}
                 {loadingServices ? <LoadingState title="Loading services..." /> : null}
                 {!loadingServices && servicesError ? (
                   <ErrorState
@@ -306,7 +382,7 @@ export function PublicBookingPage() {
                     description="This studio has not published any bookable services for the public portal yet."
                   />
                 ) : null}
-                {!loadingServices && !servicesError && services.length > 0 ? (
+                {!loadingServices && !servicesError && services.length > 0 && (locations.length <= 1 || Boolean(formState.locationId)) ? (
                   <div className="grid gap-4 md:grid-cols-2">
                     {services.map((service) => {
                       const isSelected = service.id === formState.serviceId
@@ -528,6 +604,7 @@ export function PublicBookingPage() {
                   <div className="mt-5 grid gap-3 md:grid-cols-2">
                     <SummaryRow label="Guest" value={confirmation.customerName} />
                     <SummaryRow label="Reference" value={confirmation.bookingReference} />
+                    <SummaryRow label="Location" value={confirmation.locationName} />
                     <SummaryRow label="Specialist" value={confirmation.staffName} />
                     <SummaryRow label="Date" value={formatDate(confirmation.appointmentDate)} />
                     <SummaryRow
@@ -555,13 +632,17 @@ export function PublicBookingPage() {
                   </button>
                   <Link
                     className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700"
-                    to={`/book/${studioSlug}/manage?reference=${encodeURIComponent(confirmation.bookingReference)}`}
+                    to={
+                      selectedLocation
+                        ? `/book/${studioSlug}/${selectedLocation.slug}/manage?reference=${encodeURIComponent(confirmation.bookingReference)}`
+                        : `/book/${studioSlug}/manage?reference=${encodeURIComponent(confirmation.bookingReference)}`
+                    }
                   >
                     Manage this booking
                   </Link>
                   <Link
                     className="rounded-full border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-600"
-                    to={`/book/${studioSlug}`}
+                    to={selectedLocation ? `/book/${studioSlug}/${selectedLocation.slug}` : `/book/${studioSlug}`}
                   >
                     Start another booking
                   </Link>
@@ -578,6 +659,7 @@ export function PublicBookingPage() {
             <div className="rounded-[32px] border border-white/70 bg-white/88 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
               <p className="text-xs font-semibold uppercase tracking-[0.32em] text-slate-400">Booking summary</p>
               <div className="mt-5 space-y-4">
+                <SummaryRow label="Location" value={selectedLocation?.name ?? 'Choose a location'} />
                 <SummaryRow label="Service" value={selectedService?.name ?? 'Choose a service'} />
                 <SummaryRow label="Specialist" value={selectedStaff?.displayName ?? 'Choose a staff member'} />
                 <SummaryRow label="Date" value={formState.appointmentDate ? formatDate(formState.appointmentDate) : 'Choose a date'} />
@@ -662,6 +744,10 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 
 function validatePublicBookingForm(formState: BookingFormState) {
   const errors: BookingFormErrors = {}
+
+  if (!formState.locationId) {
+    errors.locationId = 'Choose a location to continue.'
+  }
 
   if (!formState.serviceId) {
     errors.serviceId = 'Choose a service to continue.'

@@ -16,19 +16,21 @@ export function getPublicBookingServices(studioSlug: string) {
   return api.get<PublicBookingServicesRecord>(`/api/public/booking/${encodeURIComponent(studioSlug)}/services`)
 }
 
-export function getPublicBookingStaff(studioSlug: string, serviceId: string) {
-  const query = new URLSearchParams({ serviceId })
+export function getPublicBookingStaff(studioSlug: string, serviceId: string, locationId: string) {
+  const query = new URLSearchParams({ locationId, serviceId })
   return api.get<PublicBookingStaffRecord>(`/api/public/booking/${encodeURIComponent(studioSlug)}/staff?${query.toString()}`)
 }
 
 export function getPublicBookingAvailability(input: {
   date: string
+  locationId: string
   serviceId: string
   staffProfileId: string
   studioSlug: string
 }) {
   const query = new URLSearchParams({
     date: input.date,
+    locationId: input.locationId,
     serviceId: input.serviceId,
     staffProfileId: input.staffProfileId,
   })

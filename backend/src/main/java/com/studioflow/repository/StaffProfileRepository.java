@@ -12,9 +12,18 @@ public interface StaffProfileRepository extends JpaRepository<StaffProfile, UUID
 
     List<StaffProfile> findByStudioId(UUID studioId);
 
+    List<StaffProfile> findByStudioIdAndPrimaryLocationId(UUID studioId, UUID primaryLocationId);
+
     List<StaffProfile> findByStudioIdAndStatus(UUID studioId, StaffStatus status);
 
     List<StaffProfile> findByStudioIdAndStatusAndUserRole(UUID studioId, StaffStatus status, UserRole userRole);
+
+    List<StaffProfile> findByStudioIdAndPrimaryLocationIdAndStatusAndUserRole(
+        UUID studioId,
+        UUID primaryLocationId,
+        StaffStatus status,
+        UserRole userRole
+    );
 
     Optional<StaffProfile> findByUserId(UUID userId);
 }

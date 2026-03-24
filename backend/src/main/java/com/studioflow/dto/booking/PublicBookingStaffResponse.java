@@ -5,6 +5,7 @@ import java.util.UUID;
 
 public record PublicBookingStaffResponse(
     UUID studioId,
+    UUID locationId,
     String studioSlug,
     UUID serviceId,
     List<PublicBookingStaffItem> staff

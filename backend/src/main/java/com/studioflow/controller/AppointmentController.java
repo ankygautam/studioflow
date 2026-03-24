@@ -40,9 +40,10 @@ public class AppointmentController {
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST','STAFF')")
     public ResponseEntity<List<AppointmentResponse>> getAllAppointments(
-        @RequestParam(required = false) UUID studioId
+        @RequestParam(required = false) UUID studioId,
+        @RequestParam(required = false) UUID locationId
     ) {
-        return ResponseEntity.ok(appointmentService.getAllAppointments(studioId));
+        return ResponseEntity.ok(appointmentService.getAllAppointments(studioId, locationId));
     }
 
     @GetMapping("/{id}")

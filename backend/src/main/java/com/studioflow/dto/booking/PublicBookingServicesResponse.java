@@ -8,6 +8,7 @@ public record PublicBookingServicesResponse(
     String studioSlug,
     String studioName,
     String timezone,
+    List<PublicBookingLocationItem> locations,
     List<PublicBookingServiceItem> services
 ) {
 }

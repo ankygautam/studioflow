@@ -8,6 +8,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Getter;
@@ -58,6 +59,18 @@ public class Studio extends BaseEntity {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
+    @Column(name = "onboarding_completed", nullable = false, columnDefinition = "boolean default false")
+    private Boolean onboardingCompleted = false;
+
+    @Column(name = "booking_lead_time_hours")
+    private Integer bookingLeadTimeHours;
+
+    @Column(name = "default_deposit_required", nullable = false, columnDefinition = "boolean default false")
+    private Boolean defaultDepositRequired = false;
+
+    @Column(name = "default_deposit_amount", precision = 12, scale = 2)
+    private BigDecimal defaultDepositAmount;
+
     @OneToMany(mappedBy = "studio", cascade = CascadeType.ALL, orphanRemoval = false)
     private List<StaffProfile> staffProfiles = new ArrayList<>();
 
@@ -66,6 +79,9 @@ public class Studio extends BaseEntity {
 
     @OneToMany(mappedBy = "studio", cascade = CascadeType.ALL, orphanRemoval = false)
     private List<Service> services = new ArrayList<>();
+
+    @OneToMany(mappedBy = "studio", cascade = CascadeType.ALL, orphanRemoval = false)
+    private List<Location> locations = new ArrayList<>();
 
     @OneToMany(mappedBy = "studio", cascade = CascadeType.ALL, orphanRemoval = false)
     private List<Appointment> appointments = new ArrayList<>();

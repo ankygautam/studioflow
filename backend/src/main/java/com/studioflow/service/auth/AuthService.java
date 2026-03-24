@@ -72,7 +72,9 @@ public class AuthService {
             principal.getFullName(),
             principal.getUsername(),
             principal.getRole(),
-            resolveStudioId(principal.getId())
+            resolveStudioId(principal.getId()),
+            resolveLocationId(principal.getId()),
+            resolveOnboardingCompleted(principal.getId())
         );
     }
 
@@ -82,7 +84,9 @@ public class AuthService {
             user.getFullName(),
             user.getEmail(),
             user.getRole(),
-            resolveStudioId(user.getId())
+            resolveStudioId(user.getId()),
+            resolveLocationId(user.getId()),
+            resolveOnboardingCompleted(user.getId())
         );
     }
 
@@ -94,5 +98,17 @@ public class AuthService {
         return staffProfileRepository.findByUserId(userId)
             .map(staffProfile -> staffProfile.getStudio().getId())
             .orElse(null);
+    }
+
+    private UUID resolveLocationId(UUID userId) {
+        return staffProfileRepository.findByUserId(userId)
+            .map(staffProfile -> staffProfile.getPrimaryLocation() != null ? staffProfile.getPrimaryLocation().getId() : null)
+            .orElse(null);
+    }
+
+    private boolean resolveOnboardingCompleted(UUID userId) {
+        return staffProfileRepository.findByUserId(userId)
+            .map(staffProfile -> Boolean.TRUE.equals(staffProfile.getStudio().getOnboardingCompleted()))
+            .orElse(false);
     }
 }

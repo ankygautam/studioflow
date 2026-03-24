@@ -12,6 +12,8 @@ public record PublicBookingConfirmationResponse(
     UUID studioId,
     String studioSlug,
     String studioName,
+    UUID locationId,
+    String locationName,
     String customerName,
     String customerEmail,
     String customerPhone,

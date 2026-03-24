@@ -8,6 +8,7 @@ public record StaffResponse(
     UUID id,
     UUID userId,
     UUID studioId,
+    UUID primaryLocationId,
     String displayName,
     String jobTitle,
     String phone,
@@ -18,6 +19,7 @@ public record StaffResponse(
     Instant updatedAt,
     String userFullName,
     String userEmail,
-    String studioName
+    String studioName,
+    String primaryLocationName
 ) {
 }

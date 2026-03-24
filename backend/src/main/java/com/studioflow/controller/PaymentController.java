@@ -39,9 +39,10 @@ public class PaymentController {
     @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST')")
     public ResponseEntity<List<PaymentResponse>> getAllPayments(
         @RequestParam(required = false) UUID appointmentId,
-        @RequestParam(required = false) UUID studioId
+        @RequestParam(required = false) UUID studioId,
+        @RequestParam(required = false) UUID locationId
     ) {
-        return ResponseEntity.ok(paymentService.getAllPayments(appointmentId, studioId));
+        return ResponseEntity.ok(paymentService.getAllPayments(appointmentId, studioId, locationId));
     }
 
     @GetMapping("/{id}")

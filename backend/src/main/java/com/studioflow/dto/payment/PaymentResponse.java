@@ -12,6 +12,7 @@ public record PaymentResponse(
     UUID id,
     UUID appointmentId,
     UUID studioId,
+    UUID locationId,
     BigDecimal amount,
     BigDecimal depositAmount,
     PaymentStatus paymentStatus,
@@ -22,6 +23,7 @@ public record PaymentResponse(
     Instant updatedAt,
     String customerName,
     String serviceName,
+    String locationName,
     LocalDate appointmentDate,
     LocalTime appointmentStartTime
 ) {

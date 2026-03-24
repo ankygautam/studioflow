@@ -1,9 +1,19 @@
 import { api } from './http'
 import type { AppointmentRecord, AppointmentUpsertPayload } from './types'
 
-export function getAppointments(studioId?: string | null) {
-  const query = studioId ? `?studioId=${encodeURIComponent(studioId)}` : ''
-  return api.get<AppointmentRecord[]>(`/api/appointments${query}`)
+export function getAppointments(studioId?: string | null, locationId?: string | null) {
+  const query = new URLSearchParams()
+
+  if (studioId) {
+    query.set('studioId', studioId)
+  }
+
+  if (locationId) {
+    query.set('locationId', locationId)
+  }
+
+  const suffix = query.size > 0 ? `?${query.toString()}` : ''
+  return api.get<AppointmentRecord[]>(`/api/appointments${suffix}`)
 }
 
 export function createAppointment(payload: AppointmentUpsertPayload) {

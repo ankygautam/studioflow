@@ -40,9 +40,10 @@ public class StaffController {
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST','STAFF')")
     public ResponseEntity<List<StaffResponse>> getAllStaff(
-        @RequestParam(required = false) UUID studioId
+        @RequestParam(required = false) UUID studioId,
+        @RequestParam(required = false) UUID locationId
     ) {
-        return ResponseEntity.ok(staffService.getAllStaff(studioId));
+        return ResponseEntity.ok(staffService.getAllStaff(studioId, locationId));
     }
 
     @GetMapping("/{id}")

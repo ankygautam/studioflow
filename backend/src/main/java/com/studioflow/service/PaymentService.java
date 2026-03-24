@@ -25,6 +25,7 @@ public class PaymentService {
     private final CurrentUserService currentUserService;
     private final PaymentRepository paymentRepository;
     private final AppointmentRepository appointmentRepository;
+    private final NotificationService notificationService;
 
     public PaymentResponse createPayment(PaymentCreateRequest request) {
         validatePaymentMethod(request.paymentStatus(), request.paymentMethod());
@@ -37,22 +38,38 @@ public class PaymentService {
 
         Payment payment = new Payment();
         mapRequest(payment, request, appointment);
-        return toResponse(paymentRepository.save(payment));
+        Payment savedPayment = paymentRepository.save(payment);
+        notificationService.notifyPaymentSaved(savedPayment);
+        return toResponse(savedPayment);
     }
 
     @Transactional(readOnly = true)
-    public List<PaymentResponse> getAllPayments(UUID appointmentId, UUID studioId) {
+    public List<PaymentResponse> getAllPayments(UUID appointmentId, UUID studioId, UUID locationId) {
         List<Payment> payments;
 
         if (appointmentId != null) {
             Appointment appointment = findAppointment(appointmentId);
             currentUserService.ensureStudioAccess(appointment.getStudio().getId());
+            if (locationId != null) {
+                currentUserService.ensureLocationAccess(locationId);
+                if (!appointment.getLocation().getId().equals(locationId)) {
+                    throw new BadRequestException("The selected appointment does not belong to that location");
+                }
+            }
             payments = paymentRepository.findByAppointmentId(appointmentId)
                 .map(List::of)
                 .orElseGet(List::of);
         } else {
             UUID authorizedStudioId = currentUserService.requireStudioAccess(studioId);
-            payments = paymentRepository.findByAppointmentStudioId(authorizedStudioId);
+            if (locationId != null) {
+                UUID authorizedLocationId = currentUserService.requireLocationAccess(locationId);
+                payments = paymentRepository.findByAppointmentStudioIdAndAppointmentLocationId(
+                    authorizedStudioId,
+                    authorizedLocationId
+                );
+            } else {
+                payments = paymentRepository.findByAppointmentStudioId(authorizedStudioId);
+            }
         }
 
         return payments.stream()
@@ -85,7 +102,9 @@ public class PaymentService {
         });
 
         mapRequest(payment, request, appointment);
-        return toResponse(paymentRepository.save(payment));
+        Payment savedPayment = paymentRepository.save(payment);
+        notificationService.notifyPaymentSaved(savedPayment);
+        return toResponse(savedPayment);
     }
 
     public void deletePayment(UUID id) {
@@ -144,6 +163,7 @@ public class PaymentService {
             payment.getId(),
             appointment.getId(),
             appointment.getStudio().getId(),
+            appointment.getLocation().getId(),
             payment.getAmount(),
             payment.getDepositAmount(),
             payment.getPaymentStatus(),
@@ -154,6 +174,7 @@ public class PaymentService {
             payment.getUpdatedAt(),
             appointment.getCustomerProfile().getFullName(),
             appointment.getService().getName(),
+            appointment.getLocation().getName(),
             appointment.getAppointmentDate(),
             appointment.getStartTime()
         );

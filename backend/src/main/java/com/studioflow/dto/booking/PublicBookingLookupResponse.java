@@ -12,6 +12,8 @@ public record PublicBookingLookupResponse(
     UUID studioId,
     String studioSlug,
     String studioName,
+    UUID locationId,
+    String locationName,
     UUID serviceId,
     String serviceName,
     UUID staffProfileId,

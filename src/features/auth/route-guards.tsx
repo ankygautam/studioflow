@@ -5,7 +5,7 @@ import { getRoleDestination } from './auth-utils'
 import { useAuth } from './use-auth'
 
 export function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isLoading, user } = useAuth()
   const location = useLocation()
 
   if (isLoading) {
@@ -14,6 +14,10 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
 
   if (!isAuthenticated) {
     return <Navigate replace state={{ from: location }} to="/login" />
+  }
+
+  if (user && (!user.studioId || !user.onboardingCompleted) && location.pathname !== '/onboarding') {
+    return <Navigate replace to="/onboarding" />
   }
 
   return <>{children}</>
@@ -27,6 +31,10 @@ export function PublicOnlyRoute({ children }: { children: ReactNode }) {
   }
 
   if (isAuthenticated) {
+    if (!user?.studioId || !user.onboardingCompleted) {
+      return <Navigate replace to="/onboarding" />
+    }
+
     return <Navigate replace to={getRoleDestination(user?.role ?? 'admin')} />
   }
 

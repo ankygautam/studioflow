@@ -25,11 +25,17 @@ const staffAccents = [
 ]
 
 export function CalendarPage() {
-  const { user } = useAuth()
+  const { selectedLocationId, user } = useAuth()
   const allowCreate = user ? canCreateBookings(user.role) : false
   const defaultStudioId = getDefaultStudioId()
-  const loadAppointments = useCallback(() => getAppointments(defaultStudioId), [defaultStudioId])
-  const loadStaff = useCallback(() => getStaff(defaultStudioId), [defaultStudioId])
+  const loadAppointments = useCallback(
+    () => getAppointments(defaultStudioId, selectedLocationId),
+    [defaultStudioId, selectedLocationId],
+  )
+  const loadStaff = useCallback(
+    () => getStaff(defaultStudioId, selectedLocationId),
+    [defaultStudioId, selectedLocationId],
+  )
   const loadServices = useCallback(() => getServices(defaultStudioId), [defaultStudioId])
 
   const { data: appointments, error: appointmentsError, isLoading: appointmentsLoading, reload } = useRemoteList(loadAppointments)
@@ -81,11 +87,12 @@ export function CalendarPage() {
     setEditingAppointment(null)
     setDraft({
       appointmentDate: selectedDate,
+      locationId: selectedLocationId ?? '',
       source: 'ADMIN_CREATED',
       status: 'BOOKED',
     })
     setIsDrawerOpen(true)
-  }, [allowCreate, isDrawerOpen, searchParams, selectedDate])
+  }, [allowCreate, isDrawerOpen, searchParams, selectedDate, selectedLocationId])
 
   const closeDrawer = () => {
     setDraft(null)
@@ -103,6 +110,7 @@ export function CalendarPage() {
     setEditingAppointment(null)
     setDraft({
       appointmentDate: selectedDate,
+      locationId: selectedLocationId ?? '',
       source: 'ADMIN_CREATED',
       status: 'BOOKED',
       ...nextDraft,

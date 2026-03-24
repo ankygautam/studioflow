@@ -10,6 +10,7 @@ import { CalendarPage } from '../pages/calendar-page'
 import { ClientsPage } from '../pages/clients-page'
 import { DashboardPage } from '../pages/dashboard-page'
 import { FormsPage } from '../pages/forms-page'
+import { OnboardingPage } from '../pages/onboarding-page'
 import { PlaceholderPage } from '../pages/placeholder-page'
 import { PaymentsPage } from '../pages/payments-page'
 import { PublicBookingPage } from '../pages/public-booking-page'
@@ -47,6 +48,14 @@ export function App() {
         }
       />
       <Route
+        path="/onboarding"
+        element={
+          <ProtectedRoute>
+            <OnboardingPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/book"
         element={<Navigate replace to="/book/studioflow-hq" />}
       />
@@ -55,7 +64,15 @@ export function App() {
         element={<PublicBookingPage />}
       />
       <Route
+        path="/book/:studioSlug/:locationSlug"
+        element={<PublicBookingPage />}
+      />
+      <Route
         path="/book/:studioSlug/manage"
+        element={<PublicBookingManagePage />}
+      />
+      <Route
+        path="/book/:studioSlug/:locationSlug/manage"
         element={<PublicBookingManagePage />}
       />
       <Route

@@ -28,10 +28,13 @@ type StaffFormState = {
 const staffStatuses: StaffStatus[] = ['ACTIVE', 'ON_LEAVE', 'INACTIVE']
 
 export function StaffPage() {
-  const { user } = useAuth()
+  const { selectedLocationId, user } = useAuth()
   const canManage = user ? canManageStaff(user.role) : false
   const defaultStudioId = getDefaultStudioId()
-  const loadStaff = useCallback(() => getStaff(defaultStudioId), [defaultStudioId])
+  const loadStaff = useCallback(
+    () => getStaff(defaultStudioId, selectedLocationId),
+    [defaultStudioId, selectedLocationId],
+  )
   const { data: staffMembers, error, isLoading, reload } = useRemoteList(loadStaff)
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -178,7 +181,7 @@ export function StaffPage() {
             />
           ) : null}
           {!isLoading && !error && staffMembers.length > 0 ? (
-            <DataTable columns={['Staff member', 'Role', 'Status', 'Linked account']}>
+            <DataTable columns={['Staff member', 'Location', 'Role', 'Status', 'Linked account']}>
               {staffMembers.map((staffMember) => (
                 <tr key={staffMember.id}>
                   <td className="px-4 py-4">
@@ -194,6 +197,7 @@ export function StaffPage() {
                       <span className="font-semibold text-slate-950">{staffMember.displayName}</span>
                     )}
                   </td>
+                  <td className="px-4 py-4 text-sm text-slate-600">{staffMember.primaryLocationName || 'Studio-wide'}</td>
                   <td className="px-4 py-4 text-sm text-slate-600">{staffMember.jobTitle || 'Not set'}</td>
                   <td className="px-4 py-4">
                     <StatusBadge tone={staffTone(staffMember.status)}>{humanizeEnum(staffMember.status)}</StatusBadge>

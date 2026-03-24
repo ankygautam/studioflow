@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useAuth } from '../../features/auth/use-auth'
 import { getClients } from '../../lib/api/clients-api'
 import { getConsentFormSubmissions } from '../../lib/api/consent-forms-api'
 import { getDefaultStudioId } from '../../lib/api/http'
+import { getLocations } from '../../lib/api/locations-api'
 import { getServices } from '../../lib/api/services-api'
 import { getStaff } from '../../lib/api/staff-api'
 import { useRemoteList } from '../../hooks/use-remote-list'
@@ -15,7 +17,7 @@ import {
   resolveAppointmentStudioId,
   validateAppointmentForm,
 } from '../../lib/appointments'
-import { formatDate, humanizeEnum } from '../../lib/formatters'
+import { formatDate, formatRelativeTime, humanizeEnum } from '../../lib/formatters'
 import { DetailDrawer } from '../ui/detail-drawer'
 import { ErrorState, LoadingState } from '../ui/async-state'
 import { InputField, SelectField, TextAreaField } from '../ui/form-controls'
@@ -40,11 +42,28 @@ export function AppointmentDrawer({
   onSaved,
   open,
 }: AppointmentDrawerProps) {
+  const { selectedLocationId } = useAuth()
   const defaultStudioId = getDefaultStudioId()
   const studioId = appointment?.studioId ?? defaultStudioId
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof AppointmentFormState, string>>>({})
+  const [formState, setFormState] = useState<AppointmentFormState>(
+    mergeAppointmentDraft(
+      createAppointmentForm(studioId, appointment ?? undefined),
+      {
+        locationId: appointment?.locationId ?? selectedLocationId ?? '',
+        ...draft,
+      },
+    ),
+  )
+  const [isSaving, setIsSaving] = useState(false)
+  const [mutationError, setMutationError] = useState<string | null>(null)
 
   const loadClients = useCallback(() => getClients(studioId), [studioId])
-  const loadStaff = useCallback(() => getStaff(studioId), [studioId])
+  const loadLocations = useCallback(() => getLocations(studioId, true), [studioId])
+  const loadStaff = useCallback(
+    () => getStaff(studioId, formState.locationId || selectedLocationId),
+    [formState.locationId, selectedLocationId, studioId],
+  )
   const loadServices = useCallback(() => getServices(studioId), [studioId])
   const loadConsentSubmissions = useCallback(() => {
     if (!appointment?.id) {
@@ -55,6 +74,7 @@ export function AppointmentDrawer({
   }, [appointment?.id])
 
   const { data: clients, error: clientsError, isLoading: clientsLoading } = useRemoteList(loadClients)
+  const { data: locations, error: locationsError, isLoading: locationsLoading } = useRemoteList(loadLocations)
   const { data: staffMembers, error: staffError, isLoading: staffLoading } = useRemoteList(loadStaff)
   const { data: services, error: servicesError, isLoading: servicesLoading } = useRemoteList(loadServices)
   const {
@@ -63,13 +83,6 @@ export function AppointmentDrawer({
     isLoading: consentLoading,
   } = useRemoteList(loadConsentSubmissions)
 
-  const [formErrors, setFormErrors] = useState<Partial<Record<keyof AppointmentFormState, string>>>({})
-  const [formState, setFormState] = useState<AppointmentFormState>(
-    mergeAppointmentDraft(createAppointmentForm(studioId, appointment ?? undefined), draft),
-  )
-  const [isSaving, setIsSaving] = useState(false)
-  const [mutationError, setMutationError] = useState<string | null>(null)
-
   useEffect(() => {
     if (!open) {
       return
@@ -77,15 +90,24 @@ export function AppointmentDrawer({
 
     setFormErrors({})
     setMutationError(null)
-    setFormState(mergeAppointmentDraft(createAppointmentForm(studioId, appointment ?? undefined), draft))
-  }, [appointment, draft, open, studioId])
+    setFormState(
+      mergeAppointmentDraft(
+        createAppointmentForm(studioId, appointment ?? undefined),
+        {
+          locationId: appointment?.locationId ?? selectedLocationId ?? '',
+          ...draft,
+        },
+      ),
+    )
+  }, [appointment, draft, open, selectedLocationId, studioId])
 
-  const dependenciesError = clientsError || staffError || servicesError
-  const dependenciesLoading = clientsLoading || staffLoading || servicesLoading
+  const dependenciesError = clientsError || locationsError || staffError || servicesError
+  const dependenciesLoading = clientsLoading || locationsLoading || staffLoading || servicesLoading
   const hasClients = clients.length > 0
+  const hasLocations = locations.length > 0
   const hasStaff = staffMembers.length > 0
   const hasServices = services.length > 0
-  const hasAllDependencies = hasClients && hasStaff && hasServices
+  const hasAllDependencies = hasClients && hasLocations && hasStaff && hasServices
 
   const handleSubmit = async () => {
     const resolvedStudioId = resolveAppointmentStudioId(
@@ -112,6 +134,7 @@ export function AppointmentDrawer({
       appointmentDate: formState.appointmentDate,
       customerProfileId: formState.customerProfileId,
       endTime: formState.endTime,
+      locationId: formState.locationId,
       notes: formState.notes.trim(),
       serviceId: formState.serviceId,
       source: formState.source,
@@ -212,6 +235,12 @@ export function AppointmentDrawer({
                 title="No clients yet"
               />
             ) : null}
+            {!hasLocations ? (
+              <DependencyNotice
+                description="Create at least one location so StudioFlow can scope appointments and public booking correctly."
+                title="No locations available"
+              />
+            ) : null}
             {!hasStaff ? (
               <DependencyNotice
                 description="Add or activate a staff profile before creating a new appointment on the calendar."
@@ -238,6 +267,25 @@ export function AppointmentDrawer({
         ) : null}
 
         <div className="grid gap-4 sm:grid-cols-2">
+          <SelectField
+            error={formErrors.locationId}
+            label="Location"
+            onChange={(event) =>
+              setFormState((current) => ({
+                ...current,
+                locationId: event.target.value,
+                staffProfileId: '',
+              }))
+            }
+            value={formState.locationId}
+          >
+            <option value="">Select a location</option>
+            {locations.map((location) => (
+              <option key={location.id} value={location.id}>
+                {location.name}
+              </option>
+            ))}
+          </SelectField>
           <SelectField
             error={formErrors.customerProfileId}
             label="Client"
@@ -375,6 +423,40 @@ export function AppointmentDrawer({
                   </p>
                 </div>
               ) : null}
+            </div>
+          </section>
+        ) : null}
+
+        {appointment ? (
+          <section>
+            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-400">Communications</p>
+            <div className="mt-3 rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 py-2 first:pt-0 last:pb-0">
+                <div>
+                  <p className="font-semibold text-slate-950">Booking confirmation</p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {appointment.bookingConfirmationSentAt
+                      ? `Last sent ${formatRelativeTime(appointment.bookingConfirmationSentAt)}`
+                      : 'Not sent yet'}
+                  </p>
+                </div>
+                <StatusBadge tone={appointment.bookingConfirmationSentAt ? 'success' : 'neutral'}>
+                  {appointment.bookingConfirmationSentAt ? 'Sent' : 'Pending'}
+                </StatusBadge>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-3">
+                <div>
+                  <p className="font-semibold text-slate-950">Appointment reminder</p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {appointment.reminderSentAt
+                      ? `Last sent ${formatRelativeTime(appointment.reminderSentAt)}`
+                      : 'No reminder sent yet'}
+                  </p>
+                </div>
+                <StatusBadge tone={appointment.reminderSentAt ? 'success' : 'neutral'}>
+                  {appointment.reminderSentAt ? 'Sent' : 'Waiting'}
+                </StatusBadge>
+              </div>
             </div>
           </section>
         ) : null}

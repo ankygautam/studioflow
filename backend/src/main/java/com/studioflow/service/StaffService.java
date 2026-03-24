@@ -3,12 +3,14 @@ package com.studioflow.service;
 import com.studioflow.dto.staff.StaffCreateRequest;
 import com.studioflow.dto.staff.StaffResponse;
 import com.studioflow.dto.staff.StaffUpdateRequest;
+import com.studioflow.entity.Location;
 import com.studioflow.entity.StaffProfile;
 import com.studioflow.entity.Studio;
 import com.studioflow.entity.User;
 import com.studioflow.enums.StaffStatus;
 import com.studioflow.exception.BadRequestException;
 import com.studioflow.exception.ResourceNotFoundException;
+import com.studioflow.repository.LocationRepository;
 import com.studioflow.repository.StaffProfileRepository;
 import com.studioflow.repository.StudioRepository;
 import com.studioflow.repository.UserRepository;
@@ -27,22 +29,28 @@ public class StaffService {
     private final StaffProfileRepository staffProfileRepository;
     private final UserRepository userRepository;
     private final StudioRepository studioRepository;
+    private final LocationRepository locationRepository;
 
     public StaffResponse createStaff(StaffCreateRequest request) {
         User user = findUser(request.userId());
         validateLinkedUser(user, null);
         Studio studio = findStudio(currentUserService.requireStudioAccess(request.studioId()));
+        Location primaryLocation = findLocation(request.primaryLocationId());
+        validateLocation(studio, primaryLocation);
 
         StaffProfile staffProfile = new StaffProfile();
-        mapCreateRequest(staffProfile, request, user, studio);
+        mapCreateRequest(staffProfile, request, user, studio, primaryLocation);
 
         return toResponse(staffProfileRepository.save(staffProfile));
     }
 
     @Transactional(readOnly = true)
-    public List<StaffResponse> getAllStaff(UUID studioId) {
+    public List<StaffResponse> getAllStaff(UUID studioId, UUID locationId) {
         UUID authorizedStudioId = currentUserService.requireStudioAccess(studioId);
-        List<StaffProfile> staffProfiles = staffProfileRepository.findByStudioId(authorizedStudioId);
+        UUID authorizedLocationId = locationId != null ? currentUserService.requireLocationAccess(locationId) : null;
+        List<StaffProfile> staffProfiles = authorizedLocationId != null
+            ? staffProfileRepository.findByStudioIdAndPrimaryLocationId(authorizedStudioId, authorizedLocationId)
+            : staffProfileRepository.findByStudioId(authorizedStudioId);
 
         return staffProfiles.stream()
             .map(this::toResponse)
@@ -62,8 +70,10 @@ public class StaffService {
         User user = findUser(request.userId());
         validateLinkedUser(user, staffProfile.getId());
         Studio studio = findStudio(currentUserService.requireStudioAccess(request.studioId()));
+        Location primaryLocation = findLocation(request.primaryLocationId());
+        validateLocation(studio, primaryLocation);
 
-        mapUpdateRequest(staffProfile, request, user, studio);
+        mapUpdateRequest(staffProfile, request, user, studio, primaryLocation);
         return toResponse(staffProfileRepository.save(staffProfile));
     }
 
@@ -89,6 +99,15 @@ public class StaffService {
             .orElseThrow(() -> new ResourceNotFoundException("Staff profile not found: " + id));
     }
 
+    private Location findLocation(UUID id) {
+        if (id == null) {
+            return null;
+        }
+
+        return locationRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Location not found: " + id));
+    }
+
     private void validateLinkedUser(User user, UUID currentStaffProfileId) {
         if (
             user.getStaffProfile() != null &&
@@ -102,10 +121,12 @@ public class StaffService {
         StaffProfile staffProfile,
         StaffCreateRequest request,
         User user,
-        Studio studio
+        Studio studio,
+        Location primaryLocation
     ) {
         staffProfile.setUser(user);
         staffProfile.setStudio(studio);
+        staffProfile.setPrimaryLocation(primaryLocation);
         staffProfile.setDisplayName(request.displayName());
         staffProfile.setJobTitle(request.jobTitle());
         staffProfile.setPhone(request.phone());
@@ -118,10 +139,12 @@ public class StaffService {
         StaffProfile staffProfile,
         StaffUpdateRequest request,
         User user,
-        Studio studio
+        Studio studio,
+        Location primaryLocation
     ) {
         staffProfile.setUser(user);
         staffProfile.setStudio(studio);
+        staffProfile.setPrimaryLocation(primaryLocation);
         staffProfile.setDisplayName(request.displayName());
         staffProfile.setJobTitle(request.jobTitle());
         staffProfile.setPhone(request.phone());
@@ -135,6 +158,7 @@ public class StaffService {
             staffProfile.getId(),
             staffProfile.getUser().getId(),
             staffProfile.getStudio().getId(),
+            staffProfile.getPrimaryLocation() != null ? staffProfile.getPrimaryLocation().getId() : null,
             staffProfile.getDisplayName(),
             staffProfile.getJobTitle(),
             staffProfile.getPhone(),
@@ -145,7 +169,14 @@ public class StaffService {
             staffProfile.getUpdatedAt(),
             staffProfile.getUser().getFullName(),
             staffProfile.getUser().getEmail(),
-            staffProfile.getStudio().getName()
+            staffProfile.getStudio().getName(),
+            staffProfile.getPrimaryLocation() != null ? staffProfile.getPrimaryLocation().getName() : null
         );
+    }
+
+    private void validateLocation(Studio studio, Location location) {
+        if (location != null && !location.getStudio().getId().equals(studio.getId())) {
+            throw new BadRequestException("The selected location does not belong to your studio");
+        }
     }
 }

@@ -33,6 +33,10 @@ public class StaffProfile extends BaseEntity {
     @JoinColumn(name = "studio_id", nullable = false)
     private Studio studio;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "primary_location_id")
+    private Location primaryLocation;
+
     @Column(name = "display_name", length = 160)
     private String displayName;
 

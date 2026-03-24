@@ -1,15 +1,34 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { navigationItems, type NavigationItem } from '../../data/navigation'
 import { canAccessRoute, canCreateBookings, canManageSettings } from '../../features/auth/authorization'
 import { useAuth } from '../../features/auth/use-auth'
+import { useNotifications } from '../../hooks/use-notifications'
+import { useRemoteList } from '../../hooks/use-remote-list'
+import { getLocations } from '../../lib/api/locations-api'
+import { formatRelativeTime, humanizeEnum } from '../../lib/formatters'
 
 export function AppShell() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
   const navigate = useNavigate()
-  const { logout, user } = useAuth()
+  const { logout, selectedLocationId, setSelectedLocationId, user } = useAuth()
   const showNewBooking = user ? canCreateBookings(user.role) : false
+  const loadLocations = useCallback(
+    () => getLocations(user?.studioId, true),
+    [user?.studioId],
+  )
+  const { data: locations } = useRemoteList(loadLocations)
+  const {
+    error: notificationsError,
+    isLoading: notificationsLoading,
+    markAllRead,
+    markRead,
+    notifications,
+    refresh: refreshNotifications,
+    unreadCount,
+  } = useNotifications(Boolean(user))
 
   const initials =
     user?.fullName
@@ -19,6 +38,20 @@ export function AppShell() {
       .join('') ?? 'SF'
 
   const roleLabel = user?.role ? capitalize(user.role) : 'Admin'
+  const selectedLocation = useMemo(
+    () => locations.find((location) => location.id === selectedLocationId) ?? null,
+    [locations, selectedLocationId],
+  )
+
+  useEffect(() => {
+    if (!locations.length) {
+      return
+    }
+
+    if (!selectedLocationId || !locations.some((location) => location.id === selectedLocationId)) {
+      setSelectedLocationId(locations[0].id)
+    }
+  }, [locations, selectedLocationId, setSelectedLocationId])
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f7f8fc_0%,#eef2f7_100%)] text-slate-900">
@@ -72,15 +105,143 @@ export function AppShell() {
               </label>
 
               <div className="flex min-w-0 flex-1 items-center justify-end gap-3 md:flex-none">
-                <button className="hidden h-12 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-white md:inline-flex">
-                  {user?.businessName ?? 'Atelier North'}
+                <label className="hidden items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 md:inline-flex">
+                  <select
+                    className="h-12 bg-transparent pr-7 text-sm font-semibold text-slate-700 outline-none"
+                    onChange={(event) => setSelectedLocationId(event.target.value || null)}
+                    value={selectedLocationId ?? ''}
+                  >
+                    {!locations.length ? <option value="">No locations yet</option> : null}
+                    {locations.map((location) => (
+                      <option key={location.id} value={location.id}>
+                        {location.name}
+                      </option>
+                    ))}
+                  </select>
                   <ShellIcon icon="chevron" />
-                </button>
+                </label>
 
-                <button className="relative inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-700 transition hover:border-slate-300 hover:bg-white">
-                  <ShellIcon icon="bell" />
-                  <span className="absolute right-2.5 top-2.5 h-2.5 w-2.5 rounded-full bg-[#7c89ff]" />
-                </button>
+                <div className="relative">
+                  <button
+                    className="relative inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-700 transition hover:border-slate-300 hover:bg-white"
+                    onClick={() => {
+                      const nextOpen = !notificationsOpen
+                      setNotificationsOpen(nextOpen)
+
+                      if (nextOpen) {
+                        void refreshNotifications()
+                      }
+                    }}
+                    type="button"
+                  >
+                    <ShellIcon icon="bell" />
+                    {unreadCount > 0 ? (
+                      <span className="absolute right-1.5 top-1.5 inline-flex min-w-[1.1rem] items-center justify-center rounded-full bg-[#7c89ff] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    ) : null}
+                  </button>
+
+                  <AnimatePresence>
+                    {notificationsOpen ? (
+                      <>
+                        <motion.button
+                          aria-label="Close notifications"
+                          className="fixed inset-0 z-30 bg-transparent"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          onClick={() => setNotificationsOpen(false)}
+                          type="button"
+                        />
+                        <motion.div
+                          className="absolute right-0 top-[calc(100%+12px)] z-40 w-[min(92vw,380px)] rounded-[28px] border border-slate-200 bg-white p-4 shadow-[0_24px_80px_rgba(15,23,42,0.16)]"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 10 }}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-[0.26em] text-slate-400">Notifications</p>
+                              <h3 className="mt-2 text-lg font-semibold text-slate-950">Recent activity</h3>
+                            </div>
+                            {unreadCount > 0 ? (
+                              <button
+                                className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-white"
+                                onClick={() => void markAllRead()}
+                                type="button"
+                              >
+                                Mark all read
+                              </button>
+                            ) : null}
+                          </div>
+
+                          <div className="mt-4 space-y-3">
+                            {notificationsLoading ? (
+                              <div className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-500">
+                                Loading notifications...
+                              </div>
+                            ) : null}
+
+                            {!notificationsLoading && notificationsError ? (
+                              <div className="rounded-[22px] border border-rose-200 bg-rose-50/70 px-4 py-5 text-sm text-rose-700">
+                                {notificationsError}
+                              </div>
+                            ) : null}
+
+                            {!notificationsLoading && !notificationsError && notifications.length === 0 ? (
+                              <div className="rounded-[22px] border border-dashed border-slate-200 bg-slate-50/70 px-4 py-5 text-sm text-slate-500">
+                                You’re all caught up. New reminders and activity will appear here.
+                              </div>
+                            ) : null}
+
+                            {!notificationsLoading && !notificationsError && notifications.length > 0
+                              ? notifications.map((notification) => (
+                                  <button
+                                    key={notification.id}
+                                    className={[
+                                      'w-full rounded-[22px] border px-4 py-4 text-left transition',
+                                      notification.isRead
+                                        ? 'border-slate-200 bg-slate-50/70'
+                                        : 'border-[#cfd5ff] bg-[linear-gradient(135deg,rgba(183,217,255,0.18),rgba(181,234,216,0.16))]',
+                                    ].join(' ')}
+                                    onClick={async () => {
+                                      if (!notification.isRead) {
+                                        await markRead(notification.id)
+                                      }
+
+                                      setNotificationsOpen(false)
+
+                                      if (notification.actionUrl) {
+                                        navigate(notification.actionUrl)
+                                      }
+                                    }}
+                                    type="button"
+                                  >
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div>
+                                        <p className="text-sm font-semibold text-slate-900">{notification.title}</p>
+                                        <p className="mt-2 text-sm leading-6 text-slate-600">{notification.message}</p>
+                                      </div>
+                                      {!notification.isRead ? (
+                                        <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-[#7c89ff]" />
+                                      ) : null}
+                                    </div>
+                                    <div className="mt-3 flex items-center justify-between gap-3">
+                                      <span className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                                        {humanizeEnum(notification.type)}
+                                      </span>
+                                      <span className="text-xs text-slate-400">{formatRelativeTime(notification.createdAt)}</span>
+                                    </div>
+                                  </button>
+                                ))
+                              : null}
+                          </div>
+                        </motion.div>
+                      </>
+                    ) : null}
+                  </AnimatePresence>
+                </div>
 
                 <button className="hidden h-12 items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 text-left transition hover:border-slate-300 hover:bg-white sm:inline-flex">
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[linear-gradient(135deg,#b7d9ff,#b5ead8)] text-sm font-semibold text-slate-950">
@@ -90,7 +251,9 @@ export function AppShell() {
                     <p className="text-sm font-semibold text-slate-800">
                       {user?.fullName ?? 'A. North'}
                     </p>
-                    <p className="text-xs text-slate-500">{roleLabel}</p>
+                    <p className="text-xs text-slate-500">
+                      {selectedLocation?.name ?? roleLabel}
+                    </p>
                   </div>
                   <ShellIcon icon="chevron" />
                 </button>

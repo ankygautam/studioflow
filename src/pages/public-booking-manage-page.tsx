@@ -16,7 +16,7 @@ import { formatDate, formatTime, humanizeEnum } from '../lib/formatters'
 type LookupErrors = Partial<Record<'bookingReference' | 'identifier', string>>
 
 export function PublicBookingManagePage() {
-  const { studioSlug = 'studioflow-hq' } = useParams()
+  const { studioSlug = 'studioflow-hq', locationSlug } = useParams()
   const [searchParams] = useSearchParams()
   const [bookingReference, setBookingReference] = useState(searchParams.get('reference') ?? '')
   const [email, setEmail] = useState('')
@@ -53,6 +53,7 @@ export function PublicBookingManagePage() {
 
     void getPublicBookingAvailability({
       date: rescheduleDate,
+      locationId: booking.locationId,
       serviceId: booking.serviceId,
       staffProfileId: booking.staffProfileId,
       studioSlug,
@@ -220,7 +221,7 @@ export function PublicBookingManagePage() {
             </div>
             <Link
               className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700"
-              to={`/book/${studioSlug}`}
+              to={locationSlug ? `/book/${studioSlug}/${locationSlug}` : `/book/${studioSlug}`}
             >
               Book a new appointment
             </Link>
@@ -295,6 +296,7 @@ export function PublicBookingManagePage() {
                 <div className="grid gap-3 md:grid-cols-2">
                   <SummaryRow label="Reference" value={booking.bookingReference} />
                   <SummaryRow label="Guest" value={booking.customerName} />
+                  <SummaryRow label="Location" value={booking.locationName} />
                   <SummaryRow label="Service" value={booking.serviceName} />
                   <SummaryRow label="Specialist" value={booking.staffName} />
                   <SummaryRow label="Date" value={formatDate(booking.appointmentDate)} />

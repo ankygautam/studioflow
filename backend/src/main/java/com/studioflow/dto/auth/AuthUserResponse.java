@@ -8,6 +8,8 @@ public record AuthUserResponse(
     String fullName,
     String email,
     UserRole role,
-    UUID studioId
+    UUID studioId,
+    UUID locationId,
+    boolean onboardingCompleted
 ) {
 }

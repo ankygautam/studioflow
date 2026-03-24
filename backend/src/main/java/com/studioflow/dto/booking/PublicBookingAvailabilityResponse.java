@@ -6,6 +6,7 @@ import java.util.UUID;
 
 public record PublicBookingAvailabilityResponse(
     UUID studioId,
+    UUID locationId,
     String studioSlug,
     UUID serviceId,
     UUID staffProfileId,

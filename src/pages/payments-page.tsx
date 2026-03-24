@@ -7,6 +7,7 @@ import { InputField, SelectField } from '../components/ui/form-controls'
 import { PageHeader } from '../components/ui/page-header'
 import { StatCard } from '../components/ui/stat-card'
 import { StatusBadge } from '../components/ui/status-badge'
+import { useAuth } from '../features/auth/use-auth'
 import { useRemoteList } from '../hooks/use-remote-list'
 import { getAppointments } from '../lib/api/appointments-api'
 import { getDefaultStudioId } from '../lib/api/http'
@@ -28,9 +29,16 @@ const paymentStatuses: PaymentStatus[] = ['PENDING', 'PARTIAL', 'PAID', 'FAILED'
 const paymentMethods: PaymentMethod[] = ['CARD', 'CASH', 'ETRANSFER', 'OTHER']
 
 export function PaymentsPage() {
+  const { selectedLocationId } = useAuth()
   const defaultStudioId = getDefaultStudioId()
-  const loadPayments = useCallback(() => getPayments({ studioId: defaultStudioId }), [defaultStudioId])
-  const loadAppointments = useCallback(() => getAppointments(defaultStudioId), [defaultStudioId])
+  const loadPayments = useCallback(
+    () => getPayments({ locationId: selectedLocationId, studioId: defaultStudioId }),
+    [defaultStudioId, selectedLocationId],
+  )
+  const loadAppointments = useCallback(
+    () => getAppointments(defaultStudioId, selectedLocationId),
+    [defaultStudioId, selectedLocationId],
+  )
 
   const { data: payments, error, isLoading, reload } = useRemoteList(loadPayments)
   const {
@@ -162,18 +170,18 @@ export function PaymentsPage() {
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <StatCard
           accent="mint"
-          helper="Total payment volume from the connected backend ledger"
+          helper={selectedLocationId ? 'Payment volume for the selected location' : 'Total payment volume from the connected backend ledger'}
           label="Payment volume"
           value={formatCurrency(summary.totalVolume)}
         />
         <StatCard
           accent="violet"
-          helper="Deposits currently attached to live payment records"
+          helper={selectedLocationId ? 'Deposits tracked for the current location' : 'Deposits currently attached to live payment records'}
           label="Deposits tracked"
           value={formatCurrency(summary.totalDeposits)}
         />
         <StatCard
-          helper="Bookings marked fully paid so the front desk can scan quickly"
+          helper={selectedLocationId ? 'Fully paid records in the current location view' : 'Bookings marked fully paid so the front desk can scan quickly'}
           label="Paid records"
           value={String(summary.paidCount)}
         />
@@ -211,7 +219,7 @@ export function PaymentsPage() {
           />
         ) : null}
         {!isLoading && !error && payments.length > 0 ? (
-          <DataTable columns={['Client', 'Appointment', 'Amount', 'Deposit', 'Method', 'Status', 'Paid date']}>
+          <DataTable columns={['Client', 'Location', 'Appointment', 'Amount', 'Deposit', 'Method', 'Status', 'Paid date']}>
             {payments.map((payment) => (
               <tr key={payment.id}>
                 <td className="px-4 py-4">
@@ -223,6 +231,7 @@ export function PaymentsPage() {
                     {payment.customerName}
                   </button>
                 </td>
+                <td className="px-4 py-4 text-sm text-slate-600">{payment.locationName}</td>
                 <td className="px-4 py-4 text-sm text-slate-600">
                   <div className="space-y-1">
                     <p>{payment.serviceName}</p>

@@ -11,6 +11,7 @@ export type AppointmentFormState = {
   appointmentDate: string
   customerProfileId: string
   endTime: string
+  locationId: string
   notes: string
   serviceId: string
   source: AppointmentSource
@@ -28,6 +29,7 @@ export function createAppointmentForm(studioId: string | null, appointment?: App
     appointmentDate: appointment?.appointmentDate ?? '',
     customerProfileId: appointment?.customerProfileId ?? '',
     endTime: appointment?.endTime ?? '',
+    locationId: appointment?.locationId ?? '',
     notes: appointment?.notes ?? '',
     serviceId: appointment?.serviceId ?? '',
     source: appointment?.source ?? 'ADMIN_CREATED',
@@ -47,6 +49,10 @@ export function validateAppointmentForm(formState: AppointmentFormState, studioI
 
   if (!formState.customerProfileId) {
     errors.customerProfileId = 'Choose a client.'
+  }
+
+  if (!formState.locationId) {
+    errors.locationId = 'Choose a location.'
   }
 
   if (!formState.staffProfileId) {

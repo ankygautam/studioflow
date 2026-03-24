@@ -12,5 +12,7 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
 
     List<Payment> findByAppointmentStudioId(UUID studioId);
 
+    List<Payment> findByAppointmentStudioIdAndAppointmentLocationId(UUID studioId, UUID locationId);
+
     List<Payment> findByPaymentStatus(com.studioflow.enums.PaymentStatus paymentStatus);
 }

@@ -1,9 +1,19 @@
 import { api } from './http'
 import type { StaffRecord, StaffUpsertPayload } from './types'
 
-export function getStaff(studioId?: string | null) {
-  const query = studioId ? `?studioId=${encodeURIComponent(studioId)}` : ''
-  return api.get<StaffRecord[]>(`/api/staff${query}`)
+export function getStaff(studioId?: string | null, locationId?: string | null) {
+  const query = new URLSearchParams()
+
+  if (studioId) {
+    query.set('studioId', studioId)
+  }
+
+  if (locationId) {
+    query.set('locationId', locationId)
+  }
+
+  const suffix = query.size > 0 ? `?${query.toString()}` : ''
+  return api.get<StaffRecord[]>(`/api/staff${suffix}`)
 }
 
 export function createStaff(payload: StaffUpsertPayload) {

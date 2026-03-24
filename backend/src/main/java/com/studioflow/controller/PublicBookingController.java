@@ -44,19 +44,21 @@ public class PublicBookingController {
     @GetMapping("/{studioSlug}/staff")
     public ResponseEntity<PublicBookingStaffResponse> getStaff(
         @PathVariable String studioSlug,
-        @RequestParam UUID serviceId
+        @RequestParam UUID serviceId,
+        @RequestParam UUID locationId
     ) {
-        return ResponseEntity.ok(publicBookingService.getStaff(studioSlug, serviceId));
+        return ResponseEntity.ok(publicBookingService.getStaff(studioSlug, serviceId, locationId));
     }
 
     @GetMapping("/{studioSlug}/availability")
     public ResponseEntity<PublicBookingAvailabilityResponse> getAvailability(
         @PathVariable String studioSlug,
+        @RequestParam UUID locationId,
         @RequestParam UUID serviceId,
         @RequestParam UUID staffProfileId,
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
-        return ResponseEntity.ok(publicBookingService.getAvailability(studioSlug, serviceId, staffProfileId, date));
+        return ResponseEntity.ok(publicBookingService.getAvailability(studioSlug, locationId, serviceId, staffProfileId, date));
     }
 
     @PostMapping("/{studioSlug}/submit")

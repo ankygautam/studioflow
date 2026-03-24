@@ -11,11 +11,30 @@ export type ServiceCategory =
   | 'CONSULTATION'
   | 'OTHER'
 
+export type BusinessType =
+  | 'TATTOO_STUDIO'
+  | 'BARBER_SHOP'
+  | 'SALON'
+  | 'PIERCING_STUDIO'
+  | 'NAIL_STUDIO'
+  | 'WELLNESS_CLINIC'
+  | 'SOLO_PRACTICE'
+
 export type StaffStatus = 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE'
 
 export type AppointmentStatus = 'BOOKED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW'
 
 export type AppointmentSource = 'ADMIN_CREATED' | 'STAFF_CREATED' | 'ONLINE_BOOKING'
+
+export type NotificationType =
+  | 'APPOINTMENT_CREATED'
+  | 'APPOINTMENT_RESCHEDULED'
+  | 'APPOINTMENT_CANCELLED'
+  | 'APPOINTMENT_REMINDER'
+  | 'PAYMENT_RECORDED'
+  | 'PAYMENT_PENDING'
+  | 'CONSENT_PENDING'
+  | 'CONSENT_SIGNED'
 
 export type PaymentStatus = 'PENDING' | 'PARTIAL' | 'PAID' | 'FAILED'
 
@@ -58,6 +77,8 @@ export interface StaffRecord {
   id: string
   jobTitle: string | null
   phone: string | null
+  primaryLocationId?: string | null
+  primaryLocationName?: string | null
   status: StaffStatus
   studioId: string
   studioName?: string | null
@@ -73,9 +94,80 @@ export interface StaffUpsertPayload {
   displayName: string
   jobTitle: string
   phone: string
+  primaryLocationId?: string | null
   status: StaffStatus
   studioId: string
   userId: string
+}
+
+export interface LocationRecord {
+  addressLine1: string | null
+  addressLine2: string | null
+  city: string | null
+  country: string | null
+  createdAt: string
+  email: string | null
+  id: string
+  isActive: boolean
+  name: string
+  phone: string | null
+  postalCode: string | null
+  provinceOrState: string | null
+  slug: string
+  studioId: string
+  timezone: string
+  updatedAt: string
+}
+
+export interface LocationUpsertPayload {
+  addressLine1: string
+  addressLine2: string
+  city: string
+  country: string
+  email: string
+  isActive?: boolean
+  name: string
+  phone: string
+  postalCode: string
+  provinceOrState: string
+  slug: string
+  studioId: string
+  timezone: string
+}
+
+export interface StudioOnboardingPayload {
+  addressLine1: string
+  addressLine2: string
+  businessType: BusinessType
+  city: string
+  country: string
+  locationEmail: string
+  locationName: string
+  locationPhone: string
+  postalCode: string
+  provinceOrState: string
+  starterServices: Array<{
+    category: ServiceCategory
+    durationMinutes: number
+    name: string
+    price: number
+  }>
+  bookingLeadTimeHours: number
+  defaultDepositAmount: number
+  defaultDepositRequired: boolean
+  studioEmail: string
+  studioName: string
+  studioPhone: string
+  timezone: string
+}
+
+export interface StudioOnboardingRecord {
+  locationId: string
+  locationName: string
+  locationSlug: string
+  onboardingCompleted: boolean
+  studioId: string
+  studioName: string
 }
 
 export interface ClientRecord {
@@ -104,11 +196,14 @@ export interface ClientUpsertPayload {
 
 export interface AppointmentRecord {
   appointmentDate: string
+  bookingConfirmationSentAt: string | null
   createdAt: string
   customerName: string
   customerProfileId: string
   endTime: string
   id: string
+  locationId: string
+  locationName: string
   notes: string | null
   serviceId: string
   serviceName: string
@@ -118,6 +213,7 @@ export interface AppointmentRecord {
   startTime: string
   status: AppointmentStatus
   studioId: string
+  reminderSentAt: string | null
   updatedAt: string
 }
 
@@ -125,6 +221,7 @@ export interface AppointmentUpsertPayload {
   appointmentDate: string
   customerProfileId: string
   endTime: string
+  locationId: string
   notes: string
   serviceId: string
   source: AppointmentSource
@@ -143,6 +240,8 @@ export interface PaymentRecord {
   customerName: string
   depositAmount: number
   id: string
+  locationId: string
+  locationName: string
   paidAt: string | null
   paymentMethod: PaymentMethod | null
   paymentStatus: PaymentStatus
@@ -160,6 +259,21 @@ export interface PaymentUpsertPayload {
   paymentMethod: PaymentMethod | null
   paymentStatus: PaymentStatus
   transactionReference: string
+}
+
+export interface NotificationRecord {
+  actionUrl: string | null
+  appointmentId: string | null
+  createdAt: string
+  id: string
+  isRead: boolean
+  message: string
+  title: string
+  type: NotificationType
+}
+
+export interface NotificationUnreadCountRecord {
+  unreadCount: number
 }
 
 export interface ConsentFormTemplateRecord {
@@ -272,7 +386,14 @@ export interface PublicBookableServiceRecord {
   price: number
 }
 
+export interface PublicBookingLocationRecord {
+  id: string
+  name: string
+  slug: string
+}
+
 export interface PublicBookingServicesRecord {
+  locations: PublicBookingLocationRecord[]
   services: PublicBookableServiceRecord[]
   studioId: string
   studioSlug: string
@@ -286,9 +407,11 @@ export interface PublicBookableStaffRecord {
   displayName: string
   id: string
   jobTitle: string | null
+  locationId: string | null
 }
 
 export interface PublicBookingStaffRecord {
+  locationId: string
   serviceId: string
   staff: PublicBookableStaffRecord[]
   studioId: string
@@ -303,6 +426,7 @@ export interface PublicBookingSlotRecord {
 
 export interface PublicBookingAvailabilityRecord {
   date: string
+  locationId: string
   serviceId: string
   slots: PublicBookingSlotRecord[]
   staffProfileId: string
@@ -314,6 +438,7 @@ export interface PublicBookingCreatePayload {
   appointmentDate: string
   email: string
   fullName: string
+  locationId: string
   notes: string
   phone: string
   serviceId: string
@@ -332,6 +457,8 @@ export interface PublicBookingConfirmationRecord {
   depositAmount: number | null
   depositRequired: boolean
   endTime: string
+  locationId: string
+  locationName: string
   serviceName: string
   staffName: string
   startTime: string
@@ -351,6 +478,8 @@ export interface PublicBookingLookupRecord {
   manageToken: string
   bookingReference: string
   appointmentId: string
+  locationId: string
+  locationName: string
   studioId: string
   studioSlug: string
   studioName: string
@@ -381,6 +510,8 @@ export interface PublicBookingManageRecord {
   message: string
   bookingReference: string
   appointmentId: string
+  locationId: string
+  locationName: string
   studioId: string
   studioSlug: string
   studioName: string

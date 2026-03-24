@@ -12,6 +12,8 @@ public record PublicBookingManageResponse(
     UUID studioId,
     String studioSlug,
     String studioName,
+    UUID locationId,
+    String locationName,
     String customerName,
     String serviceName,
     String staffName,

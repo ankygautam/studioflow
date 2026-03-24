@@ -22,7 +22,10 @@ export type AuthContextValue = {
   isAuthenticated: boolean
   login: (input: LoginInput) => Promise<AuthUser>
   logout: () => void
+  refreshCurrentUser: () => Promise<void>
   register: (input: RegisterInput) => Promise<AuthUser>
+  selectedLocationId: string | null
+  setSelectedLocationId: (locationId: string | null) => void
   user: AuthUser | null
 }
 

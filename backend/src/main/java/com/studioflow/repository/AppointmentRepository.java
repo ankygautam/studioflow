@@ -15,7 +15,15 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
 
     List<Appointment> findByStudioId(UUID studioId);
 
+    List<Appointment> findByStudioIdAndLocationId(UUID studioId, UUID locationId);
+
     List<Appointment> findByStudioIdAndStaffProfileUserId(UUID studioId, UUID userId);
 
+    List<Appointment> findByStudioIdAndLocationIdAndStaffProfileUserId(UUID studioId, UUID locationId, UUID userId);
+
     List<Appointment> findByStaffProfileIdAndAppointmentDate(UUID staffProfileId, LocalDate appointmentDate);
+
+    List<Appointment> findByStaffProfileIdAndLocationIdAndAppointmentDate(UUID staffProfileId, UUID locationId, LocalDate appointmentDate);
+
+    List<Appointment> findByAppointmentDateBetween(LocalDate from, LocalDate to);
 }

@@ -1,7 +1,10 @@
 package com.studioflow.entity;
 
+import com.studioflow.enums.NotificationType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -29,14 +32,18 @@ public class Notification extends BaseEntity {
     @JoinColumn(name = "appointment_id")
     private Appointment appointment;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false, length = 80)
-    private String type;
+    private NotificationType type;
 
     @Column(name = "title", nullable = false, length = 160)
     private String title;
 
     @Column(name = "message", nullable = false, columnDefinition = "text")
     private String message;
+
+    @Column(name = "action_url", length = 255)
+    private String actionUrl;
 
     @Column(name = "is_read", nullable = false)
     private Boolean isRead = false;

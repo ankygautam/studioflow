@@ -9,6 +9,7 @@ import java.util.UUID;
 
 public record PublicBookingCreateRequest(
     @NotNull UUID studioId,
+    @NotNull UUID locationId,
     @NotNull UUID serviceId,
     @NotNull UUID staffProfileId,
     @NotNull LocalDate appointmentDate,

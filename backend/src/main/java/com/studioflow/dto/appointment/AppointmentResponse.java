@@ -10,6 +10,7 @@ import java.util.UUID;
 public record AppointmentResponse(
     UUID id,
     UUID studioId,
+    UUID locationId,
     UUID customerProfileId,
     UUID staffProfileId,
     UUID serviceId,
@@ -23,6 +24,9 @@ public record AppointmentResponse(
     Instant updatedAt,
     String customerName,
     String staffName,
-    String serviceName
+    String serviceName,
+    String locationName,
+    Instant bookingConfirmationSentAt,
+    Instant reminderSentAt
 ) {
 }

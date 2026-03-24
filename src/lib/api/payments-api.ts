@@ -1,7 +1,7 @@
 import { api } from './http'
 import type { PaymentRecord, PaymentUpsertPayload } from './types'
 
-export function getPayments(options?: { appointmentId?: string | null; studioId?: string | null }) {
+export function getPayments(options?: { appointmentId?: string | null; locationId?: string | null; studioId?: string | null }) {
   const query = new URLSearchParams()
 
   if (options?.appointmentId) {
@@ -10,6 +10,10 @@ export function getPayments(options?: { appointmentId?: string | null; studioId?
 
   if (options?.studioId) {
     query.set('studioId', options.studioId)
+  }
+
+  if (options?.locationId) {
+    query.set('locationId', options.locationId)
   }
 
   const suffix = query.toString() ? `?${query.toString()}` : ''

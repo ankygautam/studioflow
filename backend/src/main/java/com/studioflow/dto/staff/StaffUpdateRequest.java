@@ -9,6 +9,7 @@ import java.util.UUID;
 public record StaffUpdateRequest(
     @NotNull UUID userId,
     @NotNull UUID studioId,
+    UUID primaryLocationId,
     @NotBlank @Size(max = 160) String displayName,
     @Size(max = 120) String jobTitle,
     @Size(max = 40) String phone,

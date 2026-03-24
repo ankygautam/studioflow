@@ -44,6 +44,10 @@ public class Appointment extends BaseEntity {
     @JoinColumn(name = "service_id", nullable = false)
     private Service service;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "location_id", nullable = false)
+    private Location location;
+
     @Column(name = "appointment_date", nullable = false)
     private LocalDate appointmentDate;
 

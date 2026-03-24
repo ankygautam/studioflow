@@ -10,6 +10,7 @@ import java.util.UUID;
 
 public record AppointmentUpdateRequest(
     @NotNull UUID studioId,
+    @NotNull UUID locationId,
     @NotNull UUID customerProfileId,
     @NotNull UUID staffProfileId,
     @NotNull UUID serviceId,

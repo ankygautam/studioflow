@@ -6,6 +6,8 @@ export type AuthUserResponse = {
   email: string
   fullName: string
   id: string
+  locationId: string | null
+  onboardingCompleted: boolean
   role: BackendUserRole
   studioId: string | null
 }
