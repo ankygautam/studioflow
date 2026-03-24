@@ -6,40 +6,51 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: studioflow-pages
   cancel-in-progress: true
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
-      - uses: actions/configure-pages@v5
       - run: npm ci
       - run: npm run build:production
         env:
           VITE_API_URL: ${{ vars.STUDIOFLOW_PRODUCTION_API_URL }}
           VITE_APP_BASE_PATH: /studioflow/
           VITE_APP_ENV: production
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
+      - run: touch dist/.nojekyll
+      - name: Publish to gh-pages branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: production
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          PUBLISH_DIR="$(mktemp -d)"
+
+          git clone --depth 1 --branch gh-pages "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "${PUBLISH_DIR}"
+          find "${PUBLISH_DIR}" -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          cp -R dist/. "${PUBLISH_DIR}/"
+
+          cd "${PUBLISH_DIR}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No frontend deployment changes to publish."
+            exit 0
+          fi
+
+          git add -A
+          git commit -m "Deploy frontend from ${GITHUB_SHA}"
+          git push origin gh-pages
