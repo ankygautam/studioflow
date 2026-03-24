@@ -41,6 +41,7 @@ server:
 
 studioflow:
   cors:
+    # Use the frontend origin only here, not a path like /studioflow.
     allowed-origins:
       - ${STUDIOFLOW_CORS_ORIGIN_1:http://localhost:5173}
       - ${STUDIOFLOW_CORS_ORIGIN_2:http://localhost:5174}
