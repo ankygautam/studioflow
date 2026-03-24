@@ -1,0 +1,1 @@
+import{a as e}from"./index-Cyf02GSa.js";function r(t,f){const a=new URLSearchParams;t&&a.set("studioId",t),f&&a.set("locationId",f);const s=a.size>0?`?${a.toString()}`:"";return e.get(`/api/staff${s}`)}function i(t){return e.post("/api/staff",t)}function u(t,f){return e.put(`/api/staff/${t}`,f)}function o(t){return e.del(`/api/staff/${t}`)}export{i as c,o as d,r as g,u};
