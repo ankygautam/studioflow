@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: studioflow
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: production
+      - key: STUDIOFLOW_PUBLIC_BASE_URL
+        value: https://ankygautam.github.io/studioflow/#
+      - key: STUDIOFLOW_CORS_ORIGIN_1
+        value: https://ankygautam.github.io
+      - key: STUDIOFLOW_EMAIL_ENABLED
+        value: false
+      - key: STUDIOFLOW_SMS_ENABLED
+        value: false
+      - key: STUDIOFLOW_REMINDERS_ENABLED
+        value: false
+      - key: STUDIOFLOW_JWT_SECRET
+        sync: false
+      - key: STUDIOFLOW_DB_URL
+        sync: false
+      - key: STUDIOFLOW_DB_USERNAME
+        sync: false
+      - key: STUDIOFLOW_DB_PASSWORD
+        sync: false

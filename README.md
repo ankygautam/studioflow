@@ -76,6 +76,7 @@ Supporting docs:
 - [readme-packaging.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/readme-packaging.md)
 - [screenshot-plan.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/screenshot-plan.md)
 - [interview-prep.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/interview-prep.md)
+- [render-deploy.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/render-deploy.md)
 
 ## Frontend Setup
 
@@ -248,6 +249,11 @@ GitHub Actions workflows:
 - [ci.yml](/Users/ankygautam/Desktop/Project/StudioFlow/.github/workflows/ci.yml)
 - [deploy-pages.yml](/Users/ankygautam/Desktop/Project/StudioFlow/.github/workflows/deploy-pages.yml)
 - [staging-bundle.yml](/Users/ankygautam/Desktop/Project/StudioFlow/.github/workflows/staging-bundle.yml)
+
+Render deployment files:
+- [Dockerfile](/Users/ankygautam/Desktop/Project/StudioFlow/Dockerfile)
+- [render.yaml](/Users/ankygautam/Desktop/Project/StudioFlow/render.yaml)
+- [render-deploy.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/render-deploy.md)
 
 Pipeline summary:
 - pull requests and pushes to `main` / `staging` run frontend lint/build and backend tests

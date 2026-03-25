@@ -1,0 +1,12 @@
+.git
+.github
+node_modules
+dist
+coverage
+.env
+.env.*
+backend/target
+backend/data
+data
+*.log
+docs
