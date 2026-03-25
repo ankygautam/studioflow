@@ -136,6 +136,14 @@ export function LoginPage() {
           <span className="font-semibold text-slate-950">password123</span>.
         </div>
 
+        {appConfig.environment !== 'development' && appConfig.isApiConfigured ? (
+          <div className="mt-4 rounded-[24px] border border-slate-200 bg-white px-4 py-4 text-sm leading-7 text-slate-600">
+            Hosted demo note: the first sign-in can take a little longer if the free backend is
+            waking up. Once it is active, normal navigation, logout, and sign-in should feel much
+            faster.
+          </div>
+        ) : null}
+
         <div className="mt-6 rounded-[24px] border border-slate-200 bg-white px-4 py-4 text-sm leading-7 text-slate-600">
           Accounts are provisioned by the studio owner or admin. Use your assigned login details to access the workspace.
         </div>
