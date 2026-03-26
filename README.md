@@ -62,20 +62,45 @@ StudioFlow uses:
 - profile-based backend configuration for local, staging, and production use
 
 Supporting docs:
+
+Demo:
 - [demo-data-strategy.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/demo-data-strategy.md)
-- [portfolio-summary.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/portfolio-summary.md)
-- [final-qa-checklist.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/final-qa-checklist.md)
 - [launch-checklist.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/launch-checklist.md)
+- [final-qa-checklist.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/final-qa-checklist.md)
+- [publishing-checklist.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/publishing-checklist.md)
 - [demo-flow.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/demo-flow.md)
 - [demo-scripts.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/demo-scripts.md)
+- [demo-recording-kit.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/demo/demo-recording-kit.md)
+- [demo-shot-plan.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/demo/demo-shot-plan.md)
+- [demo-short-form.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/demo/demo-short-form.md)
+- [demo-long-form.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/demo/demo-long-form.md)
+
+Portfolio and GitHub:
+- [portfolio-summary.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/portfolio-summary.md)
+- [portfolio-case-study.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/portfolio-case-study.md)
+- [studioflow-project-page.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/portfolio/studioflow-project-page.md)
+- [studioflow-project-card.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/portfolio/studioflow-project-card.md)
+- [readme-packaging.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/readme-packaging.md)
+- [github-publishing.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/github-publishing.md)
+
+Career and marketing:
 - [project-packaging.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/project-packaging.md)
 - [resume-packaging.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/resume-packaging.md)
 - [short-summaries.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/short-summaries.md)
 - [linkedin-packaging.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/linkedin-packaging.md)
-- [portfolio-case-study.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/portfolio-case-study.md)
-- [readme-packaging.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/readme-packaging.md)
-- [screenshot-plan.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/screenshot-plan.md)
+- [studioflow-resume-packaging.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/career/studioflow-resume-packaging.md)
+- [studioflow-application-snippets.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/career/studioflow-application-snippets.md)
+- [studioflow-sharing-messages.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/career/studioflow-sharing-messages.md)
+- [studioflow-linkedin-posts.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/marketing/studioflow-linkedin-posts.md)
+- [studioflow-post-outline.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/marketing/studioflow-post-outline.md)
+
+Interview and assets:
 - [interview-prep.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/interview-prep.md)
+- [studioflow-showcase-pack.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/interview/studioflow-showcase-pack.md)
+- [screenshot-plan.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/screenshot-plan.md)
+- [studioflow-screenshot-plan.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/assets/studioflow-screenshot-plan.md)
+
+Implementation and deployment:
 - [render-deploy.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/render-deploy.md)
 
 ## Frontend Setup
