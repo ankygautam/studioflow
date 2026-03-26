@@ -132,8 +132,7 @@ export function LoginPage() {
 
         <div className="mt-6 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-600">
           Demo tip: use <span className="font-semibold text-slate-950">admin@studioflow.co</span>{' '}
-          or <span className="font-semibold text-slate-950">staff@studioflow.co</span> with password{' '}
-          <span className="font-semibold text-slate-950">password123</span>.
+          with password <span className="font-semibold text-slate-950">password123</span>.
         </div>
 
         {appConfig.environment !== 'development' && appConfig.isApiConfigured ? (
