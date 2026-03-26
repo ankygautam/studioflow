@@ -21,6 +21,7 @@ export type BusinessType =
   | 'SOLO_PRACTICE'
 
 export type StaffStatus = 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE'
+export type UserRole = 'ADMIN' | 'STAFF' | 'RECEPTIONIST' | 'CUSTOMER'
 
 export type AppointmentStatus = 'BOOKED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW'
 
@@ -114,9 +115,24 @@ export interface StaffRecord {
   userEmail?: string | null
   userFullName?: string | null
   userId: string
+  userRole?: UserRole | null
 }
 
-export interface StaffUpsertPayload {
+export interface StaffCreatePayload {
+  avatarUrl: string
+  bio: string
+  displayName: string
+  jobTitle: string
+  phone: string
+  primaryLocationId?: string | null
+  status: StaffStatus
+  studioId: string
+  temporaryPassword: string
+  userEmail: string
+  userRole: Extract<UserRole, 'STAFF' | 'RECEPTIONIST'>
+}
+
+export interface StaffUpdatePayload {
   avatarUrl: string
   bio: string
   displayName: string

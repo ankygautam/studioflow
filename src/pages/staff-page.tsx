@@ -8,14 +8,18 @@ import { InputField, SelectField, TextAreaField } from '../components/ui/form-co
 import { PageHeader } from '../components/ui/page-header'
 import { StatusBadge } from '../components/ui/status-badge'
 import { canManageStaff } from '../features/auth/authorization'
+import { isValidEmail } from '../features/auth/auth-utils'
 import { useAuth } from '../features/auth/use-auth'
 import { useRemoteList } from '../hooks/use-remote-list'
 import { getDefaultStudioId } from '../lib/api/http'
 import { createStaff, deleteStaff, getStaff, updateStaff } from '../lib/api/staff-api'
-import type { StaffRecord, StaffStatus } from '../lib/api/types'
+import type { StaffRecord, StaffStatus, UserRole } from '../lib/api/types'
 import { humanizeEnum } from '../lib/formatters'
 
 type StaffFormState = {
+  accountPassword: string
+  accountRole: Extract<UserRole, 'STAFF' | 'RECEPTIONIST'>
+  userEmail: string
   avatarUrl: string
   bio: string
   displayName: string
@@ -27,6 +31,7 @@ type StaffFormState = {
 }
 
 const staffStatuses: StaffStatus[] = ['ACTIVE', 'ON_LEAVE', 'INACTIVE']
+const staffAccountRoles: Array<Extract<UserRole, 'STAFF' | 'RECEPTIONIST'>> = ['STAFF', 'RECEPTIONIST']
 
 export function StaffPage() {
   const { selectedLocationId, user } = useAuth()
@@ -85,25 +90,34 @@ export function StaffPage() {
       return
     }
 
-    const payload = {
-      avatarUrl: formState.avatarUrl.trim(),
-      bio: formState.bio.trim(),
-      displayName: formState.displayName.trim(),
-      jobTitle: formState.jobTitle.trim(),
-      phone: formState.phone.trim(),
-      status: formState.status,
-      studioId,
-      userId: formState.userId.trim(),
-    }
-
     setIsSaving(true)
     setMutationError(null)
 
     try {
       if (editingStaff) {
-        await updateStaff(editingStaff.id, payload)
+        await updateStaff(editingStaff.id, {
+          avatarUrl: formState.avatarUrl.trim(),
+          bio: formState.bio.trim(),
+          displayName: formState.displayName.trim(),
+          jobTitle: formState.jobTitle.trim(),
+          phone: formState.phone.trim(),
+          status: formState.status,
+          studioId,
+          userId: formState.userId.trim(),
+        })
       } else {
-        await createStaff(payload)
+        await createStaff({
+          avatarUrl: formState.avatarUrl.trim(),
+          bio: formState.bio.trim(),
+          displayName: formState.displayName.trim(),
+          jobTitle: formState.jobTitle.trim(),
+          phone: formState.phone.trim(),
+          status: formState.status,
+          studioId,
+          temporaryPassword: formState.accountPassword.trim(),
+          userEmail: formState.userEmail.trim(),
+          userRole: formState.accountRole,
+        })
       }
 
       await reload()
@@ -184,7 +198,7 @@ export function StaffPage() {
             />
           ) : null}
           {!isLoading && !error && staffMembers.length > 0 ? (
-            <DataTable columns={['Staff member', 'Location', 'Role', 'Status', 'Linked account']}>
+            <DataTable columns={['Staff member', 'Location', 'Job title', 'Status', 'Linked account']}>
               {staffMembers.map((staffMember) => (
                 <tr key={staffMember.id}>
                   <td className="px-4 py-4">
@@ -267,13 +281,23 @@ export function StaffPage() {
                 value={formState.studioId}
               />
             ) : null}
-            <InputField
-              error={formErrors.userId}
-              label="Linked user ID"
-              onChange={(event) => setFormState((current) => ({ ...current, userId: event.target.value }))}
-              placeholder="Paste the user UUID"
-              value={formState.userId}
-            />
+            {editingStaff ? (
+              <InputField
+                disabled
+                label="Linked account"
+                value={editingStaff.userEmail || editingStaff.userFullName || 'Linked account'}
+              />
+            ) : (
+              <InputField
+                autoComplete="email"
+                error={formErrors.userEmail}
+                label="Account email"
+                onChange={(event) => setFormState((current) => ({ ...current, userEmail: event.target.value }))}
+                placeholder="name@studioflow.co"
+                type="email"
+                value={formState.userEmail}
+              />
+            )}
             <InputField
               error={formErrors.displayName}
               label="Display name"
@@ -287,12 +311,50 @@ export function StaffPage() {
               placeholder="Senior tattoo artist"
               value={formState.jobTitle}
             />
+            {editingStaff ? (
+              <InputField
+                disabled
+                label="Account role"
+                value={editingStaff.userRole ? humanizeEnum(editingStaff.userRole) : 'Internal user'}
+              />
+            ) : (
+              <SelectField
+                error={formErrors.accountRole}
+                label="Account role"
+                onChange={(event) =>
+                  setFormState((current) => ({
+                    ...current,
+                    accountRole: event.target.value as Extract<UserRole, 'STAFF' | 'RECEPTIONIST'>,
+                  }))
+                }
+                value={formState.accountRole}
+              >
+                {staffAccountRoles.map((role) => (
+                  <option key={role} value={role}>
+                    {humanizeEnum(role)}
+                  </option>
+                ))}
+              </SelectField>
+            )}
             <InputField
               label="Phone"
               onChange={(event) => setFormState((current) => ({ ...current, phone: event.target.value }))}
               placeholder="(555) 123-4567"
               value={formState.phone}
             />
+            {!editingStaff ? (
+              <InputField
+                autoComplete="new-password"
+                error={formErrors.accountPassword}
+                label="Temporary password"
+                onChange={(event) =>
+                  setFormState((current) => ({ ...current, accountPassword: event.target.value }))
+                }
+                placeholder="At least 8 characters"
+                type="password"
+                value={formState.accountPassword}
+              />
+            ) : null}
             <InputField
               label="Avatar URL"
               onChange={(event) => setFormState((current) => ({ ...current, avatarUrl: event.target.value }))}
@@ -338,6 +400,12 @@ export function StaffPage() {
 
 function createStaffForm(studioId: string | null, staffMember?: StaffRecord): StaffFormState {
   return {
+    accountPassword: '',
+    accountRole:
+      staffMember?.userRole && (staffMember.userRole === 'STAFF' || staffMember.userRole === 'RECEPTIONIST')
+        ? staffMember.userRole
+        : 'STAFF',
+    userEmail: staffMember?.userEmail ?? '',
     avatarUrl: staffMember?.avatarUrl ?? '',
     bio: staffMember?.bio ?? '',
     displayName: staffMember?.displayName ?? '',
@@ -351,13 +419,24 @@ function createStaffForm(studioId: string | null, staffMember?: StaffRecord): St
 
 function validateStaffForm(formState: StaffFormState, studioId: string | null) {
   const errors: Partial<Record<keyof StaffFormState, string>> = {}
+  const isEditing = Boolean(formState.userId)
 
   if (!studioId && !formState.studioId.trim()) {
     errors.studioId = 'Studio ID is required to create a staff profile.'
   }
 
-  if (!formState.userId.trim()) {
-    errors.userId = 'Linked user ID is required.'
+  if (!isEditing) {
+    if (!formState.userEmail.trim()) {
+      errors.userEmail = 'Account email is required.'
+    } else if (!isValidEmail(formState.userEmail)) {
+      errors.userEmail = 'Enter a valid email address.'
+    }
+
+    if (!formState.accountPassword.trim()) {
+      errors.accountPassword = 'Temporary password is required.'
+    } else if (formState.accountPassword.trim().length < 8) {
+      errors.accountPassword = 'Temporary password must be at least 8 characters.'
+    }
   }
 
   if (!formState.displayName.trim()) {

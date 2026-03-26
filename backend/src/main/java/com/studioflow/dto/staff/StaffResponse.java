@@ -1,6 +1,7 @@
 package com.studioflow.dto.staff;
 
 import com.studioflow.enums.StaffStatus;
+import com.studioflow.enums.UserRole;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -19,6 +20,7 @@ public record StaffResponse(
     Instant updatedAt,
     String userFullName,
     String userEmail,
+    UserRole userRole,
     String studioName,
     String primaryLocationName
 ) {

@@ -1,5 +1,5 @@
 import { api } from './http'
-import type { StaffRecord, StaffUpsertPayload } from './types'
+import type { StaffCreatePayload, StaffRecord, StaffUpdatePayload } from './types'
 
 export function getStaff(studioId?: string | null, locationId?: string | null) {
   const query = new URLSearchParams()
@@ -16,11 +16,11 @@ export function getStaff(studioId?: string | null, locationId?: string | null) {
   return api.get<StaffRecord[]>(`/api/staff${suffix}`)
 }
 
-export function createStaff(payload: StaffUpsertPayload) {
+export function createStaff(payload: StaffCreatePayload) {
   return api.post<StaffRecord>('/api/staff', payload)
 }
 
-export function updateStaff(id: string, payload: StaffUpsertPayload) {
+export function updateStaff(id: string, payload: StaffUpdatePayload) {
   return api.put<StaffRecord>(`/api/staff/${id}`, payload)
 }
 

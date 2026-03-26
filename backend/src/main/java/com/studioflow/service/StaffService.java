@@ -10,6 +10,7 @@ import com.studioflow.entity.User;
 import com.studioflow.enums.AuditActionType;
 import com.studioflow.enums.AuditEntityType;
 import com.studioflow.enums.StaffStatus;
+import com.studioflow.enums.UserRole;
 import com.studioflow.exception.BadRequestException;
 import com.studioflow.exception.ResourceNotFoundException;
 import com.studioflow.repository.LocationRepository;
@@ -20,6 +21,7 @@ import com.studioflow.service.auth.CurrentUserService;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 
 @org.springframework.stereotype.Service
@@ -33,17 +35,32 @@ public class StaffService {
     private final StudioRepository studioRepository;
     private final LocationRepository locationRepository;
     private final AuditLogService auditLogService;
+    private final PasswordEncoder passwordEncoder;
 
     public StaffResponse createStaff(StaffCreateRequest request) {
         currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN);
-        User user = findUser(request.userId());
-        validateLinkedUser(user, null);
         Studio studio = findStudio(currentUserService.requireStudioAccess(request.studioId()));
         Location primaryLocation = findLocation(request.primaryLocationId());
         validateLocation(studio, primaryLocation);
+        validateCreateRole(request.userRole());
+
+        String normalizedEmail = request.userEmail().trim().toLowerCase();
+
+        if (userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
+            throw new BadRequestException("An account with this email already exists");
+        }
+
+        User user = new User();
+        user.setFullName(request.displayName().trim());
+        user.setEmail(normalizedEmail);
+        user.setPasswordHash(passwordEncoder.encode(request.temporaryPassword()));
+        user.setRole(request.userRole());
+        user.setIsActive(true);
+
+        User savedUser = userRepository.save(user);
 
         StaffProfile staffProfile = new StaffProfile();
-        mapCreateRequest(staffProfile, request, user, studio, primaryLocation);
+        mapCreateRequest(staffProfile, request, savedUser, studio, primaryLocation);
 
         StaffProfile savedStaffProfile = staffProfileRepository.save(staffProfile);
         auditLogService.log(
@@ -186,7 +203,7 @@ public class StaffService {
         staffProfile.setStudio(studio);
         staffProfile.setPrimaryLocation(primaryLocation);
         staffProfile.setDisplayName(request.displayName());
-        staffProfile.setJobTitle(request.jobTitle());
+        staffProfile.setJobTitle(resolveJobTitle(request.jobTitle(), request.userRole()));
         staffProfile.setPhone(request.phone());
         staffProfile.setBio(request.bio());
         staffProfile.setAvatarUrl(request.avatarUrl());
@@ -227,6 +244,7 @@ public class StaffService {
             staffProfile.getUpdatedAt(),
             staffProfile.getUser().getFullName(),
             staffProfile.getUser().getEmail(),
+            staffProfile.getUser().getRole(),
             staffProfile.getStudio().getName(),
             staffProfile.getPrimaryLocation() != null ? staffProfile.getPrimaryLocation().getName() : null
         );
@@ -236,5 +254,23 @@ public class StaffService {
         if (location != null && !location.getStudio().getId().equals(studio.getId())) {
             throw new BadRequestException("The selected location does not belong to your studio");
         }
+    }
+
+    private void validateCreateRole(UserRole role) {
+        if (role != UserRole.STAFF && role != UserRole.RECEPTIONIST) {
+            throw new BadRequestException("Staff profiles can only create staff or receptionist accounts");
+        }
+    }
+
+    private String resolveJobTitle(String requestedJobTitle, UserRole userRole) {
+        if (requestedJobTitle != null && !requestedJobTitle.isBlank()) {
+            return requestedJobTitle.trim();
+        }
+
+        return switch (userRole) {
+            case RECEPTIONIST -> "Front Desk Coordinator";
+            case STAFF -> "Service Artist";
+            default -> "Team Member";
+        };
     }
 }
