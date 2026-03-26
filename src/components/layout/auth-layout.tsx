@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { PUBLIC_BOOKING_DEMO_ROUTE } from '../../lib/demo-routes'
 import { AuthCard } from '../auth/auth-card'
 
 export function AuthLayout({
@@ -23,7 +24,7 @@ export function AuthLayout({
     {
       copy: 'Test public booking, rescheduling, and cancellation journeys.',
       label: 'Try customer flows',
-      to: '/book',
+      to: PUBLIC_BOOKING_DEMO_ROUTE,
     },
     {
       copy: 'Learn what StudioFlow does, how to navigate it, and what to explore first.',

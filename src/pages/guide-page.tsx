@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { AuthHeader } from '../components/auth/auth-header'
 import { AuthLayout } from '../components/layout/auth-layout'
+import { PUBLIC_BOOKING_DEMO_ROUTE } from '../lib/demo-routes'
 
 const guideSections = [
   {
@@ -48,14 +49,14 @@ export function GuidePage() {
 
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
-            className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(15,23,42,0.18)] transition hover:-translate-y-0.5 hover:bg-slate-900"
+            className="rounded-2xl bg-[#0f172a] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(15,23,42,0.18)] transition hover:-translate-y-0.5 hover:bg-[#16233b] hover:text-white focus-visible:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f172a] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
             to="/dashboard"
           >
             Open dashboard
           </Link>
           <Link
             className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white"
-            to="/book"
+            to={PUBLIC_BOOKING_DEMO_ROUTE}
           >
             Try booking flow
           </Link>

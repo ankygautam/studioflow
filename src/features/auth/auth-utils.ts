@@ -1,9 +1,10 @@
 import type { BackendUserRole } from '../../lib/api/auth-api'
+import { PUBLIC_BOOKING_DEMO_ROUTE } from '../../lib/demo-routes'
 import type { AuthRole } from './auth-types'
 
 export function getRoleDestination(role: AuthRole) {
   if (role === 'admin') return '/dashboard'
-  if (role === 'customer') return '/book/studioflow-hq'
+  if (role === 'customer') return PUBLIC_BOOKING_DEMO_ROUTE
   if (role === 'receptionist') return '/appointments'
   return '/calendar'
 }

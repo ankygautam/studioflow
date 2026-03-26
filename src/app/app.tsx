@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from '../components/layout/app-shell'
 import { LoadingState } from '../components/ui/async-state'
 import { AdminOnboardingRoute, ProtectedRoute, PublicOnlyRoute, RoleRoute } from '../features/auth/route-guards'
+import { PUBLIC_BOOKING_DEMO_ROUTE } from '../lib/demo-routes'
 import { ForgotPasswordPage } from '../pages/auth/forgot-password-page'
 import { LoginPage } from '../pages/auth/login-page'
 import { GuidePage } from '../pages/guide-page'
@@ -63,7 +64,7 @@ export function App() {
       />
       <Route
         path="/book"
-        element={<Navigate replace to="/book/studioflow-hq" />}
+        element={<Navigate replace to={PUBLIC_BOOKING_DEMO_ROUTE} />}
       />
       <Route
         path="/book/:studioSlug"
