@@ -36,7 +36,7 @@ const staffAccountRoles: Array<Extract<UserRole, 'STAFF' | 'RECEPTIONIST'>> = ['
 export function StaffPage() {
   const { selectedLocationId, user } = useAuth()
   const canManage = user ? canManageStaff(user.role) : false
-  const defaultStudioId = getDefaultStudioId()
+  const defaultStudioId = user?.studioId ?? getDefaultStudioId()
   const loadStaff = useCallback(
     () => getStaff(defaultStudioId, selectedLocationId),
     [defaultStudioId, selectedLocationId],
