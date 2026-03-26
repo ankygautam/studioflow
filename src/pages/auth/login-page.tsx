@@ -138,8 +138,8 @@ export function LoginPage() {
           </div>
         ) : (
           <div className="mt-6 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-600">
-            Use your studio admin account to sign in. Fresh hosted deployments may need the workspace
-            owner account created before the first login.
+            Need access? Reach out to the developer to get your own account, or use the suggested
+            credentials.
           </div>
         )}
 

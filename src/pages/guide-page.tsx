@@ -19,6 +19,8 @@ const guideSections = [
 ] as const
 
 export function GuidePage() {
+  const showsLiveBookingDemo = PUBLIC_BOOKING_DEMO_ROUTE !== '/guide'
+
   return (
     <AuthLayout
       eyebrow="Guide"
@@ -58,7 +60,7 @@ export function GuidePage() {
             className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white"
             to={PUBLIC_BOOKING_DEMO_ROUTE}
           >
-            Try booking flow
+            {showsLiveBookingDemo ? 'Try booking flow' : 'Customer flows need demo data'}
           </Link>
           <Link
             className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:-translate-y-0.5 hover:border-slate-300 hover:text-slate-950"
