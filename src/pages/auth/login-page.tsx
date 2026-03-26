@@ -138,9 +138,8 @@ export function LoginPage() {
 
         {appConfig.environment !== 'development' && appConfig.isApiConfigured ? (
           <div className="mt-4 rounded-[24px] border border-slate-200 bg-white px-4 py-4 text-sm leading-7 text-slate-600">
-            Hosted demo note: the first sign-in can take a little longer if the free backend is
-            waking up. Once it is active, normal navigation, logout, and sign-in should feel much
-            faster.
+            First sign-in may take a little longer while the hosted demo wakes up. After that, the
+            app should feel much faster.
           </div>
         ) : null}
 

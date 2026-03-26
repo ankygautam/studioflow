@@ -5,6 +5,7 @@ import { LoadingState } from '../components/ui/async-state'
 import { AdminOnboardingRoute, ProtectedRoute, PublicOnlyRoute, RoleRoute } from '../features/auth/route-guards'
 import { ForgotPasswordPage } from '../pages/auth/forgot-password-page'
 import { LoginPage } from '../pages/auth/login-page'
+import { GuidePage } from '../pages/guide-page'
 import { PlaceholderPage } from '../pages/placeholder-page'
 import { PublicBookingPage } from '../pages/public-booking-page'
 import { PublicBookingManagePage } from '../pages/public-booking-manage-page'
@@ -45,6 +46,10 @@ export function App() {
             <ForgotPasswordPage />
           </PublicOnlyRoute>
         }
+      />
+      <Route
+        path="/guide"
+        element={<GuidePage />}
       />
       <Route
         path="/onboarding"
