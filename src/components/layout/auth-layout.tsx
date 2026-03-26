@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { PUBLIC_BOOKING_DEMO_ROUTE } from '../../lib/demo-routes'
 import { AuthCard } from '../auth/auth-card'
 
 export function AuthLayout({
@@ -17,19 +16,19 @@ export function AuthLayout({
 }) {
   const guidedEntryCards = [
     {
-      copy: 'Review bookings, clients, staff, payments, and daily operations.',
+      copy: 'Review what StudioFlow is and what this project is built to do.',
       label: 'Explore the dashboard',
-      to: '/dashboard',
+      to: '/explore',
     },
     {
-      copy: 'Test public booking, rescheduling, and cancellation journeys.',
+      copy: 'Follow a simple path for exploring team and customer workflows.',
       label: 'Try customer flows',
-      to: PUBLIC_BOOKING_DEMO_ROUTE,
+      to: '/flow',
     },
     {
-      copy: 'Learn what StudioFlow does, how to navigate it, and what to explore first.',
+      copy: 'Read a full plain-language overview of the product, modules, and navigation.',
       label: 'Open the guide',
-      to: '/guide',
+      to: '/guidance',
     },
   ] as const
 

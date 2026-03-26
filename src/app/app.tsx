@@ -4,9 +4,11 @@ import { AppShell } from '../components/layout/app-shell'
 import { LoadingState } from '../components/ui/async-state'
 import { AdminOnboardingRoute, ProtectedRoute, PublicOnlyRoute, RoleRoute } from '../features/auth/route-guards'
 import { PUBLIC_BOOKING_DEMO_ROUTE } from '../lib/demo-routes'
+import { ExplorePage } from '../pages/explore-page'
 import { ForgotPasswordPage } from '../pages/auth/forgot-password-page'
 import { LoginPage } from '../pages/auth/login-page'
-import { GuidePage } from '../pages/guide-page'
+import { FlowPage } from '../pages/flow-page'
+import { GuidancePage } from '../pages/guidance-page'
 import { PlaceholderPage } from '../pages/placeholder-page'
 import { PublicBookingPage } from '../pages/public-booking-page'
 import { PublicBookingManagePage } from '../pages/public-booking-manage-page'
@@ -49,8 +51,20 @@ export function App() {
         }
       />
       <Route
+        path="/explore"
+        element={<ExplorePage />}
+      />
+      <Route
+        path="/flow"
+        element={<FlowPage />}
+      />
+      <Route
+        path="/guidance"
+        element={<GuidancePage />}
+      />
+      <Route
         path="/guide"
-        element={<GuidePage />}
+        element={<Navigate replace to="/guidance" />}
       />
       <Route
         path="/onboarding"
