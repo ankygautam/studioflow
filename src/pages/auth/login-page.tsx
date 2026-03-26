@@ -35,6 +35,7 @@ export function LoginPage() {
 
   const isFormValid = !errors.email && !errors.password
   const shouldShowError = (field: keyof typeof errors) => touched[field]
+  const shouldShowDemoCredentials = appConfig.environment === 'development' || appConfig.environment === 'staging'
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -130,10 +131,17 @@ export function LoginPage() {
           {submitError ? <p className="text-sm font-medium text-rose-500">{submitError}</p> : null}
         </motion.form>
 
-        <div className="mt-6 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-600">
-          Demo tip: use <span className="font-semibold text-slate-950">admin@studioflow.co</span>{' '}
-          with password <span className="font-semibold text-slate-950">password123</span>.
-        </div>
+        {shouldShowDemoCredentials ? (
+          <div className="mt-6 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-600">
+            Demo tip: use <span className="font-semibold text-slate-950">admin@studioflow.co</span>{' '}
+            with password <span className="font-semibold text-slate-950">password123</span>.
+          </div>
+        ) : (
+          <div className="mt-6 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-600">
+            Use your studio admin account to sign in. Fresh hosted deployments may need the workspace
+            owner account created before the first login.
+          </div>
+        )}
 
         {appConfig.environment !== 'development' && appConfig.isApiConfigured ? (
           <div className="mt-4 rounded-[24px] border border-slate-200 bg-white px-4 py-4 text-sm leading-7 text-slate-600">
