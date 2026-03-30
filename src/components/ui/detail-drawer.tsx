@@ -6,16 +6,22 @@ export function DetailDrawer({
   footer,
   onClose,
   open,
+  panelClassName,
   subtitle,
   title,
+  variant = 'drawer',
 }: {
   children: ReactNode
   footer?: ReactNode
   onClose: () => void
   open: boolean
+  panelClassName?: string
   subtitle?: string
   title: string
+  variant?: 'drawer' | 'modal'
 }) {
+  const isModal = variant === 'modal'
+
   return (
     <AnimatePresence>
       {open ? (
@@ -30,13 +36,23 @@ export function DetailDrawer({
             type="button"
           />
           <motion.aside
-            className="fixed inset-y-0 right-0 z-50 w-screen max-w-none border-l border-slate-200 bg-white p-5 shadow-[-24px_0_80px_rgba(15,23,42,0.18)] sm:max-w-[420px] md:p-6"
-            initial={{ x: 40, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: 40, opacity: 0 }}
+            className={
+              isModal
+                ? `fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 ${panelClassName ?? ''}`
+                : `fixed inset-y-0 right-0 z-50 w-screen max-w-none border-l border-slate-200 bg-white p-5 shadow-[-24px_0_80px_rgba(15,23,42,0.18)] sm:max-w-[420px] md:p-6 ${panelClassName ?? ''}`
+            }
+            initial={isModal ? { opacity: 0, scale: 0.98, y: 18 } : { x: 40, opacity: 0 }}
+            animate={isModal ? { opacity: 1, scale: 1, y: 0 } : { x: 0, opacity: 1 }}
+            exit={isModal ? { opacity: 0, scale: 0.98, y: 18 } : { x: 40, opacity: 0 }}
             transition={{ duration: 0.22 }}
           >
-            <div className="flex h-full flex-col">
+            <div
+              className={
+                isModal
+                  ? 'flex h-full max-h-[calc(100vh-1.5rem)] w-full max-w-[860px] flex-col overflow-hidden rounded-[32px] border border-slate-200 bg-white p-5 shadow-[0_28px_90px_rgba(15,23,42,0.18)] sm:max-h-[calc(100vh-2.5rem)] md:p-6'
+                  : 'flex h-full flex-col'
+              }
+            >
               <div className="flex items-start justify-between gap-4">
                 <div>
                   {subtitle ? (
@@ -57,7 +73,7 @@ export function DetailDrawer({
                   ×
                 </button>
               </div>
-              <div className="mt-6 flex-1 overflow-y-auto">{children}</div>
+              <div className="mt-6 flex-1 overflow-y-auto pr-1">{children}</div>
               {footer ? <div className="mt-6 border-t border-slate-200 pt-4">{footer}</div> : null}
             </div>
           </motion.aside>

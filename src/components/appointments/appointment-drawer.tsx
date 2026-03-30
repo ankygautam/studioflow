@@ -244,10 +244,12 @@ export function AppointmentDrawer({
       }
       onClose={onClose}
       open={open}
+      panelClassName="pointer-events-none"
       subtitle="Appointment record"
       title={appointment ? appointment.customerName : 'New booking'}
+      variant="modal"
     >
-      <div className="space-y-5">
+      <div className="pointer-events-auto space-y-5">
         {mutationError ? <ErrorState message={mutationError} /> : null}
         {dependenciesError ? <ErrorState message={dependenciesError} /> : null}
         {dependenciesLoading ? <LoadingState title="Loading staff, clients, and services..." /> : null}
