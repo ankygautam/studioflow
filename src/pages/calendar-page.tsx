@@ -58,7 +58,7 @@ export function CalendarPage() {
   const visibleAppointments = useMemo(
     () =>
       appointments.filter((appointment) => {
-        if (appointment.appointmentDate !== selectedDate) {
+        if (!matchesCalendarView(appointment.appointmentDate, selectedDate, view)) {
           return false
         }
 
@@ -76,7 +76,14 @@ export function CalendarPage() {
 
         return true
       }),
-    [appointments, selectedDate, selectedService, selectedStaff, selectedStatus],
+    [appointments, selectedDate, selectedService, selectedStaff, selectedStatus, view],
+  )
+
+  const weekDays = useMemo(() => getWeekDays(selectedDate), [selectedDate])
+  const monthDays = useMemo(() => getMonthGridDays(selectedDate), [selectedDate])
+  const dayAppointments = useMemo(
+    () => visibleAppointments.filter((appointment) => appointment.appointmentDate === selectedDate),
+    [selectedDate, visibleAppointments],
   )
 
   useEffect(() => {
@@ -240,117 +247,230 @@ export function CalendarPage() {
               />
             ) : null}
             {!dependenciesLoading && !dependenciesError && staffMembers.length > 0 ? (
-              <div className="overflow-x-auto rounded-[28px] border border-slate-200 bg-slate-50/80">
-                <div className="min-w-[860px]">
-                  <div
-                    className="grid border-b border-slate-200 bg-white"
-                    style={{ gridTemplateColumns: `90px repeat(${staffMembers.length}, minmax(180px, 1fr))` }}
-                  >
-                    <div className="px-4 py-4 text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
-                      Time
-                    </div>
-                    {staffMembers.map((staffMember, index) => (
-                      <div key={staffMember.id} className="border-l border-slate-200 px-4 py-4">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${staffAccents[index % staffAccents.length]} text-sm font-semibold text-slate-950`}
-                          >
-                            {staffMember.displayName
-                              .split(' ')
-                              .slice(0, 2)
-                              .map((segment) => segment[0]?.toUpperCase())
-                              .join('')}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-slate-950">{staffMember.displayName}</p>
-                            <p className="text-sm text-slate-500">{staffMember.jobTitle || 'Studio staff'}</p>
-                          </div>
-                        </div>
+              view === 'Day' ? (
+                <div className="overflow-x-auto rounded-[28px] border border-slate-200 bg-slate-50/80">
+                  <div className="min-w-[860px]">
+                    <div
+                      className="grid border-b border-slate-200 bg-white"
+                      style={{ gridTemplateColumns: `90px repeat(${staffMembers.length}, minmax(180px, 1fr))` }}
+                    >
+                      <div className="px-4 py-4 text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
+                        Time
                       </div>
-                    ))}
-                  </div>
-
-                  <div
-                    className="grid"
-                    style={{ gridTemplateColumns: `90px repeat(${staffMembers.length}, minmax(180px, 1fr))` }}
-                  >
-                    <div className="bg-white">
-                      {hourSlots.map((hour) => (
-                        <div
-                          key={hour}
-                          className="flex h-[108px] items-start justify-end border-t border-slate-200 px-4 py-4 text-sm font-semibold text-slate-500"
-                        >
-                          {formatHourLabel(hour)}
+                      {staffMembers.map((staffMember, index) => (
+                        <div key={staffMember.id} className="border-l border-slate-200 px-4 py-4">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${staffAccents[index % staffAccents.length]} text-sm font-semibold text-slate-950`}
+                            >
+                              {staffMember.displayName
+                                .split(' ')
+                                .slice(0, 2)
+                                .map((segment) => segment[0]?.toUpperCase())
+                                .join('')}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-slate-950">{staffMember.displayName}</p>
+                              <p className="text-sm text-slate-500">{staffMember.jobTitle || 'Studio staff'}</p>
+                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>
 
-                    {staffMembers.map((staffMember) => (
-                      <div key={staffMember.id} className="relative border-l border-slate-200 bg-white">
+                    <div
+                      className="grid"
+                      style={{ gridTemplateColumns: `90px repeat(${staffMembers.length}, minmax(180px, 1fr))` }}
+                    >
+                      <div className="bg-white">
                         {hourSlots.map((hour) => (
-                          <button
-                            key={`${staffMember.id}-${hour}`}
-                            className={[
-                              'block h-[108px] w-full border-t border-slate-200 transition',
-                              allowCreate ? 'hover:bg-slate-50/80' : 'cursor-default',
-                            ].join(' ')}
-                            disabled={!allowCreate}
-                            onClick={() => {
-                              if (!allowCreate) {
-                                return
-                              }
-
-                              openCreateDrawer({
-                                appointmentDate: selectedDate,
-                                endTime: `${String(hour + 1).padStart(2, '0')}:00`,
-                                staffProfileId: staffMember.id,
-                                startTime: `${String(hour).padStart(2, '0')}:00`,
-                              })
-                            }}
-                            type="button"
-                          />
+                          <div
+                            key={hour}
+                            className="flex h-[108px] items-start justify-end border-t border-slate-200 px-4 py-4 text-sm font-semibold text-slate-500"
+                          >
+                            {formatHourLabel(hour)}
+                          </div>
                         ))}
-
-                        {visibleAppointments
-                          .filter((appointment) => appointment.staffProfileId === staffMember.id)
-                          .map((appointment) => (
-                            <button
-                              key={appointment.id}
-                              className={[
-                                'absolute left-3 right-3 z-10 rounded-[22px] border p-4 text-left shadow-[0_16px_36px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5',
-                                appointment.status === 'CONFIRMED'
-                                  ? 'border-blue-200 bg-blue-50'
-                                  : appointment.status === 'BOOKED'
-                                    ? 'border-violet-200 bg-violet-50'
-                                    : appointment.status === 'COMPLETED'
-                                      ? 'border-emerald-200 bg-emerald-50'
-                                      : appointment.status === 'CANCELLED'
-                                        ? 'border-rose-200 bg-rose-50'
-                                        : 'border-amber-200 bg-amber-50',
-                              ].join(' ')}
-                              onClick={() => openEditDrawer(appointment)}
-                              style={appointmentCardStyle(appointment)}
-                              type="button"
-                            >
-                              <div className="flex items-start justify-between gap-3">
-                                <div>
-                                  <p className="text-sm font-semibold text-slate-700">
-                                    {formatTime(appointment.startTime)}
-                                  </p>
-                                  <p className="mt-2 font-semibold text-slate-950">{appointment.customerName}</p>
-                                  <p className="mt-1 text-sm text-slate-600">{appointment.serviceName}</p>
-                                </div>
-                                <StatusBadge tone={appointmentTone(appointment.status)}>
-                                  {humanizeEnum(appointment.status)}
-                                </StatusBadge>
-                              </div>
-                            </button>
-                          ))}
                       </div>
-                    ))}
+
+                      {staffMembers.map((staffMember) => (
+                        <div key={staffMember.id} className="relative border-l border-slate-200 bg-white">
+                          {hourSlots.map((hour) => (
+                            <button
+                              key={`${staffMember.id}-${hour}`}
+                              className={[
+                                'block h-[108px] w-full border-t border-slate-200 transition',
+                                allowCreate ? 'hover:bg-slate-50/80' : 'cursor-default',
+                              ].join(' ')}
+                              disabled={!allowCreate}
+                              onClick={() => {
+                                if (!allowCreate) {
+                                  return
+                                }
+
+                                openCreateDrawer({
+                                  appointmentDate: selectedDate,
+                                  endTime: `${String(hour + 1).padStart(2, '0')}:00`,
+                                  staffProfileId: staffMember.id,
+                                  startTime: `${String(hour).padStart(2, '0')}:00`,
+                                })
+                              }}
+                              type="button"
+                            />
+                          ))}
+
+                          {dayAppointments
+                            .filter((appointment) => appointment.staffProfileId === staffMember.id)
+                            .map((appointment) => (
+                              <button
+                                key={appointment.id}
+                                className={[
+                                  'absolute left-3 right-3 z-10 rounded-[22px] border p-4 text-left shadow-[0_16px_36px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5',
+                                  appointment.status === 'CONFIRMED'
+                                    ? 'border-blue-200 bg-blue-50'
+                                    : appointment.status === 'BOOKED'
+                                      ? 'border-violet-200 bg-violet-50'
+                                      : appointment.status === 'COMPLETED'
+                                        ? 'border-emerald-200 bg-emerald-50'
+                                        : appointment.status === 'CANCELLED'
+                                          ? 'border-rose-200 bg-rose-50'
+                                          : 'border-amber-200 bg-amber-50',
+                                ].join(' ')}
+                                onClick={() => openEditDrawer(appointment)}
+                                style={appointmentCardStyle(appointment)}
+                                type="button"
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <p className="text-sm font-semibold text-slate-700">
+                                      {formatTime(appointment.startTime)}
+                                    </p>
+                                    <p className="mt-2 font-semibold text-slate-950">{appointment.customerName}</p>
+                                    <p className="mt-1 text-sm text-slate-600">{appointment.serviceName}</p>
+                                  </div>
+                                  <StatusBadge tone={appointmentTone(appointment.status)}>
+                                    {humanizeEnum(appointment.status)}
+                                  </StatusBadge>
+                                </div>
+                              </button>
+                            ))}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : view === 'Week' ? (
+                <div className="grid gap-4 lg:grid-cols-7">
+                  {weekDays.map((day) => {
+                    const appointmentsForDay = visibleAppointments.filter((appointment) => appointment.appointmentDate === day.value)
+
+                    return (
+                      <div key={day.value} className="rounded-[24px] border border-slate-200 bg-slate-50/70 p-4">
+                        <div className="border-b border-slate-200 pb-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                            {day.label}
+                          </p>
+                          <p className="mt-2 text-lg font-semibold text-slate-950">{day.displayDate}</p>
+                        </div>
+                        <div className="mt-4 space-y-3">
+                          {appointmentsForDay.length === 0 ? (
+                            <div className="rounded-[20px] border border-dashed border-slate-200 bg-white px-4 py-5 text-sm text-slate-500">
+                              No bookings scheduled.
+                            </div>
+                          ) : (
+                            appointmentsForDay.map((appointment) => (
+                              <button
+                                key={appointment.id}
+                                className="w-full rounded-[20px] border border-slate-200 bg-white p-4 text-left transition hover:-translate-y-0.5 hover:border-slate-300"
+                                onClick={() => openEditDrawer(appointment)}
+                                type="button"
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <p className="text-sm font-semibold text-slate-700">{formatTime(appointment.startTime)}</p>
+                                    <p className="mt-2 font-semibold text-slate-950">{appointment.customerName}</p>
+                                    <p className="mt-1 text-sm text-slate-600">{appointment.serviceName}</p>
+                                    <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">
+                                      {appointment.staffName}
+                                    </p>
+                                  </div>
+                                  <StatusBadge tone={appointmentTone(appointment.status)}>
+                                    {humanizeEnum(appointment.status)}
+                                  </StatusBadge>
+                                </div>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-[28px] border border-slate-200 bg-slate-50/70 p-4">
+                  <div className="mb-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Month view</p>
+                      <p className="mt-2 text-2xl font-semibold text-slate-950">{formatMonthTitle(selectedDate)}</p>
+                    </div>
+                    <p className="text-sm text-slate-500">{visibleAppointments.length} bookings in view</p>
+                  </div>
+                  <div className="grid grid-cols-7 gap-3">
+                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((label) => (
+                      <div key={label} className="px-2 py-1 text-center text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                        {label}
+                      </div>
+                    ))}
+                    {monthDays.map((day) => {
+                      const appointmentsForDay = visibleAppointments.filter((appointment) => appointment.appointmentDate === day.value)
+
+                      return (
+                        <div
+                          key={day.value}
+                          className={[
+                            'min-h-[138px] rounded-[22px] border p-3',
+                            day.isCurrentMonth ? 'border-slate-200 bg-white' : 'border-slate-100 bg-slate-50/70',
+                            day.value === selectedDate ? 'ring-2 ring-slate-950/10' : '',
+                          ].join(' ')}
+                        >
+                          <div className="flex items-center justify-between">
+                            <button
+                              className="text-sm font-semibold text-slate-700 transition hover:text-slate-950"
+                              onClick={() => setSelectedDate(day.value)}
+                              type="button"
+                            >
+                              {day.dayOfMonth}
+                            </button>
+                            {appointmentsForDay.length > 0 ? (
+                              <span className="rounded-full bg-slate-950 px-2.5 py-1 text-xs font-semibold text-white">
+                                {appointmentsForDay.length}
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="mt-3 space-y-2">
+                            {appointmentsForDay.slice(0, 3).map((appointment) => (
+                              <button
+                                key={appointment.id}
+                                className="w-full rounded-[16px] border border-slate-200 bg-slate-50 px-3 py-2 text-left transition hover:border-slate-300 hover:bg-white"
+                                onClick={() => openEditDrawer(appointment)}
+                                type="button"
+                              >
+                                <p className="text-xs font-semibold text-slate-500">{formatTime(appointment.startTime)}</p>
+                                <p className="mt-1 truncate text-sm font-semibold text-slate-900">{appointment.customerName}</p>
+                              </button>
+                            ))}
+                            {appointmentsForDay.length > 3 ? (
+                              <p className="px-1 text-xs font-medium text-slate-500">
+                                +{appointmentsForDay.length - 3} more
+                              </p>
+                            ) : null}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
             ) : null}
           </div>
         </SurfaceCard>
@@ -365,7 +485,7 @@ export function CalendarPage() {
               ))}
             </div>
             <div className="mt-5 space-y-3">
-              <MiniInsight label="Bookings on day" value={String(visibleAppointments.length)} />
+              <MiniInsight label="Bookings in view" value={String(visibleAppointments.length)} />
               <MiniInsight label="Staff visible" value={String(staffMembers.length)} />
               <MiniInsight label="Current view" value={`${view} board`} />
             </div>
@@ -451,4 +571,92 @@ function timeToMinutes(value: string) {
 
 function getTodayDateValue() {
   return new Date().toISOString().slice(0, 10)
+}
+
+function matchesCalendarView(appointmentDate: string, selectedDate: string, view: 'Day' | 'Week' | 'Month') {
+  if (view === 'Day') {
+    return appointmentDate === selectedDate
+  }
+
+  if (view === 'Week') {
+    const start = startOfWeek(selectedDate)
+    const end = new Date(start)
+    end.setDate(start.getDate() + 6)
+    return isDateWithinRange(appointmentDate, start, end)
+  }
+
+  const selected = toLocalDate(selectedDate)
+  const appointment = toLocalDate(appointmentDate)
+  return (
+    selected.getFullYear() === appointment.getFullYear() &&
+    selected.getMonth() === appointment.getMonth()
+  )
+}
+
+function getWeekDays(selectedDate: string) {
+  const start = startOfWeek(selectedDate)
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const day = new Date(start)
+    day.setDate(start.getDate() + index)
+
+    return {
+      displayDate: day.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }),
+      label: day.toLocaleDateString(undefined, { weekday: 'short' }),
+      value: toDateValue(day),
+    }
+  })
+}
+
+function getMonthGridDays(selectedDate: string) {
+  const selected = toLocalDate(selectedDate)
+  const firstDayOfMonth = new Date(selected.getFullYear(), selected.getMonth(), 1)
+  const lastDayOfMonth = new Date(selected.getFullYear(), selected.getMonth() + 1, 0)
+  const firstWeekday = (firstDayOfMonth.getDay() + 6) % 7
+  const gridStart = new Date(firstDayOfMonth)
+  gridStart.setDate(firstDayOfMonth.getDate() - firstWeekday)
+  const totalCells = Math.ceil((firstWeekday + lastDayOfMonth.getDate()) / 7) * 7
+
+  return Array.from({ length: totalCells }, (_, index) => {
+    const day = new Date(gridStart)
+    day.setDate(gridStart.getDate() + index)
+
+    return {
+      dayOfMonth: day.getDate(),
+      isCurrentMonth: day.getMonth() === selected.getMonth(),
+      value: toDateValue(day),
+    }
+  })
+}
+
+function formatMonthTitle(selectedDate: string) {
+  return toLocalDate(selectedDate).toLocaleDateString(undefined, {
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
+function startOfWeek(dateValue: string) {
+  const date = toLocalDate(dateValue)
+  const day = (date.getDay() + 6) % 7
+  const start = new Date(date)
+  start.setDate(date.getDate() - day)
+  return start
+}
+
+function isDateWithinRange(dateValue: string, start: Date, end: Date) {
+  const date = toLocalDate(dateValue)
+  return date >= start && date <= end
+}
+
+function toLocalDate(dateValue: string) {
+  const [year, month, day] = dateValue.split('-').map(Number)
+  return new Date(year, month - 1, day)
+}
+
+function toDateValue(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }

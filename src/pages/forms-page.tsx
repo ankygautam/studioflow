@@ -495,6 +495,7 @@ export function FormsPage() {
         }
         onClose={closeTemplateDrawer}
         open={templateDrawerOpen}
+        variant={editingTemplate ? 'drawer' : 'modal'}
         subtitle="Consent template"
         title={editingTemplate ? editingTemplate.title : 'New template'}
       >
@@ -576,6 +577,7 @@ export function FormsPage() {
         }
         onClose={closeSubmissionDrawer}
         open={submissionDrawerOpen}
+        variant={editingSubmission ? 'drawer' : 'modal'}
         subtitle="Submission tracking"
         title={editingSubmission ? editingSubmission.customerName : 'New submission'}
       >

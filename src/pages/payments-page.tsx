@@ -312,6 +312,7 @@ export function PaymentsPage() {
         }
         onClose={closeDrawer}
         open={isDrawerOpen}
+        variant={editingPayment ? 'drawer' : 'modal'}
         subtitle="Payment details"
         title={editingPayment ? editingPayment.customerName : 'Add payment'}
       >

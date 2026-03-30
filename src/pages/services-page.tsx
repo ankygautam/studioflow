@@ -286,6 +286,7 @@ export function ServicesPage() {
         }
         onClose={closeDrawer}
         open={isDrawerOpen}
+        variant={editingService ? 'drawer' : 'modal'}
         subtitle="Service details"
         title={editingService ? 'Edit service' : 'Add service'}
       >

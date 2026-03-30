@@ -266,6 +266,7 @@ export function StaffPage() {
         }
         onClose={closeDrawer}
         open={isDrawerOpen}
+        variant={editingStaff ? 'drawer' : 'modal'}
         subtitle="Staff details"
         title={editingStaff ? editingStaff.displayName : 'Add staff'}
       >

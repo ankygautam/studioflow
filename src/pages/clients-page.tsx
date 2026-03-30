@@ -272,6 +272,7 @@ export function ClientsPage() {
         }
         onClose={closeDrawer}
         open={isDrawerOpen}
+        variant={editingClient ? 'drawer' : 'modal'}
         subtitle="Client profile"
         title={editingClient ? editingClient.fullName : 'Add client'}
       >
