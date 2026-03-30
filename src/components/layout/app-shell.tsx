@@ -116,9 +116,9 @@ export function AppShell() {
 
           <div className="ml-auto flex items-center gap-2">
             {/* Location picker */}
-            <label className="hidden items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm md:inline-flex">
+            <label className="relative hidden md:block">
               <select
-                className="bg-transparent font-medium text-slate-700 outline-none"
+                className="h-12 min-w-[180px] appearance-none rounded-2xl border border-slate-200 bg-slate-50 pl-4 pr-11 text-sm font-semibold text-slate-700 outline-none transition hover:border-slate-300 focus:border-slate-300 focus:bg-white"
                 onChange={(e) => setSelectedLocationId(e.target.value || null)}
                 value={selectedLocationId ?? ''}
               >
@@ -127,6 +127,9 @@ export function AppShell() {
                   <option key={l.id} value={l.id}>{l.name}</option>
                 ))}
               </select>
+              <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-500">
+                <ShellIcon icon="chevron" />
+              </span>
             </label>
 
             {/* Notifications */}
