@@ -5,7 +5,7 @@ import {
 } from '../../features/auth/authorization'
 import { useAuth } from '../../features/auth/use-auth'
 import { getAuditLogsByEntity } from '../../lib/api/audit-api'
-import { getClients } from '../../lib/api/clients-api'
+import { createClient, getClients } from '../../lib/api/clients-api'
 import { getConsentFormSubmissions } from '../../lib/api/consent-forms-api'
 import { getDefaultStudioId } from '../../lib/api/http'
 import { getLocations } from '../../lib/api/locations-api'
@@ -40,6 +40,12 @@ type AppointmentDrawerProps = {
   open: boolean
 }
 
+type QuickClientFormState = {
+  email: string
+  fullName: string
+  phone: string
+}
+
 export function AppointmentDrawer({
   appointment,
   allowCreate = true,
@@ -55,6 +61,11 @@ export function AppointmentDrawer({
   const canEditStatus = user ? canUpdateAppointmentStatus(user.role) : false
   const studioId = appointment?.studioId ?? defaultStudioId
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof AppointmentFormState, string>>>({})
+  const [quickClientErrors, setQuickClientErrors] = useState<Partial<Record<keyof QuickClientFormState, string>>>({})
+  const [quickClientMutationError, setQuickClientMutationError] = useState<string | null>(null)
+  const [quickClientState, setQuickClientState] = useState<QuickClientFormState>(createQuickClientForm())
+  const [isQuickClientOpen, setIsQuickClientOpen] = useState(false)
+  const [isCreatingClient, setIsCreatingClient] = useState(false)
   const [formState, setFormState] = useState<AppointmentFormState>(
     mergeAppointmentDraft(
       createAppointmentForm(studioId, appointment ?? undefined),
@@ -90,7 +101,12 @@ export function AppointmentDrawer({
     return getAuditLogsByEntity('APPOINTMENT', appointment.id, appointment.locationId)
   }, [appointment?.id, appointment?.locationId])
 
-  const { data: clients, error: clientsError, isLoading: clientsLoading } = useRemoteList(loadClients)
+  const {
+    data: clients,
+    error: clientsError,
+    isLoading: clientsLoading,
+    reload: reloadClients,
+  } = useRemoteList(loadClients)
   const { data: locations, error: locationsError, isLoading: locationsLoading } = useRemoteList(loadLocations)
   const { data: staffMembers, error: staffError, isLoading: staffLoading } = useRemoteList(loadStaff)
   const { data: services, error: servicesError, isLoading: servicesLoading } = useRemoteList(loadServices)
@@ -113,6 +129,10 @@ export function AppointmentDrawer({
     setFormErrors({})
     setMutationError(null)
     setConfirmDeleteOpen(false)
+    setQuickClientErrors({})
+    setQuickClientMutationError(null)
+    setQuickClientState(createQuickClientForm())
+    setIsQuickClientOpen(false)
     setFormState(
       mergeAppointmentDraft(
         createAppointmentForm(studioId, appointment ?? undefined),
@@ -202,6 +222,52 @@ export function AppointmentDrawer({
       setMutationError(error instanceof Error ? error.message : 'Unable to delete this appointment right now.')
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleQuickClientSubmit = async () => {
+    const resolvedStudioId = resolveAppointmentStudioId(
+      formState,
+      clients,
+      staffMembers,
+      services,
+      appointment?.studioId ?? defaultStudioId,
+    )
+
+    const errors = validateQuickClientForm(quickClientState, resolvedStudioId)
+    setQuickClientErrors(errors)
+
+    if (Object.keys(errors).length > 0) {
+      return
+    }
+
+    if (!resolvedStudioId) {
+      setQuickClientMutationError('Select records from the current workspace before creating a client.')
+      return
+    }
+
+    setIsCreatingClient(true)
+    setQuickClientMutationError(null)
+
+    try {
+      const createdClient = await createClient({
+        dateOfBirth: null,
+        email: quickClientState.email.trim(),
+        fullName: quickClientState.fullName.trim(),
+        notes: '',
+        phone: quickClientState.phone.trim(),
+        studioId: resolvedStudioId,
+      })
+
+      await reloadClients()
+      setFormState((current) => ({ ...current, customerProfileId: createdClient.id }))
+      setQuickClientState(createQuickClientForm())
+      setQuickClientErrors({})
+      setIsQuickClientOpen(false)
+    } catch (error) {
+      setQuickClientMutationError(error instanceof Error ? error.message : 'Unable to create the client right now.')
+    } finally {
+      setIsCreatingClient(false)
     }
   }
 
@@ -329,6 +395,88 @@ export function AppointmentDrawer({
               </option>
             ))}
           </SelectField>
+          <div className="sm:col-span-2">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-800">Can&apos;t find the client?</p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Add a new client here and continue the booking without leaving this flow.
+                </p>
+              </div>
+              <button
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-100"
+                onClick={() => {
+                  setQuickClientMutationError(null)
+                  setQuickClientErrors({})
+                  setIsQuickClientOpen((current) => !current)
+                }}
+                type="button"
+              >
+                {isQuickClientOpen ? 'Close add client' : 'Add client'}
+              </button>
+            </div>
+
+            {isQuickClientOpen ? (
+              <div className="mt-4 rounded-[28px] border border-slate-200 bg-white p-4 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
+                {quickClientMutationError ? <ErrorState message={quickClientMutationError} /> : null}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <InputField
+                    error={quickClientErrors.fullName}
+                    label="Client name"
+                    onChange={(event) =>
+                      setQuickClientState((current) => ({ ...current, fullName: event.target.value }))
+                    }
+                    placeholder="Enter the client's full name"
+                    value={quickClientState.fullName}
+                  />
+                  <InputField
+                    error={quickClientErrors.phone}
+                    label="Phone"
+                    onChange={(event) =>
+                      setQuickClientState((current) => ({ ...current, phone: event.target.value }))
+                    }
+                    placeholder="Optional phone number"
+                    value={quickClientState.phone}
+                  />
+                  <div className="sm:col-span-2">
+                    <InputField
+                      error={quickClientErrors.email}
+                      label="Email"
+                      onChange={(event) =>
+                        setQuickClientState((current) => ({ ...current, email: event.target.value }))
+                      }
+                      placeholder="Optional email address"
+                      value={quickClientState.email}
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-wrap justify-end gap-3">
+                  <button
+                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-600"
+                    disabled={isCreatingClient}
+                    onClick={() => {
+                      setIsQuickClientOpen(false)
+                      setQuickClientState(createQuickClientForm())
+                      setQuickClientErrors({})
+                      setQuickClientMutationError(null)
+                    }}
+                    type="button"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                    disabled={isCreatingClient}
+                    onClick={() => void handleQuickClientSubmit()}
+                    type="button"
+                  >
+                    {isCreatingClient ? 'Adding...' : 'Create client'}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
           <SelectField
             error={formErrors.staffProfileId}
             label="Staff"
@@ -559,6 +707,35 @@ function consentTone(status: ConsentFormStatus) {
     default:
       return 'neutral'
   }
+}
+
+function createQuickClientForm(): QuickClientFormState {
+  return {
+    email: '',
+    fullName: '',
+    phone: '',
+  }
+}
+
+function validateQuickClientForm(
+  formState: QuickClientFormState,
+  studioId: string | null,
+) {
+  const errors: Partial<Record<keyof QuickClientFormState, string>> = {}
+
+  if (!studioId) {
+    errors.fullName = 'Studio context is required before creating a client.'
+  }
+
+  if (!formState.fullName.trim()) {
+    errors.fullName = 'Client name is required.'
+  }
+
+  if (formState.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formState.email)) {
+    errors.email = 'Enter a valid email address.'
+  }
+
+  return errors
 }
 
 function humanizeConsentStatus(status: ConsentFormStatus) {
