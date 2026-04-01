@@ -16,7 +16,6 @@ import { getStaff } from '../lib/api/staff-api'
 import type { AppointmentRecord, AppointmentStatus } from '../lib/api/types'
 import { formatTime, humanizeEnum } from '../lib/formatters'
 
-const hourSlots = Array.from({ length: 10 }, (_, index) => 9 + index)
 const staffAccents = [
   'from-[#b7d9ff] to-[#d3d8ff]',
   'from-[#b5ead8] to-[#d2f0e7]',
@@ -85,6 +84,7 @@ export function CalendarPage() {
     () => visibleAppointments.filter((appointment) => appointment.appointmentDate === selectedDate),
     [selectedDate, visibleAppointments],
   )
+  const timelineHours = useMemo(() => getTimelineHours(dayAppointments), [dayAppointments])
 
   useEffect(() => {
     if (!allowCreate || searchParams.get('newBooking') !== '1' || isDrawerOpen) {
@@ -283,7 +283,7 @@ export function CalendarPage() {
                       style={{ gridTemplateColumns: `90px repeat(${staffMembers.length}, minmax(180px, 1fr))` }}
                     >
                       <div className="bg-white">
-                        {hourSlots.map((hour) => (
+                        {timelineHours.map((hour) => (
                           <div
                             key={hour}
                             className="flex h-[108px] items-start justify-end border-t border-slate-200 px-4 py-4 text-sm font-semibold text-slate-500"
@@ -295,7 +295,7 @@ export function CalendarPage() {
 
                       {staffMembers.map((staffMember) => (
                         <div key={staffMember.id} className="relative border-l border-slate-200 bg-white">
-                          {hourSlots.map((hour) => (
+                          {timelineHours.map((hour) => (
                             <button
                               key={`${staffMember.id}-${hour}`}
                               className={[
@@ -337,7 +337,7 @@ export function CalendarPage() {
                                           : 'border-amber-200 bg-amber-50',
                                 ].join(' ')}
                                 onClick={() => openEditDrawer(appointment)}
-                                style={appointmentCardStyle(appointment)}
+                                style={appointmentCardStyle(appointment, timelineHours[0] ?? 9)}
                                 type="button"
                               >
                                 <div className="flex items-start justify-between gap-3">
@@ -552,10 +552,10 @@ function formatHourLabel(hour: number) {
   return `${normalizedHour}:00 ${suffix}`
 }
 
-function appointmentCardStyle(appointment: AppointmentRecord) {
+function appointmentCardStyle(appointment: AppointmentRecord, timelineStartHour: number) {
   const startMinutes = timeToMinutes(appointment.startTime)
   const endMinutes = timeToMinutes(appointment.endTime)
-  const topOffset = ((startMinutes - 9 * 60) / 60) * 108 + 12
+  const topOffset = ((startMinutes - timelineStartHour * 60) / 60) * 108 + 12
   const height = Math.max(((endMinutes - startMinutes) / 60) * 108 - 16, 72)
 
   return {
@@ -570,7 +570,20 @@ function timeToMinutes(value: string) {
 }
 
 function getTodayDateValue() {
-  return new Date().toISOString().slice(0, 10)
+  return toDateValue(new Date())
+}
+
+function getTimelineHours(appointments: AppointmentRecord[]) {
+  if (appointments.length === 0) {
+    return Array.from({ length: 10 }, (_, index) => 9 + index)
+  }
+
+  const earliestMinutes = Math.min(...appointments.map((appointment) => timeToMinutes(appointment.startTime)))
+  const latestMinutes = Math.max(...appointments.map((appointment) => timeToMinutes(appointment.endTime)))
+  const startHour = Math.max(0, Math.min(9, Math.floor(earliestMinutes / 60)))
+  const endHour = Math.min(24, Math.max(18, Math.ceil(latestMinutes / 60)))
+
+  return Array.from({ length: Math.max(endHour - startHour, 1) }, (_, index) => startHour + index)
 }
 
 function matchesCalendarView(appointmentDate: string, selectedDate: string, view: 'Day' | 'Week' | 'Month') {
