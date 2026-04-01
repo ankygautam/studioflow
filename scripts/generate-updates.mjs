@@ -5,6 +5,7 @@ import path from 'node:path'
 const outputPath = path.resolve(process.cwd(), 'src/lib/generated/updates.ts')
 
 const fallbackUpdates = []
+const ignoredCommitSubjects = ['Refresh project updates feed']
 
 const categoryMatchers = [
   { category: 'UI polish', keywords: ['ui', 'shell', 'layout', 'banner', 'favicon', 'page', 'dropdown'] },
@@ -63,17 +64,20 @@ function loadRecentCommits() {
       return fallbackUpdates
     }
 
-    return raw.split('\n').map((line) => {
-      const [hash, shortHash, date, subject] = line.split('\t')
-      return {
-        category: getCategory(subject),
-        date,
-        hash,
-        shortHash,
-        subject,
-        summary: getSummary(subject),
-      }
-    })
+    return raw
+      .split('\n')
+      .map((line) => {
+        const [hash, shortHash, date, subject] = line.split('\t')
+        return {
+          category: getCategory(subject),
+          date,
+          hash,
+          shortHash,
+          subject,
+          summary: getSummary(subject),
+        }
+      })
+      .filter((commit) => !ignoredCommitSubjects.includes(commit.subject))
   } catch {
     return fallbackUpdates
   }

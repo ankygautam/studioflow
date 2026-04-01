@@ -24,7 +24,7 @@ const staffAccents = [
 ]
 
 export function CalendarPage() {
-  const { selectedLocationId, user } = useAuth()
+  const { selectedLocationId, setSelectedLocationId, user } = useAuth()
   const allowCreate = user ? canCreateBookings(user.role) : false
   const defaultStudioId = user?.studioId ?? getDefaultStudioId()
   const loadAppointments = useCallback(
@@ -37,7 +37,13 @@ export function CalendarPage() {
   )
   const loadServices = useCallback(() => getServices(defaultStudioId), [defaultStudioId])
 
-  const { data: appointments, error: appointmentsError, isLoading: appointmentsLoading, reload } = useRemoteList(loadAppointments)
+  const {
+    data: appointments,
+    error: appointmentsError,
+    isLoading: appointmentsLoading,
+    reload,
+    setData: setAppointments,
+  } = useRemoteList(loadAppointments)
   const { data: staffMembers, error: staffError, isLoading: staffLoading } = useRemoteList(loadStaff)
   const { data: services, error: servicesError, isLoading: servicesLoading } = useRemoteList(loadServices)
 
@@ -499,7 +505,23 @@ export function CalendarPage() {
         allowDelete={allowCreate}
         draft={draft}
         onClose={closeDrawer}
-        onSaved={reload}
+        onSaved={async (savedAppointment) => {
+          if (!savedAppointment) {
+            await reload()
+            return
+          }
+
+          setSelectedDate(savedAppointment.appointmentDate)
+          setView('Day')
+
+          if (savedAppointment.locationId !== selectedLocationId) {
+            setSelectedLocationId(savedAppointment.locationId)
+            await reload()
+            return
+          }
+
+          setAppointments((current) => upsertAppointment(current, savedAppointment))
+        }}
         open={isDrawerOpen}
       />
     </div>
@@ -584,6 +606,16 @@ function getTimelineHours(appointments: AppointmentRecord[]) {
   const endHour = Math.min(24, Math.max(18, Math.ceil(latestMinutes / 60)))
 
   return Array.from({ length: Math.max(endHour - startHour, 1) }, (_, index) => startHour + index)
+}
+
+function upsertAppointment(current: AppointmentRecord[], nextAppointment: AppointmentRecord) {
+  const existingIndex = current.findIndex((appointment) => appointment.id === nextAppointment.id)
+
+  if (existingIndex === -1) {
+    return [...current, nextAppointment]
+  }
+
+  return current.map((appointment) => (appointment.id === nextAppointment.id ? nextAppointment : appointment))
 }
 
 function matchesCalendarView(appointmentDate: string, selectedDate: string, view: 'Day' | 'Week' | 'Month') {

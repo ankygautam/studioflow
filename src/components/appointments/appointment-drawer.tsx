@@ -36,7 +36,7 @@ type AppointmentDrawerProps = {
   allowDelete?: boolean
   draft?: Partial<AppointmentFormState> | null
   onClose: () => void
-  onSaved: () => Promise<void> | void
+  onSaved: (appointment?: AppointmentRecord) => Promise<void> | void
   open: boolean
 }
 
@@ -191,13 +191,14 @@ export function AppointmentDrawer({
     setMutationError(null)
 
     try {
+      let savedAppointment: AppointmentRecord
       if (appointment) {
-        await updateAppointment(appointment.id, payload)
+        savedAppointment = await updateAppointment(appointment.id, payload)
       } else {
-        await createAppointment(payload)
+        savedAppointment = await createAppointment(payload)
       }
 
-      await onSaved()
+      await onSaved(savedAppointment)
       onClose()
     } catch (error) {
       setMutationError(error instanceof Error ? error.message : 'Unable to save the appointment right now.')
