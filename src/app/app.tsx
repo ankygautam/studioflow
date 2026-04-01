@@ -12,6 +12,7 @@ import { GuidancePage } from '../pages/guidance-page'
 import { PlaceholderPage } from '../pages/placeholder-page'
 import { PublicBookingPage } from '../pages/public-booking-page'
 import { PublicBookingManagePage } from '../pages/public-booking-manage-page'
+import { UpdatesPage } from '../pages/updates-page'
 import { navigationItems } from '../data/navigation'
 
 const AnalyticsPage = lazyNamed(() => import('../pages/analytics-page'), 'AnalyticsPage')
@@ -61,6 +62,10 @@ export function App() {
       <Route
         path="/guidance"
         element={<GuidancePage />}
+      />
+      <Route
+        path="/updates"
+        element={<UpdatesPage />}
       />
       <Route
         path="/guide"

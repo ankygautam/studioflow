@@ -4,9 +4,13 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/generate-updates.mjs",
     "dev": "vite",
+    "prebuild": "node scripts/generate-updates.mjs",
     "build": "tsc -b && vite build",
+    "prebuild:staging": "node scripts/generate-updates.mjs",
     "build:staging": "tsc -b && vite build --mode staging",
+    "prebuild:production": "node scripts/generate-updates.mjs",
     "build:production": "tsc -b && vite build --mode production",
     "lint": "eslint .",
     "preview": "vite preview",

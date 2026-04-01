@@ -56,7 +56,7 @@ export function AppointmentDrawer({
   open,
 }: AppointmentDrawerProps) {
   const { selectedLocationId, user } = useAuth()
-  const defaultStudioId = getDefaultStudioId()
+  const defaultStudioId = user?.studioId ?? getDefaultStudioId()
   const canEditDetails = user ? canEditAppointmentDetails(user.role) : false
   const canEditStatus = user ? canUpdateAppointmentStatus(user.role) : false
   const studioId = appointment?.studioId ?? defaultStudioId

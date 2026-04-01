@@ -5,6 +5,7 @@ import { ErrorState } from '../components/ui/async-state'
 import { InputField, SelectField, ToggleField } from '../components/ui/form-controls'
 import { useAuth } from '../features/auth/use-auth'
 import { onboardStudio } from '../lib/api/onboarding-api'
+import { timezoneOptions } from '../lib/timezones'
 import type { BusinessType, ServiceCategory, StudioOnboardingPayload } from '../lib/api/types'
 import { humanizeEnum } from '../lib/formatters'
 
@@ -28,16 +29,6 @@ const businessTypes: Array<{ label: string; value: BusinessType }> = [
   { label: 'Nail Studio', value: 'NAIL_STUDIO' },
   { label: 'Wellness Clinic', value: 'WELLNESS_CLINIC' },
   { label: 'Solo Practice', value: 'SOLO_PRACTICE' },
-]
-
-const timezoneOptions = [
-  'America/Edmonton',
-  'America/Vancouver',
-  'America/Los_Angeles',
-  'America/Denver',
-  'America/Chicago',
-  'America/New_York',
-  'Europe/London',
 ]
 
 const serviceCategories: ServiceCategory[] = [

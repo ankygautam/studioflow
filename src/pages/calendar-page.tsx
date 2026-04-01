@@ -27,7 +27,7 @@ const staffAccents = [
 export function CalendarPage() {
   const { selectedLocationId, user } = useAuth()
   const allowCreate = user ? canCreateBookings(user.role) : false
-  const defaultStudioId = getDefaultStudioId()
+  const defaultStudioId = user?.studioId ?? getDefaultStudioId()
   const loadAppointments = useCallback(
     () => getAppointments(defaultStudioId, selectedLocationId),
     [defaultStudioId, selectedLocationId],

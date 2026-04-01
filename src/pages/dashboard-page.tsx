@@ -79,7 +79,10 @@ export function DashboardPage() {
     [consentSubmissions],
   )
   const todayRevenue = useMemo(
-    () => payments.filter((p) => p.appointmentDate === today).reduce((s, p) => s + p.amount, 0),
+    () =>
+      payments
+        .filter((payment) => payment.paymentStatus === 'PAID' && payment.paidAt && payment.paidAt.slice(0, 10) === today)
+        .reduce((sum, payment) => sum + payment.amount, 0),
     [payments, today],
   )
   const pendingDeposits = useMemo(
@@ -87,8 +90,9 @@ export function DashboardPage() {
     [payments],
   )
   const paidRecords = useMemo(
-    () => payments.filter((p) => p.paymentStatus === 'PAID').length,
-    [payments],
+    () =>
+      payments.filter((payment) => payment.paymentStatus === 'PAID' && payment.paidAt && payment.paidAt.slice(0, 10) === today).length,
+    [payments, today],
   )
   const completedToday = useMemo(
     () => todayAppointments.filter((a) => a.status === 'COMPLETED').length,

@@ -11,20 +11,11 @@ import { useAuth } from '../features/auth/use-auth'
 import { useRemoteList } from '../hooks/use-remote-list'
 import { getAuditLogs } from '../lib/api/audit-api'
 import { createLocation, deleteLocation, getLocations, updateLocation } from '../lib/api/locations-api'
+import { timezoneOptions } from '../lib/timezones'
 import type { LocationRecord, LocationUpsertPayload } from '../lib/api/types'
 
 type LocationFormState = LocationUpsertPayload
 type LocationFormErrors = Partial<Record<keyof LocationFormState, string>>
-
-const timezoneOptions = [
-  'America/Edmonton',
-  'America/Vancouver',
-  'America/Los_Angeles',
-  'America/Denver',
-  'America/Chicago',
-  'America/New_York',
-  'Europe/London',
-]
 
 export function SettingsPage() {
   const { selectedLocationId, setSelectedLocationId, user } = useAuth()
@@ -306,8 +297,10 @@ export function SettingsPage() {
         }
         onClose={() => setIsDrawerOpen(false)}
         open={isDrawerOpen}
+        panelClassName={editingLocation ? undefined : 'max-w-[960px]'}
         subtitle="Location record"
         title={editingLocation ? editingLocation.name : 'New location'}
+        variant={editingLocation ? 'drawer' : 'modal'}
       >
         <div className="space-y-4">
           <InputField
