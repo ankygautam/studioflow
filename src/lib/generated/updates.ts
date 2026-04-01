@@ -7,9 +7,41 @@ export type ProjectUpdate = {
   summary: string
 }
 
-export const generatedAt = "2026-04-01T06:28:14.551Z"
+export const generatedAt = "2026-04-01T08:30:46.204Z"
 
 export const projectUpdates: ProjectUpdate[] = [
+  {
+    "category": "Booking flow",
+    "date": "2026-04-01",
+    "hash": "933feed29a8c1f32ea2d6bcd2b296e71661d707a",
+    "shortHash": "933feed",
+    "subject": "Show saved bookings immediately on calendar",
+    "summary": "Expanded the scheduling experience so date-based workflows are clearer and more useful."
+  },
+  {
+    "category": "Booking flow",
+    "date": "2026-04-01",
+    "hash": "08655f6d44e25b183b90b9adc84df53a22263c77",
+    "shortHash": "08655f6",
+    "subject": "Fix calendar visibility for new appointments",
+    "summary": "Improved product behavior and removed friction in an existing workflow."
+  },
+  {
+    "category": "Product update",
+    "date": "2026-04-01",
+    "hash": "1bec3ace943687d171b6bed2eb27ec3be1135a61",
+    "shortHash": "1bec3ac",
+    "subject": "Expand location timezone options",
+    "summary": "Added another round of product polish and workflow improvements."
+  },
+  {
+    "category": "Product update",
+    "date": "2026-04-01",
+    "hash": "8871c85545207f8de943cbe8602678421704b857",
+    "shortHash": "8871c85",
+    "subject": "Add updates feed and polish workspace flows",
+    "summary": "Added another round of product polish and workflow improvements."
+  },
   {
     "category": "Booking flow",
     "date": "2026-03-30",
@@ -120,38 +152,6 @@ export const projectUpdates: ProjectUpdate[] = [
     "hash": "e554a46c8204ecd8f625b2c2eae4c083856f8a4e",
     "shortHash": "e554a46",
     "subject": "Remove unavailable staff demo login hint",
-    "summary": "Added another round of product polish and workflow improvements."
-  },
-  {
-    "category": "UI polish",
-    "date": "2026-03-25",
-    "hash": "2d9fa4b331d590a8f768d38e9e61d283f5238a2e",
-    "shortHash": "2d9fa4b",
-    "subject": "Add guided auth entry cards and simpler hosted note",
-    "summary": "Refined the product shell and dashboard presentation to feel cleaner and more product-ready."
-  },
-  {
-    "category": "Product update",
-    "date": "2026-03-25",
-    "hash": "4206b8de97fcf72cd0fba24c649139ed4d106bbf",
-    "shortHash": "4206b8d",
-    "subject": "Add final publishing and career showcase assets",
-    "summary": "Added another round of product polish and workflow improvements."
-  },
-  {
-    "category": "Product update",
-    "date": "2026-03-25",
-    "hash": "dc189b4064e80d2e9fa578edc187299a580b6c7c",
-    "shortHash": "dc189b4",
-    "subject": "Add hosted login note for cold starts",
-    "summary": "Added another round of product polish and workflow improvements."
-  },
-  {
-    "category": "Product update",
-    "date": "2026-03-24",
-    "hash": "e91a9f91f9ecb84fbf04d61b75923c2983ac18ac",
-    "shortHash": "e91a9f9",
-    "subject": "Add Render deployment support for backend",
     "summary": "Added another round of product polish and workflow improvements."
   }
 ] as ProjectUpdate[]
