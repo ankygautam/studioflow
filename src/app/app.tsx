@@ -26,7 +26,6 @@ const OnboardingPage = lazyNamed(() => import('../pages/onboarding-page'), 'Onbo
 const PaymentsPage = lazyNamed(() => import('../pages/payments-page'), 'PaymentsPage')
 const ServicesPage = lazyNamed(() => import('../pages/services-page'), 'ServicesPage')
 const SettingsPage = lazyNamed(() => import('../pages/settings-page'), 'SettingsPage')
-const StaffPage = lazyNamed(() => import('../pages/staff-page'), 'StaffPage')
 
 export function App() {
   return (
@@ -151,16 +150,6 @@ export function App() {
           }
         />
         <Route
-          path="staff"
-          element={
-            <RoleRoute allowedSlugs={['staff']}>
-              <RouteLoader>
-                <StaffPage />
-              </RouteLoader>
-            </RoleRoute>
-          }
-        />
-        <Route
           path="services"
           element={
             <RoleRoute allowedSlugs={['services']}>
@@ -240,7 +229,6 @@ export function App() {
                 'calendar',
                 'appointments',
                 'clients',
-                'staff',
                 'services',
                 'payments',
                 'forms',

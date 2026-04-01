@@ -20,7 +20,7 @@ export function GuidancePage() {
             <>
               <p>Start with the dashboard to understand the overall workspace.</p>
               <p>Then move to the calendar and appointments section to see the scheduling flow.</p>
-              <p>After that, review clients, staff, services, and payments.</p>
+              <p>After that, review clients, services, and payments.</p>
               <p>Then explore consent forms, notifications, analytics, and audit logs.</p>
               <p>Finally, review the public booking flow and the customer self-service flow.</p>
             </>
@@ -44,11 +44,6 @@ export function GuidancePage() {
                 <span className="font-semibold text-slate-950">Clients</span>
                 <br />
                 This area stores customer records and history.
-              </p>
-              <p>
-                <span className="font-semibold text-slate-950">Staff</span>
-                <br />
-                This area shows the team and their availability or assignments.
               </p>
               <p>
                 <span className="font-semibold text-slate-950">Services</span>
@@ -98,19 +93,9 @@ export function GuidancePage() {
           body: (
             <>
               <p>
-                <span className="font-semibold text-slate-950">Admin</span>
+                <span className="font-semibold text-slate-950">Studio owner</span>
                 <br />
-                Has the broadest access across operations and configuration.
-              </p>
-              <p>
-                <span className="font-semibold text-slate-950">Staff</span>
-                <br />
-                Can work with assigned operational tasks and appointment-related flows.
-              </p>
-              <p>
-                <span className="font-semibold text-slate-950">Receptionist</span>
-                <br />
-                Can manage bookings, customers, and day-to-day front-desk style tasks.
+                Has full access across studio operations, clients, bookings, payments, and configuration.
               </p>
               <p>
                 <span className="font-semibold text-slate-950">Customer</span>

@@ -43,7 +43,7 @@ export function AppShell() {
       .map((s) => s[0]?.toUpperCase())
       .join('') ?? 'SF'
 
-  const roleLabel = user?.role ? capitalize(user.role) : 'Admin'
+  const roleLabel = user?.role === 'admin' ? 'Owner' : user?.role ? capitalize(user.role) : 'Owner'
   const selectedLocation = useMemo(
     () => locations.find((l) => l.id === selectedLocationId) ?? null,
     [locations, selectedLocationId],
@@ -371,8 +371,6 @@ function ShellIcon({ icon }: { icon: NavigationItem['icon'] | 'bell' | 'chevron'
       return <svg className={cls} fill="none" viewBox="0 0 24 24"><rect x="5" y="4.5" width="14" height="15" rx="3" stroke="currentColor" strokeWidth="1.8"/><path d="M8 9h8M8 13h8M8 17h5" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8"/></svg>
     case 'clients':
       return <svg className={cls} fill="none" viewBox="0 0 24 24"><circle cx="9" cy="9" r="3.5" stroke="currentColor" strokeWidth="1.8"/><circle cx="17" cy="11" r="2.5" stroke="currentColor" strokeWidth="1.8"/><path d="M3.5 19c.9-2.8 3.1-4.5 5.5-4.5S13.6 16.2 14.5 19M14.5 18.5c.7-1.9 2.1-3 3.9-3 1.1 0 2.1.4 3.1 1.3" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8"/></svg>
-    case 'staff':
-      return <svg className={cls} fill="none" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.8"/><path d="M5 19c1.1-3.1 3.8-5 7-5s5.9 1.9 7 5" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8"/></svg>
     case 'services':
       return <svg className={cls} fill="none" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="3" stroke="currentColor" strokeWidth="1.8"/><path d="M8 9h8M8 13h5M15.5 13h.01" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8"/></svg>
     case 'payments':

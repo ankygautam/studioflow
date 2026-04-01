@@ -66,7 +66,7 @@ export function LoginPage() {
   return (
     <AuthLayout
       eyebrow="Sign in"
-      hint="Welcome back to a calmer way to run appointments, clients, staff visibility, and day-of-service operations."
+      hint="Welcome back to a calmer way to run appointments, clients, payments, and day-of-service operations."
       title="Access the StudioFlow workspace."
     >
       <div className="mx-auto max-w-[440px]">
@@ -163,7 +163,8 @@ export function LoginPage() {
         ) : null}
 
         <div className="mt-6 rounded-[24px] border border-slate-200 bg-white px-4 py-4 text-sm leading-7 text-slate-600">
-          Accounts are provisioned by the studio owner or admin. Use your assigned login details to access the workspace.
+          Each studio has its own workspace and owner account. Use your assigned studio login details to access only
+          your own clients, bookings, and operations.
         </div>
 
         {appConfig.isHostedBuildWithoutApi ? (

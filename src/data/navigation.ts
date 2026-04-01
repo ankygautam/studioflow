@@ -12,7 +12,6 @@ export type NavigationItem = {
     | 'payments'
     | 'services'
     | 'settings'
-    | 'staff'
   label: string
   slug: string
 }
@@ -45,13 +44,6 @@ export const navigationItems: NavigationItem[] = [
     icon: 'clients',
     label: 'Clients',
     slug: 'clients',
-  },
-  {
-    description: 'Team roster, availability, specialties, and workload.',
-    eyebrow: 'People',
-    icon: 'staff',
-    label: 'Staff',
-    slug: 'staff',
   },
   {
     description: 'Services, categories, durations, and pricing structure.',

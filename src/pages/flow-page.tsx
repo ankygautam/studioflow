@@ -8,8 +8,8 @@ export function FlowPage() {
           title: 'How to explore this project',
           body: (
             <p>
-              The best way to understand StudioFlow is to first sign in as a team member. This lets you see the internal
-              workspace where daily studio operations are managed.
+              The best way to understand StudioFlow is to first sign in as the studio owner. This lets you see the
+              internal workspace where daily studio operations are managed.
             </p>
           ),
         },
@@ -17,8 +17,8 @@ export function FlowPage() {
           title: 'Start by logging in',
           body: (
             <p>
-              Use a team account such as admin, staff, or receptionist to enter the dashboard. Once inside, explore the
-              main workspace and look through the calendar, appointments, and client sections.
+              Use the studio owner account to enter the dashboard. Once inside, explore the main workspace and look
+              through the calendar, appointments, and client sections.
             </p>
           ),
         },
@@ -36,7 +36,7 @@ export function FlowPage() {
           body: (
             <p>
               After creating a client, go to the appointment or calendar area and create a new booking. This helps show
-              how a customer request moves into the internal scheduling workflow.
+              how a customer request moves into the internal studio scheduling workflow.
             </p>
           ),
         },
@@ -44,8 +44,8 @@ export function FlowPage() {
           title: 'Review the booking flow',
           body: (
             <p>
-              Once the appointment is created, look at how StudioFlow connects the booking with staff, services,
-              scheduling, and status updates.
+              Once the appointment is created, look at how StudioFlow connects the booking with services, scheduling,
+              customer details, and status updates.
             </p>
           ),
         },
@@ -55,7 +55,7 @@ export function FlowPage() {
             <>
               <p>This flow shows how the product handles the basic studio journey:</p>
               <ul className="space-y-2 pl-5 marker:text-slate-400 list-disc">
-                <li>team member signs in</li>
+                <li>studio owner signs in</li>
                 <li>client is created</li>
                 <li>appointment is booked</li>
                 <li>operations are managed from one place</li>
