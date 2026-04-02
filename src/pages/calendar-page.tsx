@@ -513,14 +513,18 @@ export function CalendarPage() {
 
           setSelectedDate(savedAppointment.appointmentDate)
           setView('Day')
+          const nextLocationId = savedAppointment.locationId ?? selectedLocationId ?? null
 
-          if (savedAppointment.locationId !== selectedLocationId) {
-            setSelectedLocationId(savedAppointment.locationId)
-            await reload()
-            return
+          if (nextLocationId) {
+            setSelectedLocationId(nextLocationId)
           }
 
-          setAppointments((current) => upsertAppointment(current, savedAppointment))
+          try {
+            const nextAppointments = await getAppointments(defaultStudioId, nextLocationId)
+            setAppointments(nextAppointments)
+          } catch {
+            setAppointments((current) => upsertAppointment(current, savedAppointment))
+          }
         }}
         open={isDrawerOpen}
       />
