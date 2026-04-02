@@ -13,7 +13,6 @@ import com.studioflow.enums.AuditActionType;
 import com.studioflow.enums.AuditEntityType;
 import com.studioflow.enums.CommunicationDeliveryStatus;
 import com.studioflow.enums.CommunicationEventType;
-import com.studioflow.exception.BadRequestException;
 import com.studioflow.exception.ResourceNotFoundException;
 import com.studioflow.repository.AppointmentRepository;
 import com.studioflow.repository.CommunicationLogRepository;
@@ -25,6 +24,8 @@ import com.studioflow.repository.PaymentRepository;
 import com.studioflow.repository.ServiceRepository;
 import com.studioflow.repository.StaffProfileRepository;
 import com.studioflow.repository.StudioRepository;
+import com.studioflow.service.appointment.AppointmentMapper;
+import com.studioflow.service.appointment.AppointmentPolicyService;
 import com.studioflow.service.auth.CurrentUserService;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -34,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.transaction.annotation.Transactional;
 
 @org.springframework.stereotype.Service
@@ -55,10 +55,12 @@ public class AppointmentService {
     private final ConsentFormSubmissionRepository consentFormSubmissionRepository;
     private final NotificationService notificationService;
     private final AuditLogService auditLogService;
+    private final AppointmentPolicyService appointmentPolicyService;
+    private final AppointmentMapper appointmentMapper;
 
     public AppointmentResponse createAppointment(AppointmentCreateRequest request) {
         currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN, com.studioflow.enums.UserRole.RECEPTIONIST);
-        validateTimeRange(request.startTime(), request.endTime());
+        appointmentPolicyService.validateTimeRange(request.startTime(), request.endTime());
 
         UUID studioId = currentUserService.requireStudioAccess(request.studioId());
         Studio studio = findStudio(studioId);
@@ -66,10 +68,10 @@ public class AppointmentService {
         CustomerProfile customerProfile = findCustomerProfile(request.customerProfileId());
         StaffProfile staffProfile = findStaffProfile(request.staffProfileId());
         com.studioflow.entity.Service service = findService(request.serviceId());
-        validateStudioRelationships(studio, location, customerProfile, staffProfile, service);
+        appointmentPolicyService.validateStudioRelationships(studio, location, customerProfile, staffProfile, service);
 
         Appointment appointment = new Appointment();
-        mapRequest(appointment, request, studio, location, customerProfile, staffProfile, service);
+        appointmentMapper.applyCreateRequest(appointment, request, studio, location, customerProfile, staffProfile, service);
         Appointment savedAppointment = appointmentRepository.save(appointment);
         notificationService.notifyAppointmentCreated(savedAppointment);
         auditLogService.log(
@@ -121,7 +123,7 @@ public class AppointmentService {
             com.studioflow.enums.UserRole.RECEPTIONIST,
             com.studioflow.enums.UserRole.STAFF
         );
-        validateTimeRange(request.startTime(), request.endTime());
+        appointmentPolicyService.validateTimeRange(request.startTime(), request.endTime());
 
         Appointment appointment = findAppointment(id);
         currentUserService.ensureStudioAccess(appointment.getStudio().getId());
@@ -132,7 +134,7 @@ public class AppointmentService {
         UUID previousStaffId = appointment.getStaffProfile().getId();
 
         if (currentUserService.hasRole(com.studioflow.enums.UserRole.STAFF)) {
-            ensureStaffCanUpdateAppointment(appointment, request);
+            appointmentPolicyService.ensureStaffCanUpdateAppointment(appointment, request);
         }
 
         UUID studioId = currentUserService.requireStudioAccess(request.studioId());
@@ -141,9 +143,9 @@ public class AppointmentService {
         CustomerProfile customerProfile = findCustomerProfile(request.customerProfileId());
         StaffProfile staffProfile = findStaffProfile(request.staffProfileId());
         com.studioflow.entity.Service service = findService(request.serviceId());
-        validateStudioRelationships(studio, location, customerProfile, staffProfile, service);
+        appointmentPolicyService.validateStudioRelationships(studio, location, customerProfile, staffProfile, service);
 
-        mapRequest(appointment, request, studio, location, customerProfile, staffProfile, service);
+        appointmentMapper.applyUpdateRequest(appointment, request, studio, location, customerProfile, staffProfile, service);
         Appointment savedAppointment = appointmentRepository.save(appointment);
         notificationService.notifyAppointmentUpdated(savedAppointment, previousDate, previousStartTime, previousStatus);
         auditLogService.log(
@@ -209,146 +211,9 @@ public class AppointmentService {
             .orElseThrow(() -> new ResourceNotFoundException("Service not found: " + id));
     }
 
-    private void validateStudioRelationships(
-        Studio studio,
-        Location location,
-        CustomerProfile customerProfile,
-        StaffProfile staffProfile,
-        com.studioflow.entity.Service service
-    ) {
-        UUID studioId = studio.getId();
-
-        if (!location.getStudio().getId().equals(studioId)) {
-            throw new BadRequestException("The selected location does not belong to your studio");
-        }
-
-        if (!customerProfile.getStudio().getId().equals(studioId)) {
-            throw new BadRequestException("The selected client does not belong to your studio");
-        }
-
-        if (!staffProfile.getStudio().getId().equals(studioId)) {
-            throw new BadRequestException("The selected staff member does not belong to your studio");
-        }
-
-        if (!service.getStudio().getId().equals(studioId)) {
-            throw new BadRequestException("The selected service does not belong to your studio");
-        }
-
-        if (staffProfile.getPrimaryLocation() != null && !staffProfile.getPrimaryLocation().getId().equals(location.getId())) {
-            throw new BadRequestException("The selected staff member is not assigned to this location");
-        }
-    }
-
-    private void mapRequest(
-        Appointment appointment,
-        AppointmentCreateRequest request,
-        Studio studio,
-        Location location,
-        CustomerProfile customerProfile,
-        StaffProfile staffProfile,
-        com.studioflow.entity.Service service
-    ) {
-        appointment.setStudio(studio);
-        appointment.setLocation(location);
-        appointment.setCustomerProfile(customerProfile);
-        appointment.setStaffProfile(staffProfile);
-        appointment.setService(service);
-        appointment.setAppointmentDate(request.appointmentDate());
-        appointment.setStartTime(request.startTime());
-        appointment.setEndTime(request.endTime());
-        appointment.setStatus(request.status());
-        appointment.setNotes(request.notes());
-        appointment.setSource(request.source());
-    }
-
-    private void mapRequest(
-        Appointment appointment,
-        AppointmentUpdateRequest request,
-        Studio studio,
-        Location location,
-        CustomerProfile customerProfile,
-        StaffProfile staffProfile,
-        com.studioflow.entity.Service service
-    ) {
-        appointment.setStudio(studio);
-        appointment.setLocation(location);
-        appointment.setCustomerProfile(customerProfile);
-        appointment.setStaffProfile(staffProfile);
-        appointment.setService(service);
-        appointment.setAppointmentDate(request.appointmentDate());
-        appointment.setStartTime(request.startTime());
-        appointment.setEndTime(request.endTime());
-        appointment.setStatus(request.status());
-        appointment.setNotes(request.notes());
-        appointment.setSource(request.source());
-    }
-
-    private void validateTimeRange(java.time.LocalTime startTime, java.time.LocalTime endTime) {
-        if (!startTime.isBefore(endTime)) {
-            throw new BadRequestException("startTime must be before endTime");
-        }
-    }
-
-    private void ensureStaffCanUpdateAppointment(Appointment appointment, AppointmentUpdateRequest request) {
-        currentUserService.ensureAssignedStaff(appointment.getStaffProfile());
-
-        if (!appointment.getStudio().getId().equals(request.studioId())) {
-            throw new AccessDeniedException("You cannot move appointments across studios");
-        }
-
-        if (!appointment.getLocation().getId().equals(request.locationId())) {
-            throw new AccessDeniedException("You cannot change the appointment location");
-        }
-
-        if (!appointment.getCustomerProfile().getId().equals(request.customerProfileId())) {
-            throw new AccessDeniedException("You cannot reassign the client for this appointment");
-        }
-
-        if (!appointment.getService().getId().equals(request.serviceId())) {
-            throw new AccessDeniedException("You cannot change the booked service");
-        }
-
-        if (!appointment.getStaffProfile().getId().equals(request.staffProfileId())) {
-            throw new AccessDeniedException("You cannot reassign appointments to another staff member");
-        }
-
-        if (!appointment.getAppointmentDate().equals(request.appointmentDate())) {
-            throw new AccessDeniedException("You cannot reschedule appointments");
-        }
-
-        if (!appointment.getStartTime().equals(request.startTime()) || !appointment.getEndTime().equals(request.endTime())) {
-            throw new AccessDeniedException("You cannot change appointment timing");
-        }
-
-        if (appointment.getSource() != request.source()) {
-            throw new AccessDeniedException("You cannot change the appointment source");
-        }
-
-        if (request.status() == com.studioflow.enums.AppointmentStatus.CANCELLED) {
-            throw new AccessDeniedException("You do not have permission to cancel appointments");
-        }
-    }
-
     private AppointmentResponse toResponse(Appointment appointment) {
-        return new AppointmentResponse(
-            appointment.getId(),
-            appointment.getStudio().getId(),
-            appointment.getLocation().getId(),
-            appointment.getCustomerProfile().getId(),
-            appointment.getStaffProfile().getId(),
-            appointment.getService().getId(),
-            appointment.getAppointmentDate(),
-            appointment.getStartTime(),
-            appointment.getEndTime(),
-            appointment.getStatus(),
-            appointment.getNotes(),
-            appointment.getSource(),
-            appointment.getCreatedAt(),
-            appointment.getUpdatedAt(),
-            appointment.getCustomerProfile().getFullName(),
-            appointment.getStaffProfile().getDisplayName(),
-            appointment.getService().getName(),
-            appointment.getLocation().getName(),
+        return appointmentMapper.toResponse(
+            appointment,
             latestSentAt(appointment, CommunicationEventType.BOOKING_CONFIRMED),
             latestSentAt(appointment, CommunicationEventType.APPOINTMENT_REMINDER)
         );

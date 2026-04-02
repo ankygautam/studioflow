@@ -1,8 +1,9 @@
 # StudioFlow
 
-StudioFlow is a premium multi-location SaaS platform for service-led businesses such as tattoo studios, salons, barber shops, wellness practices, and appointment-first teams.
+StudioFlow is a full-stack single-owner studio SaaS platform for service-led businesses such as tattoo studios, salons, barber shops, wellness practices, and appointment-first teams.
 
 It combines an internal operations workspace with a customer-facing booking experience:
+- direct owner-to-studio workspace ownership
 - internal dashboard, calendar, payments, consent forms, notifications, analytics, and audit history
 - public self-service booking portal
 - customer self-service reschedule and cancel flow
@@ -13,7 +14,6 @@ It combines an internal operations workspace with a customer-facing booking expe
 
 Core operational modules:
 - services
-- staff
 - clients
 - appointments
 - payments
@@ -28,6 +28,11 @@ Customer-facing capabilities:
 - booking reference lookup
 - self-service reschedule
 - self-service cancel
+
+Owner-first product direction:
+- one owner account per studio workspace
+- strong backend studio isolation
+- staff/team features remain available for future expansion, but are not required for the v1 owner flow
 
 ## Tech Stack
 
@@ -52,8 +57,9 @@ Backend:
 
 - [src](/Users/ankygautam/Desktop/Project/StudioFlow/src): frontend app shell, pages, API layer, auth, booking flow
 - [backend](/Users/ankygautam/Desktop/Project/StudioFlow/backend): Spring Boot API, auth, authorization, operational modules
-- [docs/project-structure.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/project-structure.md): structure notes
-- [docs/database-schema.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/database-schema.md): schema notes
+- [docs/architecture/project-structure.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/architecture/project-structure.md): current repo and module structure
+- [docs/architecture/database-schema.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/architecture/database-schema.md): current ownership and schema notes
+- [docs/architecture/owner-studio-migration.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/architecture/owner-studio-migration.md): owner-to-studio migration strategy
 
 StudioFlow uses:
 - a frontend API layer driven by environment-based base URLs
@@ -94,14 +100,12 @@ Career and marketing:
 - [studioflow-linkedin-posts.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/marketing/studioflow-linkedin-posts.md)
 - [studioflow-post-outline.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/marketing/studioflow-post-outline.md)
 
-Interview and assets:
-- [interview-prep.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/interview-prep.md)
-- [studioflow-showcase-pack.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/interview/studioflow-showcase-pack.md)
+Assets:
 - [screenshot-plan.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/screenshot-plan.md)
 - [studioflow-screenshot-plan.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/assets/studioflow-screenshot-plan.md)
 
 Implementation and deployment:
-- [render-deploy.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/render-deploy.md)
+- [render-deploy.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/setup/render-deploy.md)
 
 ## Frontend Setup
 
@@ -210,12 +214,16 @@ npm run dev
 ```
 
 Default local URLs:
-- frontend: [http://localhost:5175/studioflow/](http://localhost:5175/studioflow/)
+- frontend: [http://localhost:5173/studioflow/](http://localhost:5173/studioflow/)
 - backend health: [http://localhost:8080/api/health](http://localhost:8080/api/health)
 
-Demo login:
+Local demo login:
 - `admin@studioflow.co`
 - `password123`
+
+Owner signup flow:
+- `/register` creates the owner account and linked studio workspace
+- onboarding completes studio setup after first sign-in
 
 ## Profiles And Environment Strategy
 
@@ -278,7 +286,7 @@ GitHub Actions workflows:
 Render deployment files:
 - [Dockerfile](/Users/ankygautam/Desktop/Project/StudioFlow/Dockerfile)
 - [render.yaml](/Users/ankygautam/Desktop/Project/StudioFlow/render.yaml)
-- [render-deploy.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/render-deploy.md)
+- [render-deploy.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/setup/render-deploy.md)
 
 Pipeline summary:
 - pull requests and pushes to `main` / `staging` run frontend lint/build and backend tests
@@ -308,7 +316,7 @@ Recommended staging safety defaults:
 
 ## Portfolio Presentation Notes
 
-For demos and interviews, the strongest StudioFlow walkthrough is:
+For demos and portfolio walkthroughs, the strongest StudioFlow path is:
 
 1. login and onboarding context
 2. dashboard overview
