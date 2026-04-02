@@ -33,7 +33,7 @@ export function AuthLayout({
   ] as const
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f7f8fc_0%,#eef2f7_100%)] px-4 py-6 text-slate-900 md:px-6 md:py-8">
+    <div className="theme-page-shell min-h-screen bg-[linear-gradient(180deg,#f7f8fc_0%,#eef2f7_100%)] px-4 py-6 text-slate-900 md:px-6 md:py-8">
       <div className="mx-auto grid min-h-[calc(100vh-3rem)] max-w-[1320px] gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(420px,0.75fr)]">
         <motion.section
           animate={{ opacity: 1, x: 0 }}

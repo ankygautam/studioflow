@@ -57,7 +57,7 @@ export function AppShell() {
   }, [locations, selectedLocationId, setSelectedLocationId])
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="theme-app-shell min-h-screen bg-slate-50 text-slate-900">
       {/* ── Desktop sidebar ── */}
       <aside
         className="fixed inset-y-0 left-0 z-30 hidden lg:flex flex-col"

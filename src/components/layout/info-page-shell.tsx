@@ -16,7 +16,7 @@ export function InfoPageShell({
   title: string
 }) {
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f7f8fc_0%,#eef2f7_100%)] px-4 py-6 text-slate-900 md:px-6 md:py-8">
+    <div className="theme-page-shell min-h-screen bg-[linear-gradient(180deg,#f7f8fc_0%,#eef2f7_100%)] px-4 py-6 text-slate-900 md:px-6 md:py-8">
       <div className="mx-auto max-w-6xl">
         <div className="sticky top-4 z-10 mb-6 md:mb-8">
           <Link

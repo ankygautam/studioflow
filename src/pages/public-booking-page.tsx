@@ -290,7 +290,7 @@ export function PublicBookingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f7f8fc_0%,#eef2f7_100%)] px-4 py-6 text-slate-900 md:px-6 md:py-8">
+    <div className="theme-page-shell min-h-screen bg-[linear-gradient(180deg,#f7f8fc_0%,#eef2f7_100%)] px-4 py-6 text-slate-900 md:px-6 md:py-8">
       <div className="mx-auto max-w-6xl">
         <header className="mb-6 rounded-[32px] border border-white/70 bg-white/80 px-6 py-5 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
           <div className="flex flex-wrap items-center justify-between gap-4">
