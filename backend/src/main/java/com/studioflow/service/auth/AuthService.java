@@ -4,12 +4,14 @@ import com.studioflow.dto.auth.AuthLoginRequest;
 import com.studioflow.dto.auth.AuthRegisterRequest;
 import com.studioflow.dto.auth.AuthResponse;
 import com.studioflow.dto.auth.AuthUserResponse;
+import com.studioflow.entity.Studio;
 import com.studioflow.entity.User;
+import com.studioflow.enums.BusinessType;
 import com.studioflow.enums.AuditActionType;
 import com.studioflow.enums.AuditEntityType;
 import com.studioflow.enums.UserRole;
 import com.studioflow.exception.BadRequestException;
-import com.studioflow.repository.StaffProfileRepository;
+import com.studioflow.repository.StudioRepository;
 import com.studioflow.repository.UserRepository;
 import com.studioflow.security.JwtService;
 import com.studioflow.security.StudioFlowUserPrincipal;
@@ -29,11 +31,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthService.class);
+    private static final String DEFAULT_SIGNUP_TIMEZONE = "America/Edmonton";
 
+    private final StudioRepository studioRepository;
     private final UserRepository userRepository;
-    private final StaffProfileRepository staffProfileRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final StudioWorkspaceResolver studioWorkspaceResolver;
     private final com.studioflow.service.AuditLogService auditLogService;
 
     public AuthResponse register(@Valid AuthRegisterRequest request) {
@@ -48,12 +52,25 @@ public class AuthService {
         user.setFullName(request.fullName().trim());
         user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(request.password()));
-        // Public registration creates the workspace owner account only.
-        user.setRole(UserRole.ADMIN);
+        user.setRole(UserRole.OWNER);
         user.setIsActive(true);
 
         User savedUser = userRepository.save(user);
-        LOGGER.info("Registered new workspace owner account. userId={} role={}", savedUser.getId(), savedUser.getRole());
+        Studio studio = new Studio();
+        studio.setOwnerUser(savedUser);
+        studio.setName(request.studioName().trim());
+        studio.setBusinessType(BusinessType.SALON);
+        studio.setTimezone(DEFAULT_SIGNUP_TIMEZONE);
+        studio.setIsActive(true);
+        studio.setOnboardingCompleted(false);
+        studioRepository.save(studio);
+
+        LOGGER.info(
+            "Registered new workspace owner account. userId={} studioId={} role={}",
+            savedUser.getId(),
+            studio.getId(),
+            savedUser.getRole()
+        );
         StudioFlowUserPrincipal principal = new StudioFlowUserPrincipal(savedUser);
         return new AuthResponse(jwtService.generateToken(principal), toUserResponse(savedUser));
     }
@@ -97,26 +114,30 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public AuthUserResponse getCurrentUser(StudioFlowUserPrincipal principal) {
+        StudioWorkspaceContext workspaceContext = studioWorkspaceResolver.resolveForUser(principal.getId());
         return new AuthUserResponse(
             principal.getId(),
             principal.getFullName(),
             principal.getUsername(),
             principal.getRole(),
-            resolveStudioId(principal.getId()),
-            resolveLocationId(principal.getId()),
-            resolveOnboardingCompleted(principal.getId())
+            workspaceContext.studioId(),
+            workspaceContext.studioName(),
+            workspaceContext.locationId(),
+            workspaceContext.onboardingCompleted()
         );
     }
 
     private AuthUserResponse toUserResponse(User user) {
+        StudioWorkspaceContext workspaceContext = studioWorkspaceResolver.resolveForUser(user.getId());
         return new AuthUserResponse(
             user.getId(),
             user.getFullName(),
             user.getEmail(),
             user.getRole(),
-            resolveStudioId(user.getId()),
-            resolveLocationId(user.getId()),
-            resolveOnboardingCompleted(user.getId())
+            workspaceContext.studioId(),
+            workspaceContext.studioName(),
+            workspaceContext.locationId(),
+            workspaceContext.onboardingCompleted()
         );
     }
 
@@ -134,20 +155,10 @@ public class AuthService {
     }
 
     private UUID resolveStudioId(UUID userId) {
-        return staffProfileRepository.findByUserId(userId)
-            .map(staffProfile -> staffProfile.getStudio().getId())
-            .orElse(null);
+        return studioWorkspaceResolver.resolveForUser(userId).studioId();
     }
 
     private UUID resolveLocationId(UUID userId) {
-        return staffProfileRepository.findByUserId(userId)
-            .map(staffProfile -> staffProfile.getPrimaryLocation() != null ? staffProfile.getPrimaryLocation().getId() : null)
-            .orElse(null);
-    }
-
-    private boolean resolveOnboardingCompleted(UUID userId) {
-        return staffProfileRepository.findByUserId(userId)
-            .map(staffProfile -> Boolean.TRUE.equals(staffProfile.getStudio().getOnboardingCompleted()))
-            .orElse(false);
+        return studioWorkspaceResolver.resolveForUser(userId).locationId();
     }
 }

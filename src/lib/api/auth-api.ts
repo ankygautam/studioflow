@@ -1,6 +1,6 @@
 import { api } from './http'
 
-export type BackendUserRole = 'ADMIN' | 'CUSTOMER' | 'RECEPTIONIST' | 'STAFF'
+export type BackendUserRole = 'ADMIN' | 'CUSTOMER' | 'OWNER' | 'RECEPTIONIST' | 'STAFF'
 
 export type AuthUserResponse = {
   email: string
@@ -10,6 +10,7 @@ export type AuthUserResponse = {
   onboardingCompleted: boolean
   role: BackendUserRole
   studioId: string | null
+  studioName: string | null
 }
 
 export type AuthResponse = {
@@ -25,6 +26,7 @@ export function register(payload: {
   email: string
   fullName: string
   password: string
+  studioName: string
 }) {
   return api.post<AuthResponse>('/api/auth/register', payload)
 }

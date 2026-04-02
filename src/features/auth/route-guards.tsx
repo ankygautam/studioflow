@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { canAccessRoute } from './authorization'
-import { getRoleDestination } from './auth-utils'
+import { getRoleDestination, isOwnerRole } from './auth-utils'
 import { useAuth } from './use-auth'
 
-function requiresAdminOnboarding(user: NonNullable<ReturnType<typeof useAuth>['user']>) {
-  return user.role === 'admin' && (!user.studioId || !user.onboardingCompleted)
+function requiresOwnerOnboarding(user: NonNullable<ReturnType<typeof useAuth>['user']>) {
+  return isOwnerRole(user.role) && (!user.studioId || !user.onboardingCompleted)
 }
 
 export function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -20,7 +20,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
     return <Navigate replace state={{ from: location }} to="/login" />
   }
 
-  if (user && requiresAdminOnboarding(user) && location.pathname !== '/onboarding') {
+  if (user && requiresOwnerOnboarding(user) && location.pathname !== '/onboarding') {
     return <Navigate replace to="/onboarding" />
   }
 
@@ -35,11 +35,11 @@ export function PublicOnlyRoute({ children }: { children: ReactNode }) {
   }
 
   if (isAuthenticated) {
-    if (user && requiresAdminOnboarding(user)) {
+    if (user && requiresOwnerOnboarding(user)) {
       return <Navigate replace to="/onboarding" />
     }
 
-    return <Navigate replace to={getRoleDestination(user?.role ?? 'admin')} />
+    return <Navigate replace to={getRoleDestination(user?.role ?? 'owner')} />
   }
 
   return <>{children}</>
@@ -57,7 +57,7 @@ export function AdminOnboardingRoute({ children }: { children: ReactNode }) {
     return <Navigate replace state={{ from: location }} to="/login" />
   }
 
-  if (user.role !== 'admin') {
+  if (!isOwnerRole(user.role)) {
     return <Navigate replace to={getRoleDestination(user.role)} />
   }
 

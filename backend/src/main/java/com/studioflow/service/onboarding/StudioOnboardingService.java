@@ -5,12 +5,10 @@ import com.studioflow.dto.onboarding.StudioOnboardingResponse;
 import com.studioflow.dto.onboarding.StarterServiceRequest;
 import com.studioflow.entity.Location;
 import com.studioflow.entity.Service;
-import com.studioflow.entity.StaffProfile;
 import com.studioflow.entity.Studio;
 import com.studioflow.entity.User;
 import com.studioflow.enums.AuditActionType;
 import com.studioflow.enums.AuditEntityType;
-import com.studioflow.enums.StaffStatus;
 import com.studioflow.enums.UserRole;
 import com.studioflow.exception.BadRequestException;
 import com.studioflow.repository.LocationRepository;
@@ -19,6 +17,7 @@ import com.studioflow.repository.StaffProfileRepository;
 import com.studioflow.repository.StudioRepository;
 import com.studioflow.repository.UserRepository;
 import com.studioflow.service.auth.CurrentUserService;
+import com.studioflow.service.auth.StudioWorkspaceResolver;
 import java.math.BigDecimal;
 import java.util.Locale;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +34,7 @@ public class StudioOnboardingService {
     private final LocationRepository locationRepository;
     private final ServiceRepository serviceRepository;
     private final StaffProfileRepository staffProfileRepository;
+    private final StudioWorkspaceResolver studioWorkspaceResolver;
     private final com.studioflow.service.AuditLogService auditLogService;
 
     public StudioOnboardingResponse onboard(StudioOnboardingRequest request) {
@@ -45,11 +45,18 @@ public class StudioOnboardingService {
         User user = userRepository.findById(currentUserService.getCurrentUserId())
             .orElseThrow(() -> new BadRequestException("Authenticated user not found"));
 
-        if (staffProfileRepository.findByUserId(user.getId()).isPresent()) {
+        Studio studio = studioWorkspaceResolver.findOwnedStudio(user.getId()).orElse(null);
+
+        if (studio == null && staffProfileRepository.findByUserId(user.getId()).isPresent()) {
             throw new BadRequestException("This account has already completed studio onboarding");
         }
 
-        Studio studio = new Studio();
+        if (studio == null) {
+            studio = new Studio();
+            studio.setOwnerUser(user);
+            studio.setIsActive(true);
+        }
+
         studio.setName(request.studioName().trim());
         studio.setBusinessType(request.businessType());
         studio.setEmail(normalizeNullable(request.studioEmail()));
@@ -64,14 +71,17 @@ public class StudioOnboardingService {
         studio.setBookingLeadTimeHours(request.bookingLeadTimeHours());
         studio.setDefaultDepositRequired(Boolean.TRUE.equals(request.defaultDepositRequired()));
         studio.setDefaultDepositAmount(normalizeAmount(request.defaultDepositAmount()));
-        studio.setIsActive(true);
-        studio.setOnboardingCompleted(false);
         Studio savedStudio = studioRepository.save(studio);
 
-        Location location = new Location();
+        Location location = locationRepository.findByStudioIdAndIsActiveTrueOrderByNameAsc(savedStudio.getId()).stream()
+            .findFirst()
+            .orElseGet(Location::new);
+
         location.setStudio(savedStudio);
         location.setName(request.locationName().trim());
-        location.setSlug(generateUniqueSlug(request.locationName()));
+        if (location.getSlug() == null || location.getSlug().isBlank()) {
+            location.setSlug(generateUniqueSlug(request.locationName()));
+        }
         location.setEmail(normalizeNullable(request.locationEmail()));
         location.setPhone(normalizeNullable(request.locationPhone()));
         location.setAddressLine1(normalizeNullable(request.addressLine1()));
@@ -83,15 +93,6 @@ public class StudioOnboardingService {
         location.setTimezone(request.timezone().trim());
         location.setIsActive(true);
         Location savedLocation = locationRepository.save(location);
-
-        StaffProfile staffProfile = new StaffProfile();
-        staffProfile.setUser(user);
-        staffProfile.setStudio(savedStudio);
-        staffProfile.setPrimaryLocation(savedLocation);
-        staffProfile.setDisplayName(user.getFullName());
-        staffProfile.setJobTitle(user.getRole() == UserRole.RECEPTIONIST ? "Front Desk Coordinator" : "Studio Admin");
-        staffProfile.setStatus(StaffStatus.ACTIVE);
-        staffProfileRepository.save(staffProfile);
 
         if (request.starterServices() != null) {
             request.starterServices().stream()

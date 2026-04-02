@@ -8,11 +8,11 @@ export type LoginInput = {
 }
 
 export type RegisterInput = {
-  businessName: string
   confirmPassword: string
   email: string
   fullName: string
   password: string
+  studioName: string
 }
 
 export type AuthContextValue = {

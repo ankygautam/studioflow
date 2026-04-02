@@ -43,7 +43,7 @@ export function AppShell() {
       .map((s) => s[0]?.toUpperCase())
       .join('') ?? 'SF'
 
-  const roleLabel = user?.role === 'admin' ? 'Owner' : user?.role ? capitalize(user.role) : 'Owner'
+  const roleLabel = user?.role === 'owner' ? 'Owner' : user?.role ? capitalize(user.role) : 'Owner'
   const selectedLocation = useMemo(
     () => locations.find((l) => l.id === selectedLocationId) ?? null,
     [locations, selectedLocationId],

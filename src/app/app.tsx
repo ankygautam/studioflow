@@ -7,6 +7,7 @@ import { PUBLIC_BOOKING_DEMO_ROUTE } from '../lib/demo-routes'
 import { ExplorePage } from '../pages/explore-page'
 import { ForgotPasswordPage } from '../pages/auth/forgot-password-page'
 import { LoginPage } from '../pages/auth/login-page'
+import { RegisterPage } from '../pages/auth/register-page'
 import { FlowPage } from '../pages/flow-page'
 import { GuidancePage } from '../pages/guidance-page'
 import { PlaceholderPage } from '../pages/placeholder-page'
@@ -40,7 +41,11 @@ export function App() {
       />
       <Route
         path="/register"
-        element={<Navigate replace to="/login" />}
+        element={
+          <PublicOnlyRoute>
+            <RegisterPage />
+          </PublicOnlyRoute>
+        }
       />
       <Route
         path="/forgot-password"

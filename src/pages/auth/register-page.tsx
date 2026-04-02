@@ -20,15 +20,14 @@ export function RegisterPage() {
   const [touched, setTouched] = useState<Record<string, boolean>>({})
   const [submitError, setSubmitError] = useState('')
   const [form, setForm] = useState({
-    businessName: 'Atelier North',
-    confirmPassword: 'password123',
-    email: 'owner@studioflow.co',
-    fullName: 'Avery North',
-    password: 'password123',
+    confirmPassword: '',
+    email: '',
+    fullName: '',
+    password: '',
+    studioName: '',
   })
 
   const errors = {
-    businessName: !form.businessName.trim() ? 'Business name is required' : '',
     confirmPassword:
       !form.confirmPassword.trim()
         ? 'Please confirm your password'
@@ -43,6 +42,7 @@ export function RegisterPage() {
           : '',
     fullName: !form.fullName.trim() ? 'Full name is required' : '',
     password: !form.password.trim() ? 'Password is required' : '',
+    studioName: !form.studioName.trim() ? 'Studio name is required' : '',
   }
 
   const isFormValid = Object.values(errors).every((value) => !value)
@@ -51,11 +51,11 @@ export function RegisterPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setTouched({
-      businessName: true,
       confirmPassword: true,
       email: true,
       fullName: true,
       password: true,
+      studioName: true,
     })
 
     if (!isFormValid) {
@@ -78,12 +78,12 @@ export function RegisterPage() {
   return (
     <AuthLayout
       eyebrow="Create account"
-      hint="Set up a clean StudioFlow workspace for your studio, team, and booking operations."
+      hint="Create an owner account and studio workspace for your salon, studio, or appointment-based business."
       title="Start with a simple, premium account setup."
     >
       <div className="mx-auto max-w-[460px]">
         <AuthHeader
-          description="Keep it simple for now. You can refine studio details later."
+          description="Sign up as the workspace owner first. You can finish studio setup in onboarding right after this."
           eyebrow="New workspace"
           title="Create account"
         />
@@ -147,19 +147,19 @@ export function RegisterPage() {
           ) : null}
 
           <AuthInputField
-            error={shouldShowError('businessName') ? errors.businessName : ''}
-            label="Business name"
-            onBlur={() => setTouched((current) => ({ ...current, businessName: true }))}
-            onChange={(value) => setForm((current) => ({ ...current, businessName: value }))}
+            error={shouldShowError('studioName') ? errors.studioName : ''}
+            label="Studio name"
+            onBlur={() => setTouched((current) => ({ ...current, studioName: true }))}
+            onChange={(value) => setForm((current) => ({ ...current, studioName: value }))}
             placeholder="Atelier North"
-            value={form.businessName}
+            value={form.studioName}
           />
 
           <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Account type</p>
-            <p className="mt-2 text-sm font-semibold text-slate-900">Workspace owner</p>
+            <p className="mt-2 text-sm font-semibold text-slate-900">Studio owner</p>
             <p className="mt-2 text-sm leading-7 text-slate-600">
-              Public signup creates the first admin account for a studio workspace. Staff and receptionist accounts should be added later from inside the app.
+              Public signup creates the owner account and studio workspace first. Team accounts can stay optional until a later phase.
             </p>
           </div>
 

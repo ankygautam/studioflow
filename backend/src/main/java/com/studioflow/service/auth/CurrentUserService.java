@@ -1,7 +1,9 @@
 package com.studioflow.service.auth;
 
 import com.studioflow.entity.StaffProfile;
+import com.studioflow.entity.Location;
 import com.studioflow.enums.UserRole;
+import com.studioflow.repository.LocationRepository;
 import com.studioflow.repository.StaffProfileRepository;
 import com.studioflow.security.StudioFlowUserPrincipal;
 import java.util.Arrays;
@@ -18,7 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class CurrentUserService {
 
+    private final LocationRepository locationRepository;
     private final StaffProfileRepository staffProfileRepository;
+    private final StudioWorkspaceResolver studioWorkspaceResolver;
 
     public UUID getCurrentUserId() {
         return requirePrincipal().getId();
@@ -33,13 +37,16 @@ public class CurrentUserService {
     }
 
     public boolean hasRole(UserRole role) {
-        return getCurrentUserRole() == role;
+        UserRole currentRole = getCurrentUserRole();
+        return currentRole == role || (currentRole == UserRole.OWNER && role == UserRole.ADMIN);
     }
 
     public void requireAnyRole(UserRole... roles) {
         UserRole currentRole = getCurrentUserRole();
 
-        if (Arrays.stream(roles).noneMatch((role) -> role == currentRole)) {
+        boolean allowed = Arrays.stream(roles).anyMatch((role) -> role == currentRole || (currentRole == UserRole.OWNER && role == UserRole.ADMIN));
+
+        if (!allowed) {
             throw new AccessDeniedException("You do not have permission to perform this action");
         }
     }
@@ -67,17 +74,24 @@ public class CurrentUserService {
             throw new AccessDeniedException("Customers cannot access studio operations");
         }
 
+        if (getCurrentUserRole() == UserRole.OWNER) {
+            throw new AccessDeniedException("Studio owners do not use staff profiles for workspace access");
+        }
+
         return staffProfileRepository.findByUserId(getCurrentUserId())
             .orElseThrow(() -> new AccessDeniedException("No studio is assigned to this account"));
     }
 
     public UUID getCurrentStudioId() {
-        return requireCurrentStaffProfile().getStudio().getId();
+        UUID studioId = studioWorkspaceResolver.resolveForUser(getCurrentUserId()).studioId();
+        if (studioId == null) {
+            throw new AccessDeniedException("No studio is assigned to this account");
+        }
+        return studioId;
     }
 
     public UUID getCurrentLocationId() {
-        StaffProfile staffProfile = requireCurrentStaffProfile();
-        return staffProfile.getPrimaryLocation() != null ? staffProfile.getPrimaryLocation().getId() : null;
+        return studioWorkspaceResolver.resolveForUser(getCurrentUserId()).locationId();
     }
 
     public UUID requireLocationAccess(UUID requestedLocationId) {
@@ -90,6 +104,21 @@ public class CurrentUserService {
     }
 
     public void ensureLocationAccess(UUID requestedLocationId) {
+        if (getCurrentUserRole() == UserRole.OWNER || getCurrentUserRole() == UserRole.ADMIN) {
+            if (requestedLocationId == null) {
+                return;
+            }
+
+            Location location = locationRepository.findById(requestedLocationId)
+                .orElseThrow(() -> new AccessDeniedException("Location was not found"));
+
+            if (!location.getStudio().getId().equals(getCurrentStudioId())) {
+                throw new AccessDeniedException("You cannot access another location's records");
+            }
+
+            return;
+        }
+
         StaffProfile staffProfile = requireCurrentStaffProfile();
 
         if (staffProfile.getPrimaryLocation() == null) {

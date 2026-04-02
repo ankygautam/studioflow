@@ -31,6 +31,13 @@ public class StudioFlowUserPrincipal implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
+        if (user.getRole() == UserRole.OWNER) {
+            return List.of(
+                new SimpleGrantedAuthority("ROLE_OWNER"),
+                new SimpleGrantedAuthority("ROLE_ADMIN")
+            );
+        }
+
         return List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
     }
 

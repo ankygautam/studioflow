@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { AuthFooterLinkRow } from '../../components/auth/auth-footer-link-row'
 import { AuthHeader } from '../../components/auth/auth-header'
 import { AuthInputField } from '../../components/auth/auth-input-field'
 import { AuthPasswordField } from '../../components/auth/auth-password-field'
@@ -142,16 +143,7 @@ export function LoginPage() {
           </div>
         ) : (
           <div className="mt-6 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-600">
-            Need access? Reach out to the{' '}
-            <a
-              className="font-semibold text-slate-950 underline decoration-slate-300 underline-offset-4 transition hover:text-slate-700"
-              href="https://ankurgautam.com"
-              rel="noreferrer"
-              target="_blank"
-            >
-              developer
-            </a>{' '}
-            to get your own account, or use the suggested credentials.
+            New to StudioFlow? Create an owner account for your studio first, then finish setup in onboarding after you sign in.
           </div>
         )}
 
@@ -162,9 +154,8 @@ export function LoginPage() {
           </div>
         ) : null}
 
-        <div className="mt-6 rounded-[24px] border border-slate-200 bg-white px-4 py-4 text-sm leading-7 text-slate-600">
-          Each studio has its own workspace and owner account. Use your assigned studio login details to access only
-          your own clients, bookings, and operations.
+        <div className="mt-6">
+          <AuthFooterLinkRow actionLabel="Create account" prompt="Launching a new studio?" to="/register" />
         </div>
 
         {appConfig.isHostedBuildWithoutApi ? (

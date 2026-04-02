@@ -433,7 +433,7 @@ export function OnboardingPage() {
                 ) : null}
               </div>
               <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-5 text-sm leading-7 text-slate-600">
-                The first admin user is already this signed-in account, and the first staff profile will be created automatically during setup.
+                This signed-in account is already the studio owner. Finish the workspace details here, then add any optional team structure later.
               </div>
             </section>
           ) : null}

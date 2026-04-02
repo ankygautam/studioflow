@@ -83,6 +83,7 @@ public class LocalAuthSeeder {
 
     private String defaultJobTitle(UserRole role) {
         return switch (role) {
+            case OWNER -> "Studio Owner";
             case ADMIN -> "Studio Admin";
             case RECEPTIONIST -> "Front Desk Coordinator";
             case STAFF -> "Service Artist";

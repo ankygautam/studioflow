@@ -21,7 +21,7 @@ export type BusinessType =
   | 'SOLO_PRACTICE'
 
 export type StaffStatus = 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE'
-export type UserRole = 'ADMIN' | 'STAFF' | 'RECEPTIONIST' | 'CUSTOMER'
+export type UserRole = 'ADMIN' | 'CUSTOMER' | 'OWNER' | 'RECEPTIONIST' | 'STAFF'
 
 export type AppointmentStatus = 'BOOKED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW'
 
@@ -323,7 +323,7 @@ export interface NotificationUnreadCountRecord {
 export interface AuditLogRecord {
   actionType: AuditActionType
   actorName: string
-  actorRole: 'ADMIN' | 'STAFF' | 'RECEPTIONIST' | 'CUSTOMER' | null
+  actorRole: 'ADMIN' | 'CUSTOMER' | 'OWNER' | 'RECEPTIONIST' | 'STAFF' | null
   createdAt: string
   description: string
   entityId: string | null

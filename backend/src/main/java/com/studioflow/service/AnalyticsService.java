@@ -130,27 +130,23 @@ public class AnalyticsService {
     }
 
     private List<Appointment> loadAppointments(UUID studioId) {
-        return studioId != null ? appointmentRepository.findByStudioId(studioId) : appointmentRepository.findAll();
+        return appointmentRepository.findByStudioId(studioId);
     }
 
     private List<Payment> loadPayments(UUID studioId) {
-        return studioId != null ? paymentRepository.findByAppointmentStudioId(studioId) : paymentRepository.findAll();
+        return paymentRepository.findByAppointmentStudioId(studioId);
     }
 
     private List<Service> loadServices(UUID studioId) {
-        return studioId != null ? serviceRepository.findByStudioId(studioId) : serviceRepository.findAll();
+        return serviceRepository.findByStudioId(studioId);
     }
 
     private long loadClientCount(UUID studioId) {
-        return studioId != null
-            ? customerProfileRepository.countByStudioIdAndIsActiveTrue(studioId)
-            : customerProfileRepository.findAll().stream().filter(customer -> Boolean.TRUE.equals(customer.getIsActive())).count();
+        return customerProfileRepository.countByStudioIdAndIsActiveTrue(studioId);
     }
 
     private long loadActiveServiceCount(UUID studioId) {
-        return studioId != null
-            ? serviceRepository.countByStudioIdAndIsActiveTrue(studioId)
-            : serviceRepository.findAll().stream().filter(service -> Boolean.TRUE.equals(service.getIsActive())).count();
+        return serviceRepository.countByStudioIdAndIsActiveTrue(studioId);
     }
 
     private List<Appointment> filterAppointments(List<Appointment> appointments, LocalDate from, LocalDate to) {

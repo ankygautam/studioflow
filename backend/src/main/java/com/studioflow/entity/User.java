@@ -36,4 +36,7 @@ public class User extends BaseEntity {
 
     @OneToOne(mappedBy = "user")
     private StaffProfile staffProfile;
+
+    @OneToOne(mappedBy = "ownerUser")
+    private Studio ownedStudio;
 }

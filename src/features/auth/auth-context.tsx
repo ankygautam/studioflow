@@ -25,6 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onboardingCompleted: boolean
     role: ReturnType<typeof mapBackendRole>
     studioId: string | null
+    studioName: string | null
   }) => {
     setUser(nextUser)
     const nextLocationId = nextUser.locationId ?? null
@@ -44,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       onboardingCompleted: nextUser.onboardingCompleted,
       role: mapBackendRole(nextUser.role),
       studioId: nextUser.studioId,
+      studioName: nextUser.studioName,
     })
   }, [applyUser])
 
@@ -94,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           onboardingCompleted: response.user.onboardingCompleted,
           role: mapBackendRole(response.user.role),
           studioId: response.user.studioId,
+          studioName: response.user.studioName,
         }
 
         persistAuthToken(response.token, remember, response.user.studioId, response.user.locationId)
@@ -107,11 +110,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSelectedLocationIdState(null)
       },
       refreshCurrentUser,
-      register: async ({ email, fullName, password }) => {
+      register: async ({ email, fullName, password, studioName }) => {
         const response = await registerRequest({
           email,
           fullName,
           password,
+          studioName,
         })
         const nextUser: AuthUser = {
           email: response.user.email,
@@ -121,6 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           onboardingCompleted: response.user.onboardingCompleted,
           role: mapBackendRole(response.user.role),
           studioId: response.user.studioId,
+          studioName: response.user.studioName,
         }
 
         persistAuthToken(response.token, true, response.user.studioId, response.user.locationId)
