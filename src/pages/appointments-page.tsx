@@ -19,14 +19,14 @@ export function AppointmentsPage() {
   const allowCreate = user ? canCreateBookings(user.role) : false
   const allowDelete = user ? canDeleteAppointments(user.role) : false
   const allowEdit = user ? canEditAppointments(user.role) : false
-  const defaultStudioId = getDefaultStudioId()
+  const defaultStudioId = user?.studioId ?? getDefaultStudioId()
   const loadAppointments = useCallback(
     () => getAppointments(defaultStudioId, selectedLocationId),
     [defaultStudioId, selectedLocationId],
   )
   const { data: appointments, error, isLoading, reload } = useRemoteList(loadAppointments)
 
-  const [filterValue, setFilterValue] = useState<'THIS_WEEK' | 'TODAY' | 'NEXT_7_DAYS'>('THIS_WEEK')
+  const [filterValue, setFilterValue] = useState<'ALL' | 'THIS_MONTH' | 'TODAY' | 'NEXT_7_DAYS'>('ALL')
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [editingAppointment, setEditingAppointment] = useState<AppointmentRecord | null>(null)
@@ -94,7 +94,8 @@ export function AppointmentsPage() {
               onChange={(event) => setFilterValue(event.target.value as typeof filterValue)}
               value={filterValue}
             >
-              <option value="THIS_WEEK">This week</option>
+              <option value="ALL">All appointments</option>
+              <option value="THIS_MONTH">This month</option>
               <option value="TODAY">Today</option>
               <option value="NEXT_7_DAYS">Next 7 days</option>
             </select>
@@ -181,8 +182,12 @@ export function AppointmentsPage() {
 
 function matchesAppointmentWindow(
   appointment: AppointmentRecord,
-  filterValue: 'THIS_WEEK' | 'TODAY' | 'NEXT_7_DAYS',
+  filterValue: 'ALL' | 'THIS_MONTH' | 'TODAY' | 'NEXT_7_DAYS',
 ) {
+  if (filterValue === 'ALL') {
+    return true
+  }
+
   const appointmentDate = new Date(`${appointment.appointmentDate}T00:00:00`)
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -191,8 +196,15 @@ function matchesAppointmentWindow(
     return appointmentDate.getTime() === today.getTime()
   }
 
+  if (filterValue === 'THIS_MONTH') {
+    return (
+      appointmentDate.getFullYear() === today.getFullYear() &&
+      appointmentDate.getMonth() === today.getMonth()
+    )
+  }
+
   const endDate = new Date(today)
-  endDate.setDate(today.getDate() + (filterValue === 'THIS_WEEK' ? 7 : 6))
+  endDate.setDate(today.getDate() + 6)
 
   return appointmentDate >= today && appointmentDate <= endDate
 }

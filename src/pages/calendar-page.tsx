@@ -56,6 +56,7 @@ export function CalendarPage() {
   const [selectedStaff, setSelectedStaff] = useState('ALL')
   const [selectedStatus, setSelectedStatus] = useState<'ALL' | AppointmentStatus>('ALL')
   const [view, setView] = useState<'Day' | 'Month' | 'Week'>('Day')
+  const [hasAutoFocusedDate, setHasAutoFocusedDate] = useState(false)
 
   const dependenciesLoading = appointmentsLoading || staffLoading || servicesLoading
   const dependenciesError = appointmentsError || staffError || servicesError
@@ -91,6 +92,31 @@ export function CalendarPage() {
     [selectedDate, visibleAppointments],
   )
   const timelineHours = useMemo(() => getTimelineHours(dayAppointments), [dayAppointments])
+
+  useEffect(() => {
+    if (hasAutoFocusedDate || appointmentsLoading || appointments.length === 0) {
+      return
+    }
+
+    const hasAppointmentsOnSelectedDate = appointments.some(
+      (appointment) => appointment.appointmentDate === selectedDate,
+    )
+
+    if (hasAppointmentsOnSelectedDate) {
+      setHasAutoFocusedDate(true)
+      return
+    }
+
+    const latestAppointment = [...appointments].sort((left, right) =>
+      `${right.appointmentDate}T${right.startTime}`.localeCompare(`${left.appointmentDate}T${left.startTime}`),
+    )[0]
+
+    if (latestAppointment) {
+      setSelectedDate(latestAppointment.appointmentDate)
+    }
+
+    setHasAutoFocusedDate(true)
+  }, [appointments, appointmentsLoading, hasAutoFocusedDate, selectedDate])
 
   useEffect(() => {
     if (!allowCreate || searchParams.get('newBooking') !== '1' || isDrawerOpen) {
@@ -154,6 +180,9 @@ export function CalendarPage() {
             </h1>
             <p className="mt-4 max-w-3xl text-base leading-8 text-slate-600 md:text-lg">
               A premium timeline for managing day-to-day appointments across staff, services, and booking states without visual clutter.
+            </p>
+            <p className="mt-3 text-sm font-medium text-slate-500">
+              Showing {formatActiveRangeLabel(selectedDate, view)}
             </p>
           </div>
 
@@ -513,15 +542,20 @@ export function CalendarPage() {
 
           setSelectedDate(savedAppointment.appointmentDate)
           setView('Day')
+          setSelectedStaff('ALL')
+          setSelectedService('ALL')
+          setSelectedStatus('ALL')
           const nextLocationId = savedAppointment.locationId ?? selectedLocationId ?? null
 
           if (nextLocationId) {
             setSelectedLocationId(nextLocationId)
           }
 
+          setAppointments((current) => upsertAppointment(current, savedAppointment))
+
           try {
             const nextAppointments = await getAppointments(defaultStudioId, nextLocationId)
-            setAppointments(nextAppointments)
+            setAppointments(upsertAppointment(nextAppointments, savedAppointment))
           } catch {
             setAppointments((current) => upsertAppointment(current, savedAppointment))
           }
@@ -683,6 +717,33 @@ function formatMonthTitle(selectedDate: string) {
     month: 'long',
     year: 'numeric',
   })
+}
+
+function formatActiveRangeLabel(selectedDate: string, view: 'Day' | 'Week' | 'Month') {
+  if (view === 'Day') {
+    return toLocalDate(selectedDate).toLocaleDateString(undefined, {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    })
+  }
+
+  if (view === 'Week') {
+    const start = startOfWeek(selectedDate)
+    const end = new Date(start)
+    end.setDate(start.getDate() + 6)
+
+    return `${start.toLocaleDateString(undefined, {
+      day: 'numeric',
+      month: 'short',
+    })} - ${end.toLocaleDateString(undefined, {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    })}`
+  }
+
+  return formatMonthTitle(selectedDate)
 }
 
 function startOfWeek(dateValue: string) {
