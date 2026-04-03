@@ -46,6 +46,14 @@ public class WaitlistController {
         return ResponseEntity.ok(waitlistService.getEntries(studioId, locationId));
     }
 
+    @GetMapping("/suggestions")
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST','STAFF')")
+    public ResponseEntity<List<WaitlistEntryResponse>> getCancellationMatchSuggestions(
+        @RequestParam UUID appointmentId
+    ) {
+        return ResponseEntity.ok(waitlistService.getCancellationMatchSuggestions(appointmentId));
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST','STAFF')")
     public ResponseEntity<WaitlistEntryResponse> getEntryById(@PathVariable UUID id) {

@@ -16,8 +16,8 @@ import { getConsentFormSubmissions } from '../lib/api/consent-forms-api'
 import { getDefaultStudioId } from '../lib/api/http'
 import { createClientPackageAssignment, getClientPackages, getPackages } from '../lib/api/packages-api'
 import { getPayments } from '../lib/api/payments-api'
+import { downloadClientsExport } from '../lib/api/reports-api'
 import { createClient, deleteClient, getClients, updateClient } from '../lib/api/clients-api'
-import { buildCsvFilename, downloadCsv } from '../lib/csv'
 import { formatCurrency, formatDate, formatTime, humanizeEnum } from '../lib/formatters'
 import type {
   AppointmentRecord,
@@ -47,6 +47,7 @@ export function ClientsPage() {
   const defaultStudioId = getDefaultStudioId()
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
   const [mutationError, setMutationError] = useState<string | null>(null)
   const [editingClient, setEditingClient] = useState<ClientRecord | null>(null)
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
@@ -285,21 +286,20 @@ export function ClientsPage() {
     }
   }
 
-  const exportClients = () => {
-    downloadCsv(
-      buildCsvFilename('clients'),
-      ['Full Name', 'Email', 'Phone', 'Date of Birth', 'Active', 'Created At', 'Updated At', 'Notes'],
-      clients.map((client) => [
-        client.fullName,
-        client.email,
-        client.phone,
-        client.dateOfBirth,
-        client.isActive,
-        client.createdAt,
-        client.updatedAt,
-        client.notes,
-      ]),
-    )
+  const exportClients = async () => {
+    if (isExporting) {
+      return
+    }
+
+    setIsExporting(true)
+
+    try {
+      await downloadClientsExport({
+        studioId: defaultStudioId,
+      })
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   return (
@@ -309,10 +309,11 @@ export function ClientsPage() {
           <div className="flex flex-wrap gap-3">
             <button
               className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-[0_12px_30px_rgba(15,23,42,0.06)]"
-              onClick={exportClients}
+              disabled={isExporting}
+              onClick={() => void exportClients()}
               type="button"
             >
-              Export CSV
+              {isExporting ? 'Exporting...' : 'Export CSV'}
             </button>
             {canManage ? (
               <button

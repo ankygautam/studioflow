@@ -3,15 +3,15 @@ package com.studioflow.dto.waitlist;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 import java.util.UUID;
 
-public record WaitlistEntryResponse(
-    UUID id,
-    UUID studioId,
-    UUID locationId,
-    String locationName,
+public record WaitlistMatchSuggestionResponse(
+    UUID waitlistEntryId,
     UUID customerProfileId,
     String customerName,
+    UUID locationId,
+    String locationName,
     UUID serviceId,
     String serviceName,
     UUID preferredStaffProfileId,
@@ -20,8 +20,7 @@ public record WaitlistEntryResponse(
     LocalTime preferredStartTime,
     LocalTime preferredEndTime,
     String notes,
-    Boolean isActive,
-    Instant createdAt,
-    Instant updatedAt
+    List<String> matchReasons,
+    Instant createdAt
 ) {
 }

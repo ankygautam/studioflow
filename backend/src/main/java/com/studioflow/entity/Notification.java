@@ -53,6 +53,9 @@ public class Notification extends BaseEntity {
     @Column(name = "action_url", length = 255)
     private String actionUrl;
 
+    @Column(name = "reminder_offset_hours")
+    private Integer reminderOffsetHours;
+
     @Column(name = "is_read", nullable = false)
     private Boolean isRead = false;
 }

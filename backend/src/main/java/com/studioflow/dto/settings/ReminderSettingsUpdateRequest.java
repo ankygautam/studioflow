@@ -8,6 +8,10 @@ import java.util.UUID;
 public record ReminderSettingsUpdateRequest(
     @NotNull UUID studioId,
     @NotNull Boolean appointmentReminderEnabled,
-    @NotNull @Min(1) @Max(168) Integer appointmentReminderHoursBefore
+    @NotNull @Min(1) @Max(168) Integer appointmentReminderHoursBefore,
+    java.util.List<@Min(1) @Max(168) Integer> appointmentReminderOffsetsHours,
+    Boolean appointmentReminderInAppEnabled,
+    Boolean appointmentReminderEmailEnabled,
+    Boolean appointmentReminderSmsEnabled
 ) {
 }

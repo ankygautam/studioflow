@@ -8,6 +8,8 @@ import {
   formatHourLabel,
   formatMonthTitle,
   getAppointmentCardClassName,
+  getMobileQuickStatusActions,
+  getTodayDateValue,
 } from './calendar-utils'
 import type { CalendarEvent, CalendarView } from './types'
 
@@ -31,6 +33,7 @@ type DraftShape = {
 export function CalendarGrid({
   activeRangeLabel,
   allowCreate,
+  canQuickUpdateStatus,
   calendarEvents,
   dayAppointments,
   dependenciesError,
@@ -38,10 +41,16 @@ export function CalendarGrid({
   filteredAppointmentsCount,
   hasActiveFilters,
   monthDays,
+  onChangeDay,
   onCreate,
   onEdit,
   onJumpToLatest,
+  onJumpToToday,
+  onQuickStatusAction,
   onResetFilters,
+  quickActionAppointmentId,
+  quickActionError,
+  quickActionStatus,
   rawAppointmentsCount,
   selectedDate,
   setSelectedDate,
@@ -54,6 +63,7 @@ export function CalendarGrid({
 }: {
   activeRangeLabel: string
   allowCreate: boolean
+  canQuickUpdateStatus: boolean
   calendarEvents: CalendarEvent[]
   dayAppointments: CalendarEvent[]
   dependenciesError: string | null
@@ -61,10 +71,16 @@ export function CalendarGrid({
   filteredAppointmentsCount: number
   hasActiveFilters: boolean
   monthDays: { dayOfMonth: number; isCurrentMonth: boolean; value: string }[]
+  onChangeDay: (offset: number) => void
   onCreate: (draft?: DraftShape) => void
   onEdit: (appointment: CalendarEvent) => void
   onJumpToLatest: () => void
+  onJumpToToday: () => void
+  onQuickStatusAction: (appointment: CalendarEvent, status: AppointmentStatus) => void
   onResetFilters: () => void
+  quickActionAppointmentId: string | null
+  quickActionError: string | null
+  quickActionStatus: AppointmentStatus | null
   rawAppointmentsCount: number
   selectedDate: string
   setSelectedDate: (value: string) => void
@@ -175,31 +191,63 @@ export function CalendarGrid({
 
   if (view === 'Day') {
     const sortedDayAppointments = [...dayAppointments].sort((left, right) => left.start.localeCompare(right.start))
+    const isToday = selectedDate === getTodayDateValue()
 
     return (
       <div className="space-y-4">
         {visibilityHint}
         <div className="space-y-4 lg:hidden">
           <div className="rounded-[28px] border border-slate-200 bg-slate-50/80 p-4">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Day agenda</p>
-                <p className="mt-2 text-2xl font-semibold text-slate-950">{formatDate(selectedDate)}</p>
-                <p className="mt-2 text-sm text-slate-500">
-                  {sortedDayAppointments.length} booking{sortedDayAppointments.length === 1 ? '' : 's'} scheduled
-                </p>
+            <div className="space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Day agenda</p>
+                  <p className="mt-2 text-2xl font-semibold text-slate-950">{formatDate(selectedDate)}</p>
+                  <p className="mt-2 text-sm text-slate-500">
+                    {sortedDayAppointments.length} booking{sortedDayAppointments.length === 1 ? '' : 's'} scheduled
+                  </p>
+                </div>
+                {allowCreate ? (
+                  <button
+                    className="rounded-full bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(15,23,42,0.14)]"
+                    onClick={() => onCreate({ appointmentDate: selectedDate })}
+                    type="button"
+                  >
+                    New booking
+                  </button>
+                ) : null}
               </div>
-              {allowCreate ? (
+
+              <div className="flex flex-wrap gap-2">
                 <button
-                  className="rounded-full bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(15,23,42,0.14)]"
-                  onClick={() => onCreate({ appointmentDate: selectedDate })}
+                  className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
+                  onClick={() => onChangeDay(-1)}
                   type="button"
                 >
-                  New booking
+                  Previous day
                 </button>
-              ) : null}
+                <button
+                  className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:text-slate-400"
+                  disabled={isToday}
+                  onClick={onJumpToToday}
+                  type="button"
+                >
+                  Today
+                </button>
+                <button
+                  className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
+                  onClick={() => onChangeDay(1)}
+                  type="button"
+                >
+                  Next day
+                </button>
+              </div>
             </div>
           </div>
+
+          {quickActionError ? (
+            <ErrorState message={quickActionError} title="Quick update failed" />
+          ) : null}
 
           {sortedDayAppointments.length === 0 ? (
             <div className="rounded-[28px] border border-dashed border-slate-200 bg-slate-50/80 p-6 text-sm text-slate-600">
@@ -210,30 +258,54 @@ export function CalendarGrid({
             </div>
           ) : (
             <div className="space-y-3">
-              {sortedDayAppointments.map((appointment) => (
-                <button
-                  key={appointment.id}
-                  className={getAppointmentCardClassName(appointment.status)}
-                  onClick={() => onEdit(appointment)}
-                  type="button"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-200">
-                        {formatTime(appointment.startTime)} - {formatTime(appointment.endTime)}
-                      </p>
-                      <p className="mt-2 font-semibold text-white">{appointment.customerName}</p>
-                      <p className="mt-1 text-sm text-slate-300">{appointment.serviceName}</p>
-                      <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-300">
-                        {appointment.staffName} • {humanizeEnum(appointment.source.source)}
-                      </p>
-                    </div>
-                    <StatusBadge tone={appointmentTone(appointment.status)}>
-                      {humanizeEnum(appointment.status)}
-                    </StatusBadge>
-                  </div>
-                </button>
-              ))}
+              {sortedDayAppointments.map((appointment) => {
+                const quickActions = getMobileQuickStatusActions(appointment.status)
+                const isUpdatingAppointment = quickActionAppointmentId === appointment.id
+
+                return (
+                  <article
+                    key={appointment.id}
+                    className={getAppointmentCardClassName(appointment.status)}
+                  >
+                    <button
+                      className="block w-full text-left"
+                      onClick={() => onEdit(appointment)}
+                      type="button"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-200">
+                            {formatTime(appointment.startTime)} - {formatTime(appointment.endTime)}
+                          </p>
+                          <p className="mt-2 font-semibold text-white">{appointment.customerName}</p>
+                          <p className="mt-1 text-sm text-slate-300">{appointment.serviceName}</p>
+                          <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-300">
+                            {appointment.staffName} • {humanizeEnum(appointment.source.source)}
+                          </p>
+                        </div>
+                        <StatusBadge tone={appointmentTone(appointment.status)}>
+                          {humanizeEnum(appointment.status)}
+                        </StatusBadge>
+                      </div>
+                    </button>
+
+                    {canQuickUpdateStatus && quickActions.length > 0 ? (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {quickActions.map((action) => (
+                          <QuickActionButton
+                            key={action.nextStatus}
+                            disabled={isUpdatingAppointment}
+                            isLoading={isUpdatingAppointment && quickActionStatus === action.nextStatus}
+                            label={action.label}
+                            onClick={() => onQuickStatusAction(appointment, action.nextStatus)}
+                            tone={action.tone}
+                          />
+                        ))}
+                      </div>
+                    ) : null}
+                  </article>
+                )
+              })}
             </div>
           )}
         </div>
@@ -458,5 +530,37 @@ export function CalendarGrid({
         </div>
       </div>
     </div>
+  )
+}
+
+function QuickActionButton({
+  disabled,
+  isLoading,
+  label,
+  onClick,
+  tone,
+}: {
+  disabled: boolean
+  isLoading: boolean
+  label: string
+  onClick: () => void
+  tone: 'attention' | 'calm' | 'danger' | 'success'
+}) {
+  const toneClassName = {
+    attention: 'border-amber-200 bg-amber-50 text-amber-700',
+    calm: 'border-sky-200 bg-sky-50 text-sky-700',
+    danger: 'border-rose-200 bg-rose-50 text-rose-700',
+    success: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  }[tone]
+
+  return (
+    <button
+      className={`rounded-full border px-3 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${toneClassName}`}
+      disabled={disabled}
+      onClick={onClick}
+      type="button"
+    >
+      {isLoading ? 'Updating...' : label}
+    </button>
   )
 }

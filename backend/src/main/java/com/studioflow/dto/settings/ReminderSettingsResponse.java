@@ -5,6 +5,10 @@ import java.util.UUID;
 public record ReminderSettingsResponse(
     UUID studioId,
     Boolean appointmentReminderEnabled,
-    Integer appointmentReminderHoursBefore
+    Integer appointmentReminderHoursBefore,
+    java.util.List<Integer> appointmentReminderOffsetsHours,
+    Boolean appointmentReminderInAppEnabled,
+    Boolean appointmentReminderEmailEnabled,
+    Boolean appointmentReminderSmsEnabled
 ) {
 }

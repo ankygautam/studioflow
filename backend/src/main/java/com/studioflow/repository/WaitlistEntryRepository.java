@@ -10,4 +10,10 @@ public interface WaitlistEntryRepository extends JpaRepository<WaitlistEntry, UU
     List<WaitlistEntry> findByStudioIdOrderByCreatedAtDesc(UUID studioId);
 
     List<WaitlistEntry> findByStudioIdAndLocationIdOrderByCreatedAtDesc(UUID studioId, UUID locationId);
+
+    List<WaitlistEntry> findByStudioIdAndLocationIdAndServiceIdAndIsActiveTrueOrderByCreatedAtAsc(
+        UUID studioId,
+        UUID locationId,
+        UUID serviceId
+    );
 }

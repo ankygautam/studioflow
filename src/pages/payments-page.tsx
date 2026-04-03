@@ -14,7 +14,7 @@ import { useRemoteList } from '../hooks/use-remote-list'
 import { getAuditLogsByEntity } from '../lib/api/audit-api'
 import { getAppointments } from '../lib/api/appointments-api'
 import { getDefaultStudioId } from '../lib/api/http'
-import { buildCsvFilename, downloadCsv } from '../lib/csv'
+import { downloadPaymentsExport } from '../lib/api/reports-api'
 import { createPayment, deletePayment, getPayments, updatePayment } from '../lib/api/payments-api'
 import type { AppointmentRecord, PaymentMethod, PaymentRecord, PaymentStatus } from '../lib/api/types'
 import { formatCurrency, formatDate, formatDateTime, formatTime, humanizeEnum } from '../lib/formatters'
@@ -52,6 +52,7 @@ export function PaymentsPage() {
   } = useRemoteList(loadAppointments)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
   const [mutationError, setMutationError] = useState<string | null>(null)
   const [editingPayment, setEditingPayment] = useState<PaymentRecord | null>(null)
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
@@ -167,36 +168,21 @@ export function PaymentsPage() {
     value: appointment.id,
   }))
 
-  const exportPayments = () => {
-    downloadCsv(
-      buildCsvFilename('payments'),
-      [
-        'Client',
-        'Location',
-        'Appointment Date',
-        'Appointment Time',
-        'Service',
-        'Amount',
-        'Deposit',
-        'Payment Status',
-        'Payment Method',
-        'Paid At',
-        'Transaction Reference',
-      ],
-      payments.map((payment) => [
-        payment.customerName,
-        payment.locationName,
-        payment.appointmentDate,
-        payment.appointmentStartTime,
-        payment.serviceName,
-        payment.amount,
-        payment.depositAmount,
-        payment.paymentStatus,
-        payment.paymentMethod,
-        payment.paidAt,
-        payment.transactionReference,
-      ]),
-    )
+  const exportPayments = async () => {
+    if (isExporting) {
+      return
+    }
+
+    setIsExporting(true)
+
+    try {
+      await downloadPaymentsExport({
+        locationId: selectedLocationId,
+        studioId: defaultStudioId,
+      })
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   return (
@@ -206,10 +192,11 @@ export function PaymentsPage() {
           <div className="flex flex-wrap gap-3">
             <button
               className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-[0_12px_30px_rgba(15,23,42,0.06)]"
-              onClick={exportPayments}
+              disabled={isExporting}
+              onClick={() => void exportPayments()}
               type="button"
             >
-              Export CSV
+              {isExporting ? 'Exporting...' : 'Export CSV'}
             </button>
             <button
               className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(15,23,42,0.18)]"

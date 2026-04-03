@@ -51,4 +51,7 @@ public class CommunicationLog extends BaseEntity {
 
     @Column(name = "error_message", length = 255)
     private String errorMessage;
+
+    @Column(name = "reminder_offset_hours")
+    private Integer reminderOffsetHours;
 }

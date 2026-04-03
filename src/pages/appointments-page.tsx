@@ -8,11 +8,12 @@ import { StatusBadge } from '../components/ui/status-badge'
 import { useAppointmentsFilters } from '../features/appointments/use-appointments-filters'
 import { canCreateBookings, canDeleteAppointments, canEditAppointments } from '../features/auth/authorization'
 import { useAuth } from '../features/auth/use-auth'
+import { WaitlistMatchSuggestionsModal } from '../features/waitlist/waitlist-match-suggestions-modal'
 import { useRemoteList } from '../hooks/use-remote-list'
 import { appointmentTone } from '../lib/appointments'
 import { getAppointments } from '../lib/api/appointments-api'
 import { getDefaultStudioId } from '../lib/api/http'
-import { buildCsvFilename, downloadCsv } from '../lib/csv'
+import { downloadAppointmentsExport } from '../lib/api/reports-api'
 import type { AppointmentRecord } from '../lib/api/types'
 import { formatDate, formatTime, humanizeEnum } from '../lib/formatters'
 
@@ -30,6 +31,8 @@ export function AppointmentsPage() {
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [editingAppointment, setEditingAppointment] = useState<AppointmentRecord | null>(null)
+  const [cancelledAppointmentForSuggestions, setCancelledAppointmentForSuggestions] = useState<AppointmentRecord | null>(null)
+  const [isExporting, setIsExporting] = useState(false)
   const {
     filterValue,
     query,
@@ -53,23 +56,25 @@ export function AppointmentsPage() {
     setIsDrawerOpen(false)
   }
 
-  const exportAppointments = () => {
-    downloadCsv(
-      buildCsvFilename('appointments'),
-      ['Client', 'Location', 'Date', 'Start Time', 'End Time', 'Service', 'Staff', 'Status', 'Source', 'Notes'],
-      visibleAppointments.map((appointment) => [
-        appointment.customerName,
-        appointment.locationName,
-        appointment.appointmentDate,
-        appointment.startTime,
-        appointment.endTime,
-        appointment.serviceName,
-        appointment.staffName,
-        appointment.status,
-        appointment.source,
-        appointment.notes,
-      ]),
-    )
+  const exportAppointments = async () => {
+    if (isExporting) {
+      return
+    }
+
+    setIsExporting(true)
+
+    try {
+      const dateRange = resolveAppointmentExportRange(filterValue)
+
+      await downloadAppointmentsExport({
+        fromDate: dateRange.fromDate,
+        locationId: selectedLocationId,
+        studioId: defaultStudioId,
+        toDate: dateRange.toDate,
+      })
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   return (
@@ -79,10 +84,11 @@ export function AppointmentsPage() {
           <div className="flex flex-wrap gap-3">
             <button
               className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-[0_12px_30px_rgba(15,23,42,0.06)]"
-              onClick={exportAppointments}
+              disabled={isExporting}
+              onClick={() => void exportAppointments()}
               type="button"
             >
-              Export CSV
+              {isExporting ? 'Exporting...' : 'Export CSV'}
             </button>
             {allowCreate ? (
               <button
@@ -193,10 +199,47 @@ export function AppointmentsPage() {
         appointment={editingAppointment}
         allowCreate={allowCreate}
         allowDelete={allowDelete}
+        onCancelled={(cancelledAppointment) => {
+          setCancelledAppointmentForSuggestions(cancelledAppointment)
+        }}
         onClose={closeDrawer}
         onSaved={reload}
         open={isDrawerOpen}
       />
+
+      <WaitlistMatchSuggestionsModal
+        appointment={cancelledAppointmentForSuggestions}
+        onClose={() => setCancelledAppointmentForSuggestions(null)}
+        open={cancelledAppointmentForSuggestions !== null}
+      />
     </div>
   )
+}
+
+function resolveAppointmentExportRange(filterValue: ReturnType<typeof useAppointmentsFilters>['filterValue']) {
+  if (filterValue === 'ALL') {
+    return { fromDate: null, toDate: null }
+  }
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  if (filterValue === 'TODAY') {
+    const date = formatDateParam(today)
+    return { fromDate: date, toDate: date }
+  }
+
+  if (filterValue === 'THIS_MONTH') {
+    const start = new Date(today.getFullYear(), today.getMonth(), 1)
+    const end = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+    return { fromDate: formatDateParam(start), toDate: formatDateParam(end) }
+  }
+
+  const end = new Date(today)
+  end.setDate(today.getDate() + 6)
+  return { fromDate: formatDateParam(today), toDate: formatDateParam(end) }
+}
+
+function formatDateParam(value: Date) {
+  return value.toISOString().slice(0, 10)
 }

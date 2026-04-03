@@ -1,6 +1,7 @@
 import { Navigate, Route } from 'react-router-dom'
 import { PUBLIC_BOOKING_DEMO_ROUTE } from '../../lib/demo-routes'
 import { PublicBookingManagePage } from '../../pages/public-booking-manage-page'
+import { PublicBookingPortalPage } from '../../pages/public-booking-portal-page'
 import { PublicBookingPage } from '../../pages/public-booking-page'
 
 export function renderPublicBookingRoutes() {
@@ -23,8 +24,16 @@ export function renderPublicBookingRoutes() {
         element={<PublicBookingManagePage />}
       />
       <Route
+        path="/book/:studioSlug/portal"
+        element={<PublicBookingPortalPage />}
+      />
+      <Route
         path="/book/:studioSlug/:locationSlug/manage"
         element={<PublicBookingManagePage />}
+      />
+      <Route
+        path="/book/:studioSlug/:locationSlug/portal"
+        element={<PublicBookingPortalPage />}
       />
     </>
   )

@@ -22,7 +22,7 @@ import {
   updateWaitlistEntry,
 } from '../lib/api/waitlist-api'
 import type { WaitlistEntryRecord } from '../lib/api/types'
-import { formatDate } from '../lib/formatters'
+import { formatDate, formatTime } from '../lib/formatters'
 
 type WaitlistFormState = {
   customerProfileId: string
@@ -30,7 +30,9 @@ type WaitlistFormState = {
   locationId: string
   notes: string
   preferredDate: string
+  preferredEndTime: string
   preferredStaffProfileId: string
+  preferredStartTime: string
   serviceId: string
   studioId: string
 }
@@ -143,7 +145,9 @@ export function WaitlistPage() {
       locationId: formState.locationId,
       notes: formState.notes.trim(),
       preferredDate: formState.preferredDate || null,
+      preferredEndTime: formState.preferredEndTime || null,
       preferredStaffProfileId: formState.preferredStaffProfileId || null,
+      preferredStartTime: formState.preferredStartTime || null,
       serviceId: formState.serviceId,
       studioId,
     }
@@ -266,6 +270,11 @@ export function WaitlistPage() {
                   <td className="px-4 py-4 text-sm text-slate-600">{entry.serviceName}</td>
                   <td className="px-4 py-4 text-sm text-slate-600">
                     {entry.preferredDate ? formatDate(entry.preferredDate) : 'Flexible'}
+                    {entry.preferredStartTime || entry.preferredEndTime ? (
+                      <p className="mt-1 text-xs text-slate-500">
+                        {formatPreferredWindow(entry.preferredStartTime, entry.preferredEndTime)}
+                      </p>
+                    ) : null}
                   </td>
                   <td className="px-4 py-4 text-sm text-slate-600">{entry.preferredStaffName || 'Any staff'}</td>
                   <td className="px-4 py-4">
@@ -394,6 +403,24 @@ export function WaitlistPage() {
               type="date"
               value={formState.preferredDate}
             />
+            <InputField
+              error={formErrors.preferredStartTime}
+              label="Preferred start time"
+              onChange={(event) =>
+                setFormState((current) => ({ ...current, preferredStartTime: event.target.value }))
+              }
+              type="time"
+              value={formState.preferredStartTime}
+            />
+            <InputField
+              error={formErrors.preferredEndTime}
+              label="Preferred end time"
+              onChange={(event) =>
+                setFormState((current) => ({ ...current, preferredEndTime: event.target.value }))
+              }
+              type="time"
+              value={formState.preferredEndTime}
+            />
           </div>
 
           <TextAreaField
@@ -435,7 +462,9 @@ function createWaitlistForm(
     locationId: entry?.locationId ?? locationId ?? '',
     notes: entry?.notes ?? '',
     preferredDate: entry?.preferredDate ?? '',
+    preferredEndTime: entry?.preferredEndTime ?? '',
     preferredStaffProfileId: entry?.preferredStaffProfileId ?? '',
+    preferredStartTime: entry?.preferredStartTime ?? '',
     serviceId: entry?.serviceId ?? '',
     studioId: studioId ?? '',
   }
@@ -460,7 +489,31 @@ function validateWaitlistForm(formState: WaitlistFormState, studioId: string | n
     errors.serviceId = 'Service is required.'
   }
 
+  if (
+    formState.preferredStartTime
+    && formState.preferredEndTime
+    && formState.preferredEndTime <= formState.preferredStartTime
+  ) {
+    errors.preferredEndTime = 'Preferred end time must be after the preferred start time.'
+  }
+
   return errors
+}
+
+function formatPreferredWindow(startTime: string | null, endTime: string | null) {
+  if (startTime && endTime) {
+    return `${formatTime(startTime)} - ${formatTime(endTime)}`
+  }
+
+  if (startTime) {
+    return `After ${formatTime(startTime)}`
+  }
+
+  if (endTime) {
+    return `Before ${formatTime(endTime)}`
+  }
+
+  return 'Flexible time'
 }
 
 function InlineSelect({

@@ -1,8 +1,20 @@
 import type { AppointmentRecord, AppointmentStatus } from '../../lib/api/types'
 import type { CalendarEvent, CalendarView } from './types'
 
+export type MobileQuickStatusAction = {
+  label: string
+  nextStatus: AppointmentStatus
+  tone: 'attention' | 'calm' | 'danger' | 'success'
+}
+
 export function getTodayDateValue() {
   return toDateValue(new Date())
+}
+
+export function shiftDateValue(dateValue: string, amount: number) {
+  const date = toLocalDate(dateValue)
+  date.setDate(date.getDate() + amount)
+  return toDateValue(date)
 }
 
 export function formatHourLabel(hour: number) {
@@ -62,6 +74,27 @@ export function upsertAppointment(current: AppointmentRecord[], nextAppointment:
   }
 
   return current.map((appointment) => (appointment.id === nextAppointment.id ? nextAppointment : appointment))
+}
+
+export function getMobileQuickStatusActions(status: AppointmentStatus): MobileQuickStatusAction[] {
+  if (status === 'BOOKED') {
+    return [
+      { label: 'Arrived', nextStatus: 'CONFIRMED', tone: 'calm' },
+      { label: 'Completed', nextStatus: 'COMPLETED', tone: 'success' },
+      { label: 'Cancel', nextStatus: 'CANCELLED', tone: 'danger' },
+      { label: 'No-show', nextStatus: 'NO_SHOW', tone: 'attention' },
+    ]
+  }
+
+  if (status === 'CONFIRMED') {
+    return [
+      { label: 'Completed', nextStatus: 'COMPLETED', tone: 'success' },
+      { label: 'Cancel', nextStatus: 'CANCELLED', tone: 'danger' },
+      { label: 'No-show', nextStatus: 'NO_SHOW', tone: 'attention' },
+    ]
+  }
+
+  return []
 }
 
 export function matchesCalendarView(appointmentDate: string, selectedDate: string, view: CalendarView) {

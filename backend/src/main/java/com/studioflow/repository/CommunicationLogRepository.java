@@ -19,6 +19,14 @@ public interface CommunicationLogRepository extends JpaRepository<CommunicationL
         Instant sentAt
     );
 
+    boolean existsByAppointmentIdAndEventTypeAndDeliveryStatusAndReminderOffsetHoursAndSentAtAfter(
+        UUID appointmentId,
+        CommunicationEventType eventType,
+        CommunicationDeliveryStatus deliveryStatus,
+        Integer reminderOffsetHours,
+        Instant sentAt
+    );
+
     Optional<CommunicationLog> findTopByAppointmentIdAndEventTypeAndDeliveryStatusOrderBySentAtDesc(
         UUID appointmentId,
         CommunicationEventType eventType,

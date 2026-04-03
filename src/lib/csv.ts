@@ -26,6 +26,10 @@ export function downloadCsv(
 ) {
   const csv = buildCsv(columns, rows)
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  downloadBlob(filename, blob)
+}
+
+export function downloadBlob(filename: string, blob: Blob) {
   const url = window.URL.createObjectURL(blob)
   const link = document.createElement('a')
 

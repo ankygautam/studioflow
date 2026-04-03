@@ -2,9 +2,12 @@ package com.studioflow.controller;
 
 import com.studioflow.dto.appointment.AppointmentCreateRequest;
 import com.studioflow.dto.appointment.AppointmentResponse;
+import com.studioflow.dto.appointment.AppointmentSuggestionsResponse;
 import com.studioflow.dto.appointment.AppointmentUpdateRequest;
 import com.studioflow.service.AppointmentService;
+import com.studioflow.service.appointment.AppointmentSuggestionService;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
@@ -27,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AppointmentController {
 
     private final AppointmentService appointmentService;
+    private final AppointmentSuggestionService appointmentSuggestionService;
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST')")
@@ -44,6 +48,26 @@ public class AppointmentController {
         @RequestParam(required = false) UUID locationId
     ) {
         return ResponseEntity.ok(appointmentService.getAllAppointments(studioId, locationId));
+    }
+
+    @GetMapping("/suggestions")
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST','STAFF')")
+    public ResponseEntity<AppointmentSuggestionsResponse> getAppointmentSuggestions(
+        @RequestParam UUID studioId,
+        @RequestParam UUID locationId,
+        @RequestParam UUID serviceId,
+        @RequestParam UUID staffProfileId,
+        @RequestParam LocalDate date,
+        @RequestParam(required = false) UUID appointmentId
+    ) {
+        return ResponseEntity.ok(appointmentSuggestionService.getSuggestions(
+            studioId,
+            locationId,
+            serviceId,
+            staffProfileId,
+            date,
+            appointmentId
+        ));
     }
 
     @GetMapping("/{id}")

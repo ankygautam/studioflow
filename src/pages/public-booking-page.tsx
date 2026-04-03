@@ -594,6 +594,16 @@ export function PublicBookingPage() {
                     Manage this booking
                   </Link>
                   <Link
+                    className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700"
+                    to={
+                      selectedLocation
+                        ? `/book/${studioSlug}/${selectedLocation.slug}/portal?reference=${encodeURIComponent(confirmation.bookingReference)}`
+                        : `/book/${studioSlug}/portal?reference=${encodeURIComponent(confirmation.bookingReference)}`
+                    }
+                  >
+                    View booking details
+                  </Link>
+                  <Link
                     className="rounded-full border border-slate-200 bg-slate-50 px-5 py-3 text-sm font-semibold text-slate-600"
                     to={selectedLocation ? `/book/${studioSlug}/${selectedLocation.slug}` : `/book/${studioSlug}`}
                   >

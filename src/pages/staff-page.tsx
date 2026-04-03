@@ -14,8 +14,8 @@ import { useRemoteList } from '../hooks/use-remote-list'
 import { getAppointments } from '../lib/api/appointments-api'
 import { getDefaultStudioId } from '../lib/api/http'
 import { getPayments } from '../lib/api/payments-api'
+import { downloadStaffExport } from '../lib/api/reports-api'
 import { createStaff, deleteStaff, getStaff, updateStaff } from '../lib/api/staff-api'
-import { buildCsvFilename, downloadCsv } from '../lib/csv'
 import type { AppointmentRecord, PaymentRecord, StaffRecord, StaffStatus, UserRole } from '../lib/api/types'
 import { formatCurrency, humanizeEnum } from '../lib/formatters'
 
@@ -59,6 +59,7 @@ export function StaffPage() {
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
   const [mutationError, setMutationError] = useState<string | null>(null)
   const [editingStaff, setEditingStaff] = useState<StaffRecord | null>(null)
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
@@ -166,35 +167,21 @@ export function StaffPage() {
     }
   }
 
-  const exportStaff = () => {
-    downloadCsv(
-      buildCsvFilename('staff'),
-      [
-        'Display Name',
-        'Primary Location',
-        'Job Title',
-        'Phone',
-        'Status',
-        'Commission Rate',
-        'Estimated Earnings',
-        'User Email',
-        'User Role',
-      ],
-      staffMembers.map((staffMember) => [
-        staffMember.displayName,
-        staffMember.primaryLocationName || 'Studio-wide',
-        staffMember.jobTitle,
-        staffMember.phone,
-        staffMember.status,
-        staffMember.commissionRate,
-        calculateCommissionEarnings(
-          staffMember.commissionRate,
-          staffEarnings.get(staffMember.id)?.commissionableRevenue ?? 0,
-        ),
-        staffMember.userEmail,
-        staffMember.userRole,
-      ]),
-    )
+  const exportStaff = async () => {
+    if (isExporting) {
+      return
+    }
+
+    setIsExporting(true)
+
+    try {
+      await downloadStaffExport({
+        locationId: selectedLocationId,
+        studioId: defaultStudioId,
+      })
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   return (
@@ -204,10 +191,11 @@ export function StaffPage() {
           <div className="flex flex-wrap gap-3">
             <button
               className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-[0_12px_30px_rgba(15,23,42,0.06)]"
-              onClick={exportStaff}
+              disabled={isExporting}
+              onClick={() => void exportStaff()}
               type="button"
             >
-              Export CSV
+              {isExporting ? 'Exporting...' : 'Export CSV'}
             </button>
             {canManage ? (
               <button

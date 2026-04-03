@@ -4,31 +4,38 @@ import { useSearchParams } from 'react-router-dom'
 import { AppointmentDrawer } from '../components/appointments/appointment-drawer'
 import { SurfaceCard } from '../components/layout/app-shell'
 import { StatusBadge } from '../components/ui/status-badge'
-import { canCreateBookings } from '../features/auth/authorization'
+import { canCreateBookings, canUpdateAppointmentStatus } from '../features/auth/authorization'
 import { useAuth } from '../features/auth/use-auth'
 import { CalendarGrid } from '../features/calendar/calendar-grid'
 import { CalendarToolbar } from '../features/calendar/calendar-toolbar'
-import { getTimelineHours, upsertAppointment } from '../features/calendar/calendar-utils'
+import { getTimelineHours, getTodayDateValue, shiftDateValue, upsertAppointment } from '../features/calendar/calendar-utils'
 import type { CalendarEvent } from '../features/calendar/types'
 import { useCalendarData } from '../features/calendar/use-calendar-data'
 import { useCalendarFilters } from '../features/calendar/use-calendar-filters'
 import { useCalendarView } from '../features/calendar/use-calendar-view'
+import { WaitlistMatchSuggestionsModal } from '../features/waitlist/waitlist-match-suggestions-modal'
 import { appointmentTone, type AppointmentFormState } from '../lib/appointments'
-import { getAppointments } from '../lib/api/appointments-api'
+import { getAppointments, updateAppointment } from '../lib/api/appointments-api'
 import { getDefaultStudioId } from '../lib/api/http'
-import type { AppointmentRecord } from '../lib/api/types'
+import { dispatchNotificationsRefresh } from '../lib/notifications'
+import type { AppointmentRecord, AppointmentStatus } from '../lib/api/types'
 import { humanizeEnum } from '../lib/formatters'
 
 export function CalendarPage() {
   const { selectedLocationId, setSelectedLocationId, user } = useAuth()
   const allowCreate = user ? canCreateBookings(user.role) : false
+  const canQuickUpdateStatus = user ? canUpdateAppointmentStatus(user.role) : false
   const defaultStudioId = user?.studioId ?? getDefaultStudioId()
 
   const [searchParams, setSearchParams] = useSearchParams()
   const [draft, setDraft] = useState<Partial<AppointmentFormState> | null>(null)
   const [editingAppointment, setEditingAppointment] = useState<AppointmentRecord | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [cancelledAppointmentForSuggestions, setCancelledAppointmentForSuggestions] = useState<AppointmentRecord | null>(null)
   const [pendingSavedAppointmentId, setPendingSavedAppointmentId] = useState<string | null>(null)
+  const [quickActionAppointmentId, setQuickActionAppointmentId] = useState<string | null>(null)
+  const [quickActionError, setQuickActionError] = useState<string | null>(null)
+  const [quickActionStatus, setQuickActionStatus] = useState<AppointmentStatus | null>(null)
   const [visibilityRescueKey, setVisibilityRescueKey] = useState<string | null>(null)
 
   const {
@@ -222,6 +229,50 @@ export function CalendarPage() {
     setEditingAppointment('title' in appointment ? appointment.source : appointment)
     setIsDrawerOpen(true)
   }
+
+  const handleQuickStatusAction = async (appointment: CalendarEvent, nextStatus: AppointmentStatus) => {
+    if (quickActionAppointmentId) {
+      return
+    }
+
+    setQuickActionAppointmentId(appointment.id)
+    setQuickActionStatus(nextStatus)
+    setQuickActionError(null)
+
+    try {
+      const updatedAppointment = await updateAppointment(appointment.id, {
+        appointmentDate: appointment.source.appointmentDate,
+        customerProfileId: appointment.source.customerProfileId,
+        endTime: appointment.source.endTime,
+        locationId: appointment.source.locationId,
+        notes: appointment.source.notes ?? '',
+        serviceId: appointment.source.serviceId,
+        source: appointment.source.source,
+        staffProfileId: appointment.source.staffProfileId,
+        startTime: appointment.source.startTime,
+        status: nextStatus,
+        studioId: appointment.source.studioId,
+      })
+
+      setAppointments((current) => upsertAppointment(current, updatedAppointment))
+      dispatchNotificationsRefresh()
+
+      if (nextStatus === 'CANCELLED' && appointment.source.status !== 'CANCELLED') {
+        setCancelledAppointmentForSuggestions(updatedAppointment)
+      }
+
+      try {
+        await reloadAppointments()
+      } catch {
+        setAppointments((current) => upsertAppointment(current, updatedAppointment))
+      }
+    } catch (error) {
+      setQuickActionError(error instanceof Error ? error.message : 'Unable to update this appointment right now.')
+    } finally {
+      setQuickActionAppointmentId(null)
+      setQuickActionStatus(null)
+    }
+  }
   
   return (
     <div className="space-y-6">
@@ -293,6 +344,7 @@ export function CalendarPage() {
             <CalendarGrid
               activeRangeLabel={activeRangeLabel}
               allowCreate={allowCreate}
+              canQuickUpdateStatus={canQuickUpdateStatus}
               calendarEvents={calendarEvents}
               dayAppointments={dayAppointments}
               dependenciesError={dependenciesError}
@@ -300,6 +352,10 @@ export function CalendarPage() {
               filteredAppointmentsCount={filteredAppointments.length}
               hasActiveFilters={hasActiveFilters}
               monthDays={monthDays}
+              onChangeDay={(offset) => {
+                setQuickActionError(null)
+                setSelectedDate(shiftDateValue(selectedDate, offset))
+              }}
               onCreate={(nextDraft) => openCreateDrawer(nextDraft)}
               onEdit={(appointment) => openEditDrawer(appointment)}
               onJumpToLatest={() => {
@@ -308,7 +364,17 @@ export function CalendarPage() {
                   focusAppointment(nextFocusDate)
                 }
               }}
+              onJumpToToday={() => {
+                setQuickActionError(null)
+                setSelectedDate(getTodayDateValue())
+              }}
+              onQuickStatusAction={(appointment, nextStatus) => {
+                void handleQuickStatusAction(appointment, nextStatus)
+              }}
               onResetFilters={resetFilters}
+              quickActionAppointmentId={quickActionAppointmentId}
+              quickActionError={quickActionError}
+              quickActionStatus={quickActionStatus}
               rawAppointmentsCount={rawAppointments.length}
               selectedDate={selectedDate}
               setSelectedDate={setSelectedDate}
@@ -345,6 +411,9 @@ export function CalendarPage() {
         allowCreate={allowCreate}
         allowDelete={allowCreate}
         draft={draft}
+        onCancelled={(cancelledAppointment) => {
+          setCancelledAppointmentForSuggestions(cancelledAppointment)
+        }}
         onClose={closeDrawer}
         onSaved={async (savedAppointment) => {
           if (!savedAppointment) {
@@ -374,6 +443,12 @@ export function CalendarPage() {
           }
         }}
         open={isDrawerOpen}
+      />
+
+      <WaitlistMatchSuggestionsModal
+        appointment={cancelledAppointmentForSuggestions}
+        onClose={() => setCancelledAppointmentForSuggestions(null)}
+        open={cancelledAppointmentForSuggestions !== null}
       />
     </div>
   )

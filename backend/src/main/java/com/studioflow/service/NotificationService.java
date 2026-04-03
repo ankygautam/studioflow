@@ -44,6 +44,7 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final StaffProfileRepository staffProfileRepository;
     private final NotificationDeliveryService notificationDeliveryService;
+    private final ReminderSettingsService reminderSettingsService;
 
     @Transactional(readOnly = true)
     public List<NotificationResponse> getNotifications(boolean unreadOnly, Integer limit) {
@@ -190,25 +191,47 @@ public class NotificationService {
     }
 
     public boolean notifyAppointmentReminder(Appointment appointment, Instant duplicateThreshold) {
-        boolean created = createAppointmentReminderNotifications(appointment, duplicateThreshold);
-        if (created) {
-            notificationDeliveryService.sendAppointmentReminder(appointment);
-        }
-        return created;
+        return notifyAppointmentReminder(appointment, null, duplicateThreshold);
     }
 
     @Transactional(readOnly = true)
     public boolean hasRecentReminderNotification(Appointment appointment, Instant threshold) {
+        return hasRecentReminderNotification(appointment, null, threshold);
+    }
+
+    public boolean notifyAppointmentReminder(Appointment appointment, Integer reminderOffsetHours, Instant duplicateThreshold) {
+        Studio studio = appointment.getStudio();
+        boolean created = reminderSettingsService.isReminderInAppEnabled(studio)
+            && createAppointmentReminderNotifications(appointment, reminderOffsetHours, duplicateThreshold);
+        boolean delivered = notificationDeliveryService.sendAppointmentReminder(
+            appointment,
+            reminderOffsetHours,
+            reminderSettingsService.isReminderEmailEnabled(studio),
+            reminderSettingsService.isReminderSmsEnabled(studio)
+        );
+        return created || delivered;
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasRecentReminderNotification(Appointment appointment, Integer reminderOffsetHours, Instant threshold) {
         List<StaffProfile> staffProfiles = staffProfileRepository.findByStudioId(appointment.getStudio().getId());
         Map<UUID, User> recipients = resolveRecipients(staffProfiles, appointment, NotificationType.APPOINTMENT_REMINDER);
 
         return recipients.values().stream().anyMatch((user) ->
-            notificationRepository.existsByUserIdAndAppointmentIdAndTypeAndCreatedAtAfter(
-                user.getId(),
-                appointment.getId(),
-                NotificationType.APPOINTMENT_REMINDER,
-                threshold
-            )
+            reminderOffsetHours == null
+                ? notificationRepository.existsByUserIdAndAppointmentIdAndTypeAndCreatedAtAfter(
+                    user.getId(),
+                    appointment.getId(),
+                    NotificationType.APPOINTMENT_REMINDER,
+                    threshold
+                )
+                : notificationRepository.existsByUserIdAndAppointmentIdAndTypeAndReminderOffsetHoursAndCreatedAtAfter(
+                    user.getId(),
+                    appointment.getId(),
+                    NotificationType.APPOINTMENT_REMINDER,
+                    reminderOffsetHours,
+                    threshold
+                )
         );
     }
 
@@ -274,7 +297,7 @@ public class NotificationService {
         Map<UUID, User> recipients = resolveRecipients(staffProfiles, appointment, type);
 
         List<Notification> notifications = recipients.values().stream()
-            .map((user) -> buildNotification(studio, user, appointment, type, title, message, actionUrl))
+            .map((user) -> buildNotification(studio, user, appointment, type, title, message, actionUrl, null))
             .toList();
 
         if (!notifications.isEmpty()) {
@@ -282,7 +305,11 @@ public class NotificationService {
         }
     }
 
-    private boolean createAppointmentReminderNotifications(Appointment appointment, Instant duplicateThreshold) {
+    private boolean createAppointmentReminderNotifications(
+        Appointment appointment,
+        Integer reminderOffsetHours,
+        Instant duplicateThreshold
+    ) {
         List<StaffProfile> staffProfiles = staffProfileRepository.findByStudioId(appointment.getStudio().getId());
         Map<UUID, User> recipients = resolveRecipients(staffProfiles, appointment, NotificationType.APPOINTMENT_REMINDER);
 
@@ -290,16 +317,25 @@ public class NotificationService {
             return false;
         }
 
-        String title = buildReminderTitle(appointment);
-        String message = buildReminderMessage(appointment);
+        String title = buildReminderTitle(appointment, reminderOffsetHours);
+        String message = buildReminderMessage(appointment, reminderOffsetHours);
 
         List<Notification> notifications = recipients.values().stream()
-            .filter((user) -> !notificationRepository.existsByUserIdAndAppointmentIdAndTypeAndCreatedAtAfter(
-                user.getId(),
-                appointment.getId(),
-                NotificationType.APPOINTMENT_REMINDER,
-                duplicateThreshold
-            ))
+            .filter((user) -> reminderOffsetHours == null
+                ? !notificationRepository.existsByUserIdAndAppointmentIdAndTypeAndCreatedAtAfter(
+                    user.getId(),
+                    appointment.getId(),
+                    NotificationType.APPOINTMENT_REMINDER,
+                    duplicateThreshold
+                )
+                : !notificationRepository.existsByUserIdAndAppointmentIdAndTypeAndReminderOffsetHoursAndCreatedAtAfter(
+                    user.getId(),
+                    appointment.getId(),
+                    NotificationType.APPOINTMENT_REMINDER,
+                    reminderOffsetHours,
+                    duplicateThreshold
+                )
+            )
             .map((user) -> buildNotification(
                 appointment.getStudio(),
                 user,
@@ -307,7 +343,8 @@ public class NotificationService {
                 NotificationType.APPOINTMENT_REMINDER,
                 title,
                 message,
-                "/appointments"
+                "/appointments",
+                reminderOffsetHours
             ))
             .toList();
 
@@ -365,7 +402,8 @@ public class NotificationService {
         NotificationType type,
         String title,
         String message,
-        String actionUrl
+        String actionUrl,
+        Integer reminderOffsetHours
     ) {
         Notification notification = new Notification();
         notification.setStudio(studio);
@@ -375,18 +413,32 @@ public class NotificationService {
         notification.setTitle(title);
         notification.setMessage(message);
         notification.setActionUrl(actionUrl);
+        notification.setReminderOffsetHours(reminderOffsetHours);
         notification.setIsRead(false);
         return notification;
     }
 
-    private String buildReminderTitle(Appointment appointment) {
-        java.time.LocalDateTime appointmentDateTime = java.time.LocalDateTime.of(appointment.getAppointmentDate(), appointment.getStartTime());
-        long hoursUntil = java.time.Duration.between(java.time.LocalDateTime.now(DEFAULT_ZONE), appointmentDateTime).toHours();
-        return hoursUntil <= 4 ? "Appointment coming up soon" : "Tomorrow's appointment reminder";
+    private String buildReminderTitle(Appointment appointment, Integer reminderOffsetHours) {
+        if (reminderOffsetHours == null) {
+            java.time.LocalDateTime appointmentDateTime = java.time.LocalDateTime.of(appointment.getAppointmentDate(), appointment.getStartTime());
+            long hoursUntil = java.time.Duration.between(java.time.LocalDateTime.now(DEFAULT_ZONE), appointmentDateTime).toHours();
+            return hoursUntil <= 4 ? "Appointment coming up soon" : "Tomorrow's appointment reminder";
+        }
+
+        if (reminderOffsetHours <= 4) {
+            return "Appointment in " + reminderOffsetHours + " hours";
+        }
+
+        return reminderOffsetHours + "-hour appointment reminder";
     }
 
-    private String buildReminderMessage(Appointment appointment) {
-        return appointment.getCustomerProfile().getFullName()
+    private String buildReminderMessage(Appointment appointment, Integer reminderOffsetHours) {
+        String prefix = reminderOffsetHours == null
+            ? ""
+            : "Reminder scheduled " + reminderOffsetHours + " hour" + (reminderOffsetHours == 1 ? "" : "s") + " before: ";
+
+        return prefix
+            + appointment.getCustomerProfile().getFullName()
             + " is booked for "
             + appointment.getService().getName()
             + " on "

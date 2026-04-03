@@ -37,4 +37,12 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
         NotificationType type,
         Instant createdAt
     );
+
+    boolean existsByUserIdAndAppointmentIdAndTypeAndReminderOffsetHoursAndCreatedAtAfter(
+        UUID userId,
+        UUID appointmentId,
+        NotificationType type,
+        Integer reminderOffsetHours,
+        Instant createdAt
+    );
 }

@@ -33,12 +33,30 @@ public class NotificationDeliveryService {
         sendAppointmentCommunication(appointment, CommunicationEventType.BOOKING_CONFIRMED);
     }
 
-    public void sendAppointmentReminder(Appointment appointment) {
-        if (hasRecentSuccessfulReminderDelivery(appointment, Instant.now().minusSeconds(60L * 60L * 12L))) {
-            return;
+    public boolean sendAppointmentReminder(Appointment appointment) {
+        return sendAppointmentReminder(appointment, null, true, true);
+    }
+
+    public boolean sendAppointmentReminder(Appointment appointment, Integer reminderOffsetHours) {
+        return sendAppointmentReminder(appointment, reminderOffsetHours, true, true);
+    }
+
+    public boolean sendAppointmentReminder(
+        Appointment appointment,
+        Integer reminderOffsetHours,
+        boolean emailEnabled,
+        boolean smsEnabled
+    ) {
+        if (!emailEnabled && !smsEnabled) {
+            return false;
         }
 
-        sendAppointmentCommunication(appointment, CommunicationEventType.APPOINTMENT_REMINDER);
+        if (hasRecentSuccessfulReminderDelivery(appointment, reminderOffsetHours, Instant.now().minusSeconds(60L * 90L))) {
+            return false;
+        }
+
+        sendAppointmentCommunication(appointment, CommunicationEventType.APPOINTMENT_REMINDER, reminderOffsetHours, emailEnabled, smsEnabled);
+        return true;
     }
 
     public void sendBookingRescheduledConfirmation(Appointment appointment) {
@@ -50,22 +68,46 @@ public class NotificationDeliveryService {
     }
 
     private void sendAppointmentCommunication(Appointment appointment, CommunicationEventType eventType) {
+        sendAppointmentCommunication(appointment, eventType, null, true, true);
+    }
+
+    private void sendAppointmentCommunication(
+        Appointment appointment,
+        CommunicationEventType eventType,
+        Integer reminderOffsetHours,
+        boolean emailEnabled,
+        boolean smsEnabled
+    ) {
         AppointmentCommunicationContent content = appointmentCommunicationFactory.build(appointment, eventType);
         String email = appointment.getCustomerProfile().getEmail();
         String phone = appointment.getCustomerProfile().getPhone();
 
-        if (email != null && !email.isBlank()) {
+        if (emailEnabled && email != null && !email.isBlank()) {
             DeliveryAttemptResult result = emailService.send(new EmailMessage(email, content.emailSubject(), content.emailBody()));
-            logAttempt(appointment, eventType, CommunicationChannel.EMAIL, email, result);
-        } else {
-            logAttempt(appointment, eventType, CommunicationChannel.EMAIL, "(missing email)", DeliveryAttemptResult.skipped("Customer email is missing."));
+            logAttempt(appointment, eventType, CommunicationChannel.EMAIL, email, result, reminderOffsetHours);
+        } else if (emailEnabled) {
+            logAttempt(
+                appointment,
+                eventType,
+                CommunicationChannel.EMAIL,
+                "(missing email)",
+                DeliveryAttemptResult.skipped("Customer email is missing."),
+                reminderOffsetHours
+            );
         }
 
-        if (phone != null && !phone.isBlank()) {
+        if (smsEnabled && phone != null && !phone.isBlank()) {
             DeliveryAttemptResult result = smsService.send(new SmsMessage(phone, content.smsBody()));
-            logAttempt(appointment, eventType, CommunicationChannel.SMS, phone, result);
-        } else {
-            logAttempt(appointment, eventType, CommunicationChannel.SMS, "(missing phone)", DeliveryAttemptResult.skipped("Customer phone is missing."));
+            logAttempt(appointment, eventType, CommunicationChannel.SMS, phone, result, reminderOffsetHours);
+        } else if (smsEnabled) {
+            logAttempt(
+                appointment,
+                eventType,
+                CommunicationChannel.SMS,
+                "(missing phone)",
+                DeliveryAttemptResult.skipped("Customer phone is missing."),
+                reminderOffsetHours
+            );
         }
     }
 
@@ -74,7 +116,8 @@ public class NotificationDeliveryService {
         CommunicationEventType eventType,
         CommunicationChannel channel,
         String target,
-        DeliveryAttemptResult result
+        DeliveryAttemptResult result,
+        Integer reminderOffsetHours
     ) {
         CommunicationLog communicationLog = new CommunicationLog();
         communicationLog.setStudio(appointment.getStudio());
@@ -85,6 +128,7 @@ public class NotificationDeliveryService {
         communicationLog.setDeliveryStatus(mapStatus(result));
         communicationLog.setSentAt(result.success() ? Instant.now() : null);
         communicationLog.setErrorMessage(result.errorMessage());
+        communicationLog.setReminderOffsetHours(reminderOffsetHours);
         communicationLogRepository.save(communicationLog);
 
         if (result.success()) {
@@ -117,12 +161,24 @@ public class NotificationDeliveryService {
     }
 
     public boolean hasRecentSuccessfulReminderDelivery(Appointment appointment, Instant threshold) {
-        return communicationLogRepository.existsByAppointmentIdAndEventTypeAndDeliveryStatusAndSentAtAfter(
-            appointment.getId(),
-            CommunicationEventType.APPOINTMENT_REMINDER,
-            CommunicationDeliveryStatus.SENT,
-            threshold
-        );
+        return hasRecentSuccessfulReminderDelivery(appointment, null, threshold);
+    }
+
+    public boolean hasRecentSuccessfulReminderDelivery(Appointment appointment, Integer reminderOffsetHours, Instant threshold) {
+        return reminderOffsetHours == null
+            ? communicationLogRepository.existsByAppointmentIdAndEventTypeAndDeliveryStatusAndSentAtAfter(
+                appointment.getId(),
+                CommunicationEventType.APPOINTMENT_REMINDER,
+                CommunicationDeliveryStatus.SENT,
+                threshold
+            )
+            : communicationLogRepository.existsByAppointmentIdAndEventTypeAndDeliveryStatusAndReminderOffsetHoursAndSentAtAfter(
+                appointment.getId(),
+                CommunicationEventType.APPOINTMENT_REMINDER,
+                CommunicationDeliveryStatus.SENT,
+                reminderOffsetHours,
+                threshold
+            );
     }
 
     private CommunicationDeliveryStatus mapStatus(DeliveryAttemptResult result) {

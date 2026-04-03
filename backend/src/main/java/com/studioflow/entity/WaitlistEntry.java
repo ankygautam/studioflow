@@ -7,6 +7,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -40,6 +41,12 @@ public class WaitlistEntry extends BaseEntity {
 
     @Column(name = "preferred_date")
     private LocalDate preferredDate;
+
+    @Column(name = "preferred_start_time")
+    private LocalTime preferredStartTime;
+
+    @Column(name = "preferred_end_time")
+    private LocalTime preferredEndTime;
 
     @Column(name = "notes", columnDefinition = "text")
     private String notes;

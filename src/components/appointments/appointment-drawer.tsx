@@ -13,8 +13,18 @@ import { dispatchNotificationsRefresh } from '../../lib/notifications'
 import { getServices } from '../../lib/api/services-api'
 import { getStaff } from '../../lib/api/staff-api'
 import { useRemoteList } from '../../hooks/use-remote-list'
-import { createAppointment, deleteAppointment, updateAppointment } from '../../lib/api/appointments-api'
-import type { AppointmentRecord, ConsentFormStatus, ConsentFormSubmissionRecord } from '../../lib/api/types'
+import {
+  createAppointment,
+  deleteAppointment,
+  getAppointmentSuggestions,
+  updateAppointment,
+} from '../../lib/api/appointments-api'
+import type {
+  AppointmentRecord,
+  AppointmentSuggestionRecord,
+  ConsentFormStatus,
+  ConsentFormSubmissionRecord,
+} from '../../lib/api/types'
 import {
   appointmentSources,
   appointmentStatuses,
@@ -36,6 +46,7 @@ type AppointmentDrawerProps = {
   allowCreate?: boolean
   allowDelete?: boolean
   draft?: Partial<AppointmentFormState> | null
+  onCancelled?: (appointment: AppointmentRecord) => Promise<void> | void
   onClose: () => void
   onSaved: (appointment?: AppointmentRecord) => Promise<void> | void
   open: boolean
@@ -52,6 +63,7 @@ export function AppointmentDrawer({
   allowCreate = true,
   allowDelete = true,
   draft = null,
+  onCancelled,
   onClose,
   onSaved,
   open,
@@ -81,6 +93,9 @@ export function AppointmentDrawer({
   const [saveFeedbackMessage, setSaveFeedbackMessage] = useState<string | null>(null)
   const [mutationError, setMutationError] = useState<string | null>(null)
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
+  const [suggestedSlots, setSuggestedSlots] = useState<AppointmentSuggestionRecord[]>([])
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false)
+  const [suggestionsError, setSuggestionsError] = useState<string | null>(null)
 
   const loadClients = useCallback(() => getClients(studioId), [studioId])
   const loadLocations = useCallback(() => getLocations(studioId, true), [studioId])
@@ -138,6 +153,9 @@ export function AppointmentDrawer({
     setQuickClientMutationError(null)
     setQuickClientState(createQuickClientForm())
     setIsQuickClientOpen(false)
+    setSuggestedSlots([])
+    setSuggestionsLoading(false)
+    setSuggestionsError(null)
     setFormState(
       mergeAppointmentDraft(
         createAppointmentForm(studioId, appointment ?? undefined),
@@ -158,6 +176,77 @@ export function AppointmentDrawer({
   const hasAllDependencies = hasClients && hasLocations && hasStaff && hasServices
   const hasValidationErrors = Object.keys(formErrors).length > 0
   const selectedService = services.find((service) => service.id === formState.serviceId) ?? null
+  const resolvedStudioId = resolveAppointmentStudioId(
+    formState,
+    clients,
+    staffMembers,
+    services,
+    appointment?.studioId ?? defaultStudioId,
+  )
+  const canShowSuggestions =
+    open
+    && !dependenciesLoading
+    && !dependenciesError
+    && Boolean(resolvedStudioId)
+    && Boolean(formState.locationId)
+    && Boolean(formState.staffProfileId)
+    && Boolean(formState.serviceId)
+    && Boolean(formState.appointmentDate)
+    && (!appointment || canEditDetails)
+
+  useEffect(() => {
+    if (!canShowSuggestions || !resolvedStudioId) {
+      setSuggestedSlots([])
+      setSuggestionsLoading(false)
+      setSuggestionsError(null)
+      return
+    }
+
+    let cancelled = false
+    setSuggestionsLoading(true)
+    setSuggestionsError(null)
+
+    void getAppointmentSuggestions({
+      appointmentDate: formState.appointmentDate,
+      appointmentId: appointment?.id ?? null,
+      locationId: formState.locationId,
+      serviceId: formState.serviceId,
+      staffProfileId: formState.staffProfileId,
+      studioId: resolvedStudioId,
+    })
+      .then((response) => {
+        if (cancelled) {
+          return
+        }
+
+        setSuggestedSlots(response.suggestions)
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return
+        }
+
+        setSuggestedSlots([])
+        setSuggestionsError(error instanceof Error ? error.message : 'Unable to load smart slot suggestions right now.')
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setSuggestionsLoading(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    appointment?.id,
+    canShowSuggestions,
+    formState.appointmentDate,
+    formState.locationId,
+    formState.serviceId,
+    formState.staffProfileId,
+    resolvedStudioId,
+  ])
 
   const clearFormErrors = (...fields: Array<keyof AppointmentFormState>) => {
     setFormErrors((current) => {
@@ -214,14 +303,6 @@ export function AppointmentDrawer({
     setHasAttemptedSubmit(true)
     setSaveFeedbackMessage(null)
 
-    const resolvedStudioId = resolveAppointmentStudioId(
-      formState,
-      clients,
-      staffMembers,
-      services,
-      appointment?.studioId ?? defaultStudioId,
-    )
-
     const errors = validateAppointmentForm(formState, resolvedStudioId)
     setFormErrors(errors)
 
@@ -259,10 +340,19 @@ export function AppointmentDrawer({
         savedAppointment = await createAppointment(payload)
       }
 
+      const shouldShowCancellationSuggestions =
+        Boolean(appointment)
+        && appointment?.status !== 'CANCELLED'
+        && savedAppointment.status === 'CANCELLED'
+
       setSaveFeedbackMessage(appointment ? 'Appointment saved. Updating the calendar...' : 'Appointment created. Updating the calendar...')
       await onSaved(savedAppointment)
       dispatchNotificationsRefresh()
       onClose()
+
+      if (shouldShowCancellationSuggestions) {
+        await onCancelled?.(savedAppointment)
+      }
     } catch (error) {
       setSaveFeedbackMessage(null)
       setMutationError(error instanceof Error ? error.message : 'Unable to save the appointment right now.')
@@ -294,14 +384,6 @@ export function AppointmentDrawer({
     if (isCreatingClient) {
       return
     }
-
-    const resolvedStudioId = resolveAppointmentStudioId(
-      formState,
-      clients,
-      staffMembers,
-      services,
-      appointment?.studioId ?? defaultStudioId,
-    )
 
     const errors = validateQuickClientForm(quickClientState, resolvedStudioId)
     setQuickClientErrors(errors)
@@ -338,6 +420,11 @@ export function AppointmentDrawer({
     } finally {
       setIsCreatingClient(false)
     }
+  }
+
+  const applySuggestedSlot = (suggestion: AppointmentSuggestionRecord) => {
+    updateFormField('startTime', suggestion.startTime)
+    updateFormField('endTime', suggestion.endTime)
   }
 
   return (
@@ -599,6 +686,53 @@ export function AppointmentDrawer({
             type="date"
             value={formState.appointmentDate}
           />
+          {canShowSuggestions ? (
+            <div className="md:col-span-2">
+              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                <p className="text-sm font-semibold text-slate-950">Smart suggestions</p>
+                <p className="mt-1 text-sm leading-6 text-slate-500">
+                  Best-fit openings based on staff availability and nearby bookings.
+                </p>
+
+                <div className="mt-4 space-y-3">
+                  {suggestionsLoading ? <LoadingState title="Finding smart slot suggestions..." /> : null}
+                  {!suggestionsLoading && suggestionsError ? <ErrorState message={suggestionsError} /> : null}
+                  {!suggestionsLoading && !suggestionsError && suggestedSlots.length === 0 ? (
+                    <p className="text-sm leading-6 text-slate-500">
+                      No smart suggestions are available for this day yet. You can still enter a custom time below.
+                    </p>
+                  ) : null}
+                  {!suggestionsLoading && !suggestionsError && suggestedSlots.length > 0 ? (
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      {suggestedSlots.map((suggestion) => {
+                        const isSelected =
+                          suggestion.startTime === formState.startTime && suggestion.endTime === formState.endTime
+
+                        return (
+                          <button
+                            key={`${suggestion.startTime}-${suggestion.endTime}`}
+                            className={[
+                              'rounded-[22px] border px-4 py-4 text-left transition',
+                              isSelected
+                                ? 'border-slate-900 bg-slate-950 text-white'
+                                : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100',
+                            ].join(' ')}
+                            onClick={() => applySuggestedSlot(suggestion)}
+                            type="button"
+                          >
+                            <p className="text-sm font-semibold">{suggestion.label}</p>
+                            <p className={['mt-1 text-xs leading-5', isSelected ? 'text-slate-200' : 'text-slate-500'].join(' ')}>
+                              {suggestion.reason}
+                            </p>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          ) : null}
           <InputField
             error={formErrors.startTime}
             label="Start time"

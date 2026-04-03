@@ -3,17 +3,20 @@ package com.studioflow.service;
 import com.studioflow.dto.waitlist.WaitlistEntryCreateRequest;
 import com.studioflow.dto.waitlist.WaitlistEntryResponse;
 import com.studioflow.dto.waitlist.WaitlistEntryUpdateRequest;
+import com.studioflow.entity.Appointment;
 import com.studioflow.entity.CustomerProfile;
 import com.studioflow.entity.Location;
 import com.studioflow.entity.Service;
 import com.studioflow.entity.StaffProfile;
 import com.studioflow.entity.Studio;
 import com.studioflow.entity.WaitlistEntry;
+import com.studioflow.enums.AppointmentStatus;
 import com.studioflow.enums.AuditActionType;
 import com.studioflow.enums.AuditEntityType;
 import com.studioflow.enums.UserRole;
 import com.studioflow.exception.BadRequestException;
 import com.studioflow.exception.ResourceNotFoundException;
+import com.studioflow.repository.AppointmentRepository;
 import com.studioflow.repository.CustomerProfileRepository;
 import com.studioflow.repository.LocationRepository;
 import com.studioflow.repository.ServiceRepository;
@@ -21,6 +24,9 @@ import com.studioflow.repository.StaffProfileRepository;
 import com.studioflow.repository.StudioRepository;
 import com.studioflow.repository.WaitlistEntryRepository;
 import com.studioflow.service.auth.CurrentUserService;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +44,7 @@ public class WaitlistService {
     private final CustomerProfileRepository customerProfileRepository;
     private final ServiceRepository serviceRepository;
     private final StaffProfileRepository staffProfileRepository;
+    private final AppointmentRepository appointmentRepository;
     private final AuditLogService auditLogService;
 
     public WaitlistEntryResponse createEntry(WaitlistEntryCreateRequest request) {
@@ -59,6 +66,8 @@ public class WaitlistService {
             service,
             preferredStaffProfile,
             request.preferredDate(),
+            request.preferredStartTime(),
+            request.preferredEndTime(),
             request.notes(),
             request.isActive() != null ? request.isActive() : Boolean.TRUE
         );
@@ -90,6 +99,32 @@ public class WaitlistService {
     }
 
     @Transactional(readOnly = true)
+    public List<WaitlistEntryResponse> getCancellationMatchSuggestions(UUID appointmentId) {
+        currentUserService.requireAnyRole(UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.STAFF);
+
+        Appointment appointment = appointmentRepository.findDetailedById(appointmentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Appointment not found: " + appointmentId));
+
+        currentUserService.ensureStudioAccess(appointment.getStudio().getId());
+        validateCancelledAppointment(appointment);
+
+        List<WaitlistEntry> candidates = waitlistEntryRepository
+            .findByStudioIdAndLocationIdAndServiceIdAndIsActiveTrueOrderByCreatedAtAsc(
+                appointment.getStudio().getId(),
+                appointment.getLocation().getId(),
+                appointment.getService().getId()
+            );
+
+        return candidates.stream()
+            .filter((entry) -> matchesCancelledAppointmentSuggestion(entry, appointment))
+            .sorted(Comparator
+                .comparingInt((WaitlistEntry entry) -> matchSpecificityScore(entry))
+                .thenComparing(WaitlistEntry::getCreatedAt))
+            .map(this::toResponse)
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
     public WaitlistEntryResponse getEntryById(UUID id) {
         currentUserService.requireAnyRole(UserRole.ADMIN, UserRole.RECEPTIONIST, UserRole.STAFF);
         WaitlistEntry entry = findEntry(id);
@@ -118,6 +153,8 @@ public class WaitlistService {
             service,
             preferredStaffProfile,
             request.preferredDate(),
+            request.preferredStartTime(),
+            request.preferredEndTime(),
             request.notes(),
             request.isActive() != null ? request.isActive() : entry.getIsActive()
         );
@@ -211,18 +248,78 @@ public class WaitlistService {
         CustomerProfile customerProfile,
         Service service,
         StaffProfile preferredStaffProfile,
-        java.time.LocalDate preferredDate,
+        LocalDate preferredDate,
+        LocalTime preferredStartTime,
+        LocalTime preferredEndTime,
         String notes,
         Boolean isActive
     ) {
+        validatePreferredWindow(preferredStartTime, preferredEndTime);
         entry.setStudio(studio);
         entry.setLocation(location);
         entry.setCustomerProfile(customerProfile);
         entry.setService(service);
         entry.setPreferredStaffProfile(preferredStaffProfile);
         entry.setPreferredDate(preferredDate);
+        entry.setPreferredStartTime(preferredStartTime);
+        entry.setPreferredEndTime(preferredEndTime);
         entry.setNotes(normalize(notes));
         entry.setIsActive(isActive);
+    }
+
+    private void validatePreferredWindow(LocalTime preferredStartTime, LocalTime preferredEndTime) {
+        if (preferredStartTime != null && preferredEndTime != null && !preferredEndTime.isAfter(preferredStartTime)) {
+            throw new BadRequestException("Preferred end time must be after the preferred start time");
+        }
+    }
+
+    void validateCancelledAppointment(Appointment appointment) {
+        if (appointment.getStatus() != AppointmentStatus.CANCELLED) {
+            throw new BadRequestException("Waitlist suggestions are only available for cancelled appointments");
+        }
+    }
+
+    boolean matchesCancelledAppointmentSuggestion(WaitlistEntry entry, Appointment appointment) {
+        return matchesPreferredStaff(entry, appointment)
+            && matchesPreferredDate(entry, appointment.getAppointmentDate())
+            && matchesPreferredTime(entry, appointment.getStartTime(), appointment.getEndTime());
+    }
+
+    private boolean matchesPreferredStaff(WaitlistEntry entry, Appointment appointment) {
+        return entry.getPreferredStaffProfile() == null
+            || entry.getPreferredStaffProfile().getId().equals(appointment.getStaffProfile().getId());
+    }
+
+    private boolean matchesPreferredDate(WaitlistEntry entry, LocalDate appointmentDate) {
+        return entry.getPreferredDate() == null || entry.getPreferredDate().equals(appointmentDate);
+    }
+
+    private boolean matchesPreferredTime(WaitlistEntry entry, LocalTime appointmentStart, LocalTime appointmentEnd) {
+        LocalTime requestedStart = entry.getPreferredStartTime() != null ? entry.getPreferredStartTime() : LocalTime.MIN;
+        LocalTime requestedEnd = entry.getPreferredEndTime() != null ? entry.getPreferredEndTime() : LocalTime.MAX;
+        return requestedStart.isBefore(appointmentEnd) && appointmentStart.isBefore(requestedEnd);
+    }
+
+    private int matchSpecificityScore(WaitlistEntry entry) {
+        int score = 0;
+
+        if (entry.getPreferredStaffProfile() != null) {
+            score -= 4;
+        }
+
+        if (entry.getPreferredDate() != null) {
+            score -= 3;
+        }
+
+        if (entry.getPreferredStartTime() != null) {
+            score -= 1;
+        }
+
+        if (entry.getPreferredEndTime() != null) {
+            score -= 1;
+        }
+
+        return score;
     }
 
     private String normalize(String value) {
@@ -247,6 +344,8 @@ public class WaitlistService {
             entry.getPreferredStaffProfile() != null ? entry.getPreferredStaffProfile().getId() : null,
             entry.getPreferredStaffProfile() != null ? entry.getPreferredStaffProfile().getDisplayName() : null,
             entry.getPreferredDate(),
+            entry.getPreferredStartTime(),
+            entry.getPreferredEndTime(),
             entry.getNotes(),
             entry.getIsActive(),
             entry.getCreatedAt(),

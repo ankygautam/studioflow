@@ -84,6 +84,18 @@ public class Studio extends BaseEntity {
     @Column(name = "appointment_reminder_hours_before", nullable = false, columnDefinition = "integer default 24")
     private Integer appointmentReminderHoursBefore = 24;
 
+    @Column(name = "appointment_reminder_offsets_csv", length = 120)
+    private String appointmentReminderOffsetsCsv = "24";
+
+    @Column(name = "appointment_reminder_in_app_enabled", nullable = false, columnDefinition = "boolean default true")
+    private Boolean appointmentReminderInAppEnabled = true;
+
+    @Column(name = "appointment_reminder_email_enabled", nullable = false, columnDefinition = "boolean default true")
+    private Boolean appointmentReminderEmailEnabled = true;
+
+    @Column(name = "appointment_reminder_sms_enabled", nullable = false, columnDefinition = "boolean default true")
+    private Boolean appointmentReminderSmsEnabled = true;
+
     @OneToMany(mappedBy = "studio", cascade = CascadeType.ALL, orphanRemoval = false)
     private List<StaffProfile> staffProfiles = new ArrayList<>();
 

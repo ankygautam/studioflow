@@ -73,6 +73,7 @@ export type AuditActionType =
   | 'COMPLETED'
 
 export type PaymentStatus = 'PENDING' | 'PARTIAL' | 'PAID' | 'FAILED'
+export type WaitlistOfferStatus = 'SENT' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'CONVERTED'
 
 export type PaymentMethod = 'CASH' | 'CARD' | 'ETRANSFER' | 'OTHER'
 
@@ -254,8 +255,10 @@ export interface WaitlistEntryRecord {
   locationName: string
   notes: string | null
   preferredDate: string | null
+  preferredEndTime: string | null
   preferredStaffName: string | null
   preferredStaffProfileId: string | null
+  preferredStartTime: string | null
   serviceId: string
   serviceName: string
   studioId: string
@@ -268,21 +271,51 @@ export interface WaitlistEntryUpsertPayload {
   locationId: string
   notes: string
   preferredDate: string | null
+  preferredEndTime: string | null
   preferredStaffProfileId: string | null
+  preferredStartTime: string | null
   serviceId: string
   studioId: string
 }
 
+export interface WaitlistSlotOfferRecord {
+  cancelledAppointmentId: string
+  convertedAppointmentId: string | null
+  createdAt: string
+  customerName: string
+  customerProfileId: string
+  expiresAt: string
+  id: string
+  respondedAt: string | null
+  status: WaitlistOfferStatus
+  studioId: string
+  updatedAt: string
+  waitlistEntryId: string
+}
+
 export interface ReminderSettingsRecord {
   appointmentReminderEnabled: boolean
+  appointmentReminderEmailEnabled: boolean
   appointmentReminderHoursBefore: number
+  appointmentReminderInAppEnabled: boolean
+  appointmentReminderOffsetsHours: number[]
+  appointmentReminderSmsEnabled: boolean
   studioId: string
 }
 
 export interface ReminderSettingsUpdatePayload {
   appointmentReminderEnabled: boolean
+  appointmentReminderEmailEnabled?: boolean
   appointmentReminderHoursBefore: number
+  appointmentReminderInAppEnabled?: boolean
+  appointmentReminderOffsetsHours?: number[]
+  appointmentReminderSmsEnabled?: boolean
   studioId: string
+}
+
+export interface ReminderDispatchRecord {
+  dispatchedCount: number
+  reminderOffsetsHours: number[]
 }
 
 export interface LocationUpsertPayload {
@@ -395,6 +428,22 @@ export interface AppointmentUpsertPayload {
   startTime: string
   status: AppointmentStatus
   studioId: string
+}
+
+export interface AppointmentSuggestionRecord {
+  endTime: string
+  label: string
+  reason: string
+  startTime: string
+}
+
+export interface AppointmentSuggestionsRecord {
+  date: string
+  locationId: string
+  serviceId: string
+  staffProfileId: string
+  studioId: string
+  suggestions: AppointmentSuggestionRecord[]
 }
 
 export interface PaymentRecord {
