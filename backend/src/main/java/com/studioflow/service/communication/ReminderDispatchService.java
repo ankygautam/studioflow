@@ -60,11 +60,16 @@ public class ReminderDispatchService {
             return false;
         }
 
+        if (!Boolean.TRUE.equals(appointment.getStudio().getAppointmentReminderEnabled())) {
+            return false;
+        }
+
         ZoneId zoneId = resolveStudioZone(appointment);
         LocalDateTime appointmentDateTime = LocalDateTime.of(appointment.getAppointmentDate(), appointment.getStartTime());
         LocalDateTime now = LocalDateTime.now(zoneId);
+        int reminderWindowHours = resolveReminderWindowHours(appointment);
 
-        return appointmentDateTime.isAfter(now) && appointmentDateTime.isBefore(now.plusHours(24));
+        return appointmentDateTime.isAfter(now) && appointmentDateTime.isBefore(now.plusHours(reminderWindowHours));
     }
 
     private ZoneId resolveStudioZone(Appointment appointment) {
@@ -73,5 +78,14 @@ public class ReminderDispatchService {
         } catch (Exception ignored) {
             return DEFAULT_ZONE;
         }
+    }
+
+    private int resolveReminderWindowHours(Appointment appointment) {
+        Integer configuredValue = appointment.getStudio().getAppointmentReminderHoursBefore();
+        if (configuredValue == null || configuredValue < 1) {
+            return 24;
+        }
+
+        return configuredValue;
     }
 }

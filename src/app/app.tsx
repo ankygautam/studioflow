@@ -27,6 +27,7 @@ const PackagesPage = lazyNamed(() => import('../pages/packages-page'), 'Packages
 const PaymentsPage = lazyNamed(() => import('../pages/payments-page'), 'PaymentsPage')
 const ServicesPage = lazyNamed(() => import('../pages/services-page'), 'ServicesPage')
 const SettingsPage = lazyNamed(() => import('../pages/settings-page'), 'SettingsPage')
+const WaitlistPage = lazyNamed(() => import('../pages/waitlist-page'), 'WaitlistPage')
 
 export function App() {
   return (
@@ -146,6 +147,16 @@ export function App() {
           }
         />
         <Route
+          path="waitlist"
+          element={
+            <RoleRoute allowedSlugs={['waitlist']}>
+              <RouteLoader>
+                <WaitlistPage />
+              </RouteLoader>
+            </RoleRoute>
+          }
+        />
+        <Route
           path="packages"
           element={
             <RoleRoute allowedSlugs={['packages']}>
@@ -236,6 +247,7 @@ export function App() {
                 'appointments',
                 'clients',
                 'services',
+                'waitlist',
                 'packages',
                 'inventory',
                 'payments',

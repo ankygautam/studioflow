@@ -15,6 +15,7 @@ import { getAppointments } from '../lib/api/appointments-api'
 import { getDefaultStudioId } from '../lib/api/http'
 import { getPayments } from '../lib/api/payments-api'
 import { createStaff, deleteStaff, getStaff, updateStaff } from '../lib/api/staff-api'
+import { buildCsvFilename, downloadCsv } from '../lib/csv'
 import type { AppointmentRecord, PaymentRecord, StaffRecord, StaffStatus, UserRole } from '../lib/api/types'
 import { formatCurrency, humanizeEnum } from '../lib/formatters'
 
@@ -165,18 +166,60 @@ export function StaffPage() {
     }
   }
 
+  const exportStaff = () => {
+    downloadCsv(
+      buildCsvFilename('staff'),
+      [
+        'Display Name',
+        'Primary Location',
+        'Job Title',
+        'Phone',
+        'Status',
+        'Commission Rate',
+        'Estimated Earnings',
+        'User Email',
+        'User Role',
+      ],
+      staffMembers.map((staffMember) => [
+        staffMember.displayName,
+        staffMember.primaryLocationName || 'Studio-wide',
+        staffMember.jobTitle,
+        staffMember.phone,
+        staffMember.status,
+        staffMember.commissionRate,
+        calculateCommissionEarnings(
+          staffMember.commissionRate,
+          staffEarnings.get(staffMember.id)?.commissionableRevenue ?? 0,
+        ),
+        staffMember.userEmail,
+        staffMember.userRole,
+      ]),
+    )
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
-        actions={canManage ? (
-          <button
-            className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
-            onClick={openCreateDrawer}
-            type="button"
-          >
-            Add staff
-          </button>
-        ) : null}
+        actions={(
+          <div className="flex flex-wrap gap-3">
+            <button
+              className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-[0_12px_30px_rgba(15,23,42,0.06)]"
+              onClick={exportStaff}
+              type="button"
+            >
+              Export CSV
+            </button>
+            {canManage ? (
+              <button
+                className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
+                onClick={openCreateDrawer}
+                type="button"
+              >
+                Add staff
+              </button>
+            ) : null}
+          </div>
+        )}
         description="A simple staff table with clean profile editing, linked user records, and active status visibility."
         eyebrow="Staff"
         title="Team visibility"

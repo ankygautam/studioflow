@@ -49,6 +49,7 @@ export type AuditEntityType =
   | 'PACKAGE'
   | 'CLIENT_PACKAGE'
   | 'INVENTORY_PRODUCT'
+  | 'WAITLIST_ENTRY'
   | 'CONSENT_TEMPLATE'
   | 'CONSENT_SUBMISSION'
   | 'LOCATION'
@@ -240,6 +241,47 @@ export interface ClientPackageRecord {
 export interface ClientPackageAssignmentPayload {
   customerProfileId: string
   prepaidPackageId: string
+  studioId: string
+}
+
+export interface WaitlistEntryRecord {
+  createdAt: string
+  customerName: string
+  customerProfileId: string
+  id: string
+  isActive: boolean
+  locationId: string
+  locationName: string
+  notes: string | null
+  preferredDate: string | null
+  preferredStaffName: string | null
+  preferredStaffProfileId: string | null
+  serviceId: string
+  serviceName: string
+  studioId: string
+  updatedAt: string
+}
+
+export interface WaitlistEntryUpsertPayload {
+  customerProfileId: string
+  isActive?: boolean
+  locationId: string
+  notes: string
+  preferredDate: string | null
+  preferredStaffProfileId: string | null
+  serviceId: string
+  studioId: string
+}
+
+export interface ReminderSettingsRecord {
+  appointmentReminderEnabled: boolean
+  appointmentReminderHoursBefore: number
+  studioId: string
+}
+
+export interface ReminderSettingsUpdatePayload {
+  appointmentReminderEnabled: boolean
+  appointmentReminderHoursBefore: number
   studioId: string
 }
 

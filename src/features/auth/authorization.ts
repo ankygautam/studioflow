@@ -14,6 +14,8 @@ export function canAccessRoute(role: AuthRole, slug: string) {
       return false
     case 'services':
       return isOwnerRole(role)
+    case 'waitlist':
+      return isOwnerRole(role)
     case 'packages':
       return isOwnerRole(role)
     case 'inventory':
@@ -69,6 +71,10 @@ export function canManageClients(role: AuthRole) {
 }
 
 export function canManageServices(role: AuthRole) {
+  return isOwnerRole(role)
+}
+
+export function canManageWaitlist(role: AuthRole) {
   return isOwnerRole(role)
 }
 

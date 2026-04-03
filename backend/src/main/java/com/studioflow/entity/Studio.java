@@ -78,6 +78,12 @@ public class Studio extends BaseEntity {
     @Column(name = "default_deposit_amount", precision = 12, scale = 2)
     private BigDecimal defaultDepositAmount;
 
+    @Column(name = "appointment_reminder_enabled", nullable = false, columnDefinition = "boolean default true")
+    private Boolean appointmentReminderEnabled = true;
+
+    @Column(name = "appointment_reminder_hours_before", nullable = false, columnDefinition = "integer default 24")
+    private Integer appointmentReminderHoursBefore = 24;
+
     @OneToMany(mappedBy = "studio", cascade = CascadeType.ALL, orphanRemoval = false)
     private List<StaffProfile> staffProfiles = new ArrayList<>();
 

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { SurfaceCard } from '../components/layout/app-shell'
 import { ActivityFeed } from '../components/ui/activity-feed'
 import { DetailDrawer } from '../components/ui/detail-drawer'
@@ -11,11 +11,16 @@ import { useAuth } from '../features/auth/use-auth'
 import { useRemoteList } from '../hooks/use-remote-list'
 import { getAuditLogs } from '../lib/api/audit-api'
 import { createLocation, deleteLocation, getLocations, updateLocation } from '../lib/api/locations-api'
+import { getReminderSettings, updateReminderSettings } from '../lib/api/settings-api'
 import { timezoneOptions } from '../lib/timezones'
-import type { LocationRecord, LocationUpsertPayload } from '../lib/api/types'
+import type { LocationRecord, LocationUpsertPayload, ReminderSettingsRecord } from '../lib/api/types'
 
 type LocationFormState = LocationUpsertPayload
 type LocationFormErrors = Partial<Record<keyof LocationFormState, string>>
+type ReminderSettingsFormState = {
+  appointmentReminderEnabled: boolean
+  appointmentReminderHoursBefore: string
+}
 
 export function SettingsPage() {
   const { selectedLocationId, setSelectedLocationId, user } = useAuth()
@@ -26,6 +31,12 @@ export function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [mutationError, setMutationError] = useState<string | null>(null)
   const [confirmDeleteLocation, setConfirmDeleteLocation] = useState<LocationRecord | null>(null)
+  const [isSavingReminderSettings, setIsSavingReminderSettings] = useState(false)
+  const [reminderMutationError, setReminderMutationError] = useState<string | null>(null)
+  const [reminderFormState, setReminderFormState] = useState<ReminderSettingsFormState>(createReminderSettingsForm())
+  const [reminderSettings, setReminderSettings] = useState<ReminderSettingsRecord | null>(null)
+  const [reminderSettingsError, setReminderSettingsError] = useState<string | null>(null)
+  const [reminderSettingsLoading, setReminderSettingsLoading] = useState(true)
 
   const loadLocations = useCallback(() => getLocations(user?.studioId), [user?.studioId])
   const { data: locations, error, isLoading, reload } = useRemoteList(loadLocations)
@@ -45,6 +56,39 @@ export function SettingsPage() {
     () => locations.filter((location) => location.isActive).length,
     [locations],
   )
+
+  useEffect(() => {
+    if (!reminderSettings) {
+      return
+    }
+
+    setReminderFormState(createReminderSettingsForm(reminderSettings))
+  }, [reminderSettings])
+
+  const reloadReminderSettings = useCallback(async () => {
+    if (!user?.studioId) {
+      setReminderSettings(null)
+      setReminderSettingsError(null)
+      setReminderSettingsLoading(false)
+      return
+    }
+
+    setReminderSettingsLoading(true)
+    setReminderSettingsError(null)
+
+    try {
+      const nextReminderSettings = await getReminderSettings(user.studioId)
+      setReminderSettings(nextReminderSettings)
+    } catch (nextError) {
+      setReminderSettingsError(nextError instanceof Error ? nextError.message : 'Unable to load reminder settings right now.')
+    } finally {
+      setReminderSettingsLoading(false)
+    }
+  }, [user?.studioId])
+
+  useEffect(() => {
+    void reloadReminderSettings()
+  }, [reloadReminderSettings])
 
   const openCreateDrawer = () => {
     setEditingLocation(null)
@@ -118,6 +162,39 @@ export function SettingsPage() {
       }
     } catch (nextError) {
       setMutationError(nextError instanceof Error ? nextError.message : 'Unable to archive this location right now.')
+    }
+  }
+
+  const handleSaveReminderSettings = async () => {
+    if (!user?.studioId) {
+      setReminderMutationError('Studio settings are not available for this account yet.')
+      return
+    }
+
+    const appointmentReminderHoursBefore = Number(reminderFormState.appointmentReminderHoursBefore)
+
+    if (!Number.isFinite(appointmentReminderHoursBefore) || appointmentReminderHoursBefore < 1) {
+      setReminderMutationError('Reminder lead time must be at least 1 hour.')
+      return
+    }
+
+    setIsSavingReminderSettings(true)
+    setReminderMutationError(null)
+
+    try {
+      await updateReminderSettings({
+        appointmentReminderEnabled: reminderFormState.appointmentReminderEnabled,
+        appointmentReminderHoursBefore,
+        studioId: user.studioId,
+      })
+      await reloadReminderSettings()
+      if (canViewActivity) {
+        await reloadAuditLogs()
+      }
+    } catch (nextError) {
+      setReminderMutationError(nextError instanceof Error ? nextError.message : 'Unable to save reminder settings right now.')
+    } finally {
+      setIsSavingReminderSettings(false)
     }
   }
 
@@ -253,6 +330,56 @@ export function SettingsPage() {
                 <MetricRow label="Settings access" value="Admin" />
               </div>
             </div>
+          </SurfaceCard>
+
+          <SurfaceCard title="Appointment reminders">
+            {reminderSettingsLoading ? <LoadingState title="Loading reminder settings..." /> : null}
+            {!reminderSettingsLoading && reminderSettingsError ? <ErrorState message={reminderSettingsError} /> : null}
+            {!reminderSettingsLoading && !reminderSettingsError ? (
+              <div className="space-y-4">
+                {reminderMutationError ? <ErrorState message={reminderMutationError} /> : null}
+                <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-5">
+                  <p className="text-sm leading-7 text-slate-600">
+                    Control how far in advance StudioFlow generates appointment reminder events for upcoming bookings.
+                  </p>
+                  <div className="mt-5 space-y-4">
+                    <ToggleField
+                      checked={reminderFormState.appointmentReminderEnabled}
+                      label="Appointment reminders"
+                      onChange={(checked) =>
+                        setReminderFormState((current) => ({ ...current, appointmentReminderEnabled: checked }))
+                      }
+                    />
+                    <SelectField
+                      label="Reminder lead time"
+                      onChange={(event) =>
+                        setReminderFormState((current) => ({
+                          ...current,
+                          appointmentReminderHoursBefore: event.target.value,
+                        }))
+                      }
+                      value={reminderFormState.appointmentReminderHoursBefore}
+                    >
+                      {['1', '2', '4', '12', '24', '48', '72'].map((hours) => (
+                        <option key={hours} value={hours}>
+                          {hours} hours before
+                        </option>
+                      ))}
+                    </SelectField>
+                  </div>
+                  <div className="mt-5 flex justify-end">
+                    <button
+                      className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(15,23,42,0.18)] disabled:cursor-not-allowed disabled:bg-slate-300"
+                      disabled={isSavingReminderSettings}
+                      onClick={() => void handleSaveReminderSettings()}
+                      type="button"
+                    >
+                      {isSavingReminderSettings ? 'Saving...' : 'Save reminder settings'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </SurfaceCard>
 
           <SurfaceCard title="Operational notes">
@@ -396,6 +523,13 @@ export function SettingsPage() {
       />
     </div>
   )
+}
+
+function createReminderSettingsForm(settings?: ReminderSettingsRecord | null): ReminderSettingsFormState {
+  return {
+    appointmentReminderEnabled: settings?.appointmentReminderEnabled ?? true,
+    appointmentReminderHoursBefore: String(settings?.appointmentReminderHoursBefore ?? 24),
+  }
 }
 
 function createLocationForm(studioId: string | null): LocationFormState {

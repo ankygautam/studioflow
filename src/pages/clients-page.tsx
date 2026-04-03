@@ -17,6 +17,7 @@ import { getDefaultStudioId } from '../lib/api/http'
 import { createClientPackageAssignment, getClientPackages, getPackages } from '../lib/api/packages-api'
 import { getPayments } from '../lib/api/payments-api'
 import { createClient, deleteClient, getClients, updateClient } from '../lib/api/clients-api'
+import { buildCsvFilename, downloadCsv } from '../lib/csv'
 import { formatCurrency, formatDate, formatTime, humanizeEnum } from '../lib/formatters'
 import type {
   AppointmentRecord,
@@ -284,18 +285,46 @@ export function ClientsPage() {
     }
   }
 
+  const exportClients = () => {
+    downloadCsv(
+      buildCsvFilename('clients'),
+      ['Full Name', 'Email', 'Phone', 'Date of Birth', 'Active', 'Created At', 'Updated At', 'Notes'],
+      clients.map((client) => [
+        client.fullName,
+        client.email,
+        client.phone,
+        client.dateOfBirth,
+        client.isActive,
+        client.createdAt,
+        client.updatedAt,
+        client.notes,
+      ]),
+    )
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
-        actions={canManage ? (
-          <button
-            className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
-            onClick={openCreateDrawer}
-            type="button"
-          >
-            Add client
-          </button>
-        ) : undefined}
+        actions={(
+          <div className="flex flex-wrap gap-3">
+            <button
+              className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-[0_12px_30px_rgba(15,23,42,0.06)]"
+              onClick={exportClients}
+              type="button"
+            >
+              Export CSV
+            </button>
+            {canManage ? (
+              <button
+                className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
+                onClick={openCreateDrawer}
+                type="button"
+              >
+                Add client
+              </button>
+            ) : null}
+          </div>
+        )}
         description="A clean CRM-style view for real client records, notes, active status, and backend-linked profile details."
         eyebrow="Clients"
         title="Client relationships"

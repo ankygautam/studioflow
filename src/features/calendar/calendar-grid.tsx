@@ -2,7 +2,7 @@ import type { AppointmentSource, AppointmentStatus } from '../../lib/api/types'
 import { EmptyState, ErrorState, LoadingState } from '../../components/ui/async-state'
 import { StatusBadge } from '../../components/ui/status-badge'
 import { appointmentTone } from '../../lib/appointments'
-import { formatTime, humanizeEnum } from '../../lib/formatters'
+import { formatDate, formatTime, humanizeEnum } from '../../lib/formatters'
 import {
   appointmentCardStyle,
   formatHourLabel,
@@ -174,108 +174,169 @@ export function CalendarGrid({
     ) : null
 
   if (view === 'Day') {
+    const sortedDayAppointments = [...dayAppointments].sort((left, right) => left.start.localeCompare(right.start))
+
     return (
       <div className="space-y-4">
         {visibilityHint}
-        <div className="overflow-x-auto rounded-[28px] border border-slate-200 bg-slate-50/80">
-          <div className="min-w-[860px]">
-          <div
-            className="grid border-b border-slate-200 bg-white"
-            style={{ gridTemplateColumns: `90px repeat(${staffMembers.length}, minmax(180px, 1fr))` }}
-          >
-            <div className="px-4 py-4 text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
-              Time
-            </div>
-            {staffMembers.map((staffMember, index) => (
-              <div key={staffMember.id} className="border-l border-slate-200 px-4 py-4">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${staffAccents[index % staffAccents.length]} text-sm font-semibold text-slate-950`}
-                  >
-                    {staffMember.displayName
-                      .split(' ')
-                      .slice(0, 2)
-                      .map((segment) => segment[0]?.toUpperCase())
-                      .join('')}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-950">{staffMember.displayName}</p>
-                    <p className="text-sm text-slate-500">{staffMember.jobTitle || 'Studio staff'}</p>
-                  </div>
-                </div>
+        <div className="space-y-4 lg:hidden">
+          <div className="rounded-[28px] border border-slate-200 bg-slate-50/80 p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Day agenda</p>
+                <p className="mt-2 text-2xl font-semibold text-slate-950">{formatDate(selectedDate)}</p>
+                <p className="mt-2 text-sm text-slate-500">
+                  {sortedDayAppointments.length} booking{sortedDayAppointments.length === 1 ? '' : 's'} scheduled
+                </p>
               </div>
-            ))}
+              {allowCreate ? (
+                <button
+                  className="rounded-full bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(15,23,42,0.14)]"
+                  onClick={() => onCreate({ appointmentDate: selectedDate })}
+                  type="button"
+                >
+                  New booking
+                </button>
+              ) : null}
+            </div>
           </div>
 
-          <div
-            className="grid"
-            style={{ gridTemplateColumns: `90px repeat(${staffMembers.length}, minmax(180px, 1fr))` }}
-          >
-            <div className="bg-white">
-              {timelineHours.map((hour) => (
-                <div
-                  key={hour}
-                  className="flex h-[108px] items-start justify-end border-t border-slate-200 px-4 py-4 text-sm font-semibold text-slate-500"
+          {sortedDayAppointments.length === 0 ? (
+            <div className="rounded-[28px] border border-dashed border-slate-200 bg-slate-50/80 p-6 text-sm text-slate-600">
+              <p className="font-semibold text-slate-950">No appointments for this day</p>
+              <p className="mt-2 leading-7">
+                Switch dates to review another day, or add a booking to keep the schedule moving.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {sortedDayAppointments.map((appointment) => (
+                <button
+                  key={appointment.id}
+                  className={getAppointmentCardClassName(appointment.status)}
+                  onClick={() => onEdit(appointment)}
+                  type="button"
                 >
-                  {formatHourLabel(hour)}
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-200">
+                        {formatTime(appointment.startTime)} - {formatTime(appointment.endTime)}
+                      </p>
+                      <p className="mt-2 font-semibold text-white">{appointment.customerName}</p>
+                      <p className="mt-1 text-sm text-slate-300">{appointment.serviceName}</p>
+                      <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-300">
+                        {appointment.staffName} • {humanizeEnum(appointment.source.source)}
+                      </p>
+                    </div>
+                    <StatusBadge tone={appointmentTone(appointment.status)}>
+                      {humanizeEnum(appointment.status)}
+                    </StatusBadge>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="hidden overflow-x-auto rounded-[28px] border border-slate-200 bg-slate-50/80 lg:block">
+          <div className="min-w-[860px]">
+            <div
+              className="grid border-b border-slate-200 bg-white"
+              style={{ gridTemplateColumns: `90px repeat(${staffMembers.length}, minmax(180px, 1fr))` }}
+            >
+              <div className="px-4 py-4 text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
+                Time
+              </div>
+              {staffMembers.map((staffMember, index) => (
+                <div key={staffMember.id} className="border-l border-slate-200 px-4 py-4">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${staffAccents[index % staffAccents.length]} text-sm font-semibold text-slate-950`}
+                    >
+                      {staffMember.displayName
+                        .split(' ')
+                        .slice(0, 2)
+                        .map((segment) => segment[0]?.toUpperCase())
+                        .join('')}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-950">{staffMember.displayName}</p>
+                      <p className="text-sm text-slate-500">{staffMember.jobTitle || 'Studio staff'}</p>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
 
-            {staffMembers.map((staffMember) => (
-              <div key={staffMember.id} className="relative border-l border-slate-200 bg-white">
+            <div
+              className="grid"
+              style={{ gridTemplateColumns: `90px repeat(${staffMembers.length}, minmax(180px, 1fr))` }}
+            >
+              <div className="bg-white">
                 {timelineHours.map((hour) => (
-                  <button
-                    key={`${staffMember.id}-${hour}`}
-                    className={[
-                      'block h-[108px] w-full border-t border-slate-200 transition',
-                      allowCreate ? 'hover:bg-slate-50/80' : 'cursor-default',
-                    ].join(' ')}
-                    disabled={!allowCreate}
-                    onClick={() => {
-                      if (!allowCreate) {
-                        return
-                      }
-
-                      onCreate({
-                        appointmentDate: selectedDate,
-                        endTime: `${String(hour + 1).padStart(2, '0')}:00`,
-                        staffProfileId: staffMember.id,
-                        startTime: `${String(hour).padStart(2, '0')}:00`,
-                      })
-                    }}
-                    type="button"
-                  />
+                  <div
+                    key={hour}
+                    className="flex h-[108px] items-start justify-end border-t border-slate-200 px-4 py-4 text-sm font-semibold text-slate-500"
+                  >
+                    {formatHourLabel(hour)}
+                  </div>
                 ))}
-
-                {dayAppointments
-                  .filter((appointment) => appointment.staffProfileId === staffMember.id)
-                  .map((appointment) => (
-                    <button
-                      key={appointment.id}
-                      className={[
-                        'absolute left-3 right-3 z-10',
-                        getAppointmentCardClassName(appointment.status),
-                      ].join(' ')}
-                      onClick={() => onEdit(appointment)}
-                      style={appointmentCardStyle(appointment, timelineHours[0] ?? 9)}
-                      type="button"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-slate-200">{formatTime(appointment.startTime)}</p>
-                          <p className="mt-2 font-semibold text-white">{appointment.customerName}</p>
-                          <p className="mt-1 text-sm text-slate-300">{appointment.serviceName}</p>
-                        </div>
-                        <StatusBadge tone={appointmentTone(appointment.status)}>
-                          {humanizeEnum(appointment.status)}
-                        </StatusBadge>
-                      </div>
-                    </button>
-                  ))}
               </div>
-            ))}
-          </div>
+
+              {staffMembers.map((staffMember) => (
+                <div key={staffMember.id} className="relative border-l border-slate-200 bg-white">
+                  {timelineHours.map((hour) => (
+                    <button
+                      key={`${staffMember.id}-${hour}`}
+                      className={[
+                        'block h-[108px] w-full border-t border-slate-200 transition',
+                        allowCreate ? 'hover:bg-slate-50/80' : 'cursor-default',
+                      ].join(' ')}
+                      disabled={!allowCreate}
+                      onClick={() => {
+                        if (!allowCreate) {
+                          return
+                        }
+
+                        onCreate({
+                          appointmentDate: selectedDate,
+                          endTime: `${String(hour + 1).padStart(2, '0')}:00`,
+                          staffProfileId: staffMember.id,
+                          startTime: `${String(hour).padStart(2, '0')}:00`,
+                        })
+                      }}
+                      type="button"
+                    />
+                  ))}
+
+                  {dayAppointments
+                    .filter((appointment) => appointment.staffProfileId === staffMember.id)
+                    .map((appointment) => (
+                      <button
+                        key={appointment.id}
+                        className={[
+                          'absolute left-3 right-3 z-10',
+                          getAppointmentCardClassName(appointment.status),
+                        ].join(' ')}
+                        onClick={() => onEdit(appointment)}
+                        style={appointmentCardStyle(appointment, timelineHours[0] ?? 9)}
+                        type="button"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-200">{formatTime(appointment.startTime)}</p>
+                            <p className="mt-2 font-semibold text-white">{appointment.customerName}</p>
+                            <p className="mt-1 text-sm text-slate-300">{appointment.serviceName}</p>
+                          </div>
+                          <StatusBadge tone={appointmentTone(appointment.status)}>
+                            {humanizeEnum(appointment.status)}
+                          </StatusBadge>
+                        </div>
+                      </button>
+                    ))}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

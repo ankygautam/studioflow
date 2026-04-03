@@ -14,6 +14,7 @@ export type NavigationItem = {
     | 'payments'
     | 'services'
     | 'settings'
+    | 'waitlist'
   label: string
   slug: string
 }
@@ -53,6 +54,13 @@ export const navigationItems: NavigationItem[] = [
     icon: 'services',
     label: 'Services',
     slug: 'services',
+  },
+  {
+    description: 'Clients waiting for openings across your studio locations.',
+    eyebrow: 'Retention',
+    icon: 'waitlist',
+    label: 'Waitlist',
+    slug: 'waitlist',
   },
   {
     description: 'Prepaid visit packs and client retention bundles.',

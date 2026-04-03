@@ -391,6 +391,8 @@ function ShellIcon({ icon }: { icon: NavigationItem['icon'] | 'bell' | 'chevron'
       return <svg className={cls} fill="none" viewBox="0 0 24 24"><circle cx="9" cy="9" r="3.5" stroke="currentColor" strokeWidth="1.8"/><circle cx="17" cy="11" r="2.5" stroke="currentColor" strokeWidth="1.8"/><path d="M3.5 19c.9-2.8 3.1-4.5 5.5-4.5S13.6 16.2 14.5 19M14.5 18.5c.7-1.9 2.1-3 3.9-3 1.1 0 2.1.4 3.1 1.3" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8"/></svg>
     case 'services':
       return <svg className={cls} fill="none" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="3" stroke="currentColor" strokeWidth="1.8"/><path d="M8 9h8M8 13h5M15.5 13h.01" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8"/></svg>
+    case 'waitlist':
+      return <svg className={cls} fill="none" viewBox="0 0 24 24"><path d="M12 5a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z" stroke="currentColor" strokeWidth="1.8"/><path d="M5 19.5c1.3-2.8 4-4.5 7-4.5s5.7 1.7 7 4.5M18.5 7.5v4M20.5 9.5h-4" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8"/></svg>
     case 'packages':
       return <svg className={cls} fill="none" viewBox="0 0 24 24"><path d="M4.5 8.5h15v10a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2v-10Z" stroke="currentColor" strokeWidth="1.8"/><path d="M4.5 8.5 7 4.5h10l2.5 4M12 4.5v16M8 11.5h.01M16 11.5h.01" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8"/></svg>
     case 'inventory':

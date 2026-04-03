@@ -14,6 +14,7 @@ import { useRemoteList } from '../hooks/use-remote-list'
 import { getAuditLogsByEntity } from '../lib/api/audit-api'
 import { getAppointments } from '../lib/api/appointments-api'
 import { getDefaultStudioId } from '../lib/api/http'
+import { buildCsvFilename, downloadCsv } from '../lib/csv'
 import { createPayment, deletePayment, getPayments, updatePayment } from '../lib/api/payments-api'
 import type { AppointmentRecord, PaymentMethod, PaymentRecord, PaymentStatus } from '../lib/api/types'
 import { formatCurrency, formatDate, formatDateTime, formatTime, humanizeEnum } from '../lib/formatters'
@@ -166,18 +167,59 @@ export function PaymentsPage() {
     value: appointment.id,
   }))
 
+  const exportPayments = () => {
+    downloadCsv(
+      buildCsvFilename('payments'),
+      [
+        'Client',
+        'Location',
+        'Appointment Date',
+        'Appointment Time',
+        'Service',
+        'Amount',
+        'Deposit',
+        'Payment Status',
+        'Payment Method',
+        'Paid At',
+        'Transaction Reference',
+      ],
+      payments.map((payment) => [
+        payment.customerName,
+        payment.locationName,
+        payment.appointmentDate,
+        payment.appointmentStartTime,
+        payment.serviceName,
+        payment.amount,
+        payment.depositAmount,
+        payment.paymentStatus,
+        payment.paymentMethod,
+        payment.paidAt,
+        payment.transactionReference,
+      ]),
+    )
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
-        actions={
-          <button
-            className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
-            onClick={openCreateDrawer}
-            type="button"
-          >
-            Add payment
-          </button>
-        }
+        actions={(
+          <div className="flex flex-wrap gap-3">
+            <button
+              className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-[0_12px_30px_rgba(15,23,42,0.06)]"
+              onClick={exportPayments}
+              type="button"
+            >
+              Export CSV
+            </button>
+            <button
+              className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
+              onClick={openCreateDrawer}
+              type="button"
+            >
+              Add payment
+            </button>
+          </div>
+        )}
         description="Payments stay organized around deposits, balances, and booking-linked status so the financial layer remains easy to trust."
         eyebrow="Payments"
         title="Transactions and deposits"

@@ -12,6 +12,7 @@ import { useRemoteList } from '../hooks/use-remote-list'
 import { appointmentTone } from '../lib/appointments'
 import { getAppointments } from '../lib/api/appointments-api'
 import { getDefaultStudioId } from '../lib/api/http'
+import { buildCsvFilename, downloadCsv } from '../lib/csv'
 import type { AppointmentRecord } from '../lib/api/types'
 import { formatDate, formatTime, humanizeEnum } from '../lib/formatters'
 
@@ -52,18 +53,48 @@ export function AppointmentsPage() {
     setIsDrawerOpen(false)
   }
 
+  const exportAppointments = () => {
+    downloadCsv(
+      buildCsvFilename('appointments'),
+      ['Client', 'Location', 'Date', 'Start Time', 'End Time', 'Service', 'Staff', 'Status', 'Source', 'Notes'],
+      visibleAppointments.map((appointment) => [
+        appointment.customerName,
+        appointment.locationName,
+        appointment.appointmentDate,
+        appointment.startTime,
+        appointment.endTime,
+        appointment.serviceName,
+        appointment.staffName,
+        appointment.status,
+        appointment.source,
+        appointment.notes,
+      ]),
+    )
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
-        actions={allowCreate ? (
-          <button
-            className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
-            onClick={openCreateDrawer}
-            type="button"
-          >
-            New booking
-          </button>
-        ) : null}
+        actions={(
+          <div className="flex flex-wrap gap-3">
+            <button
+              className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-[0_12px_30px_rgba(15,23,42,0.06)]"
+              onClick={exportAppointments}
+              type="button"
+            >
+              Export CSV
+            </button>
+            {allowCreate ? (
+              <button
+                className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(15,23,42,0.18)]"
+                onClick={openCreateDrawer}
+                type="button"
+              >
+                New booking
+              </button>
+            ) : null}
+          </div>
+        )}
         description="A searchable appointment table with real backend data, lightweight scheduling filters, and editable booking details."
         eyebrow="Appointments"
         title="Appointment list"
