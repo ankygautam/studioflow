@@ -2,6 +2,7 @@ package com.studioflow.enums;
 
 public enum NotificationType {
     APPOINTMENT_CREATED,
+    APPOINTMENT_UPDATED,
     APPOINTMENT_RESCHEDULED,
     APPOINTMENT_CANCELLED,
     APPOINTMENT_REMINDER,

@@ -8,6 +8,7 @@ public record AnalyticsOverviewResponse(
     long cancelledAppointments,
     long noShowAppointments,
     long totalClients,
+    long activeStaff,
     long activeServices,
     BigDecimal totalRevenue,
     BigDecimal totalDeposits

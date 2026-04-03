@@ -69,6 +69,7 @@ public class AppointmentService {
         StaffProfile staffProfile = findStaffProfile(request.staffProfileId());
         com.studioflow.entity.Service service = findService(request.serviceId());
         appointmentPolicyService.validateStudioRelationships(studio, location, customerProfile, staffProfile, service);
+        appointmentPolicyService.validateStaffAvailability(staffProfile, request.appointmentDate(), request.startTime(), request.endTime());
 
         Appointment appointment = new Appointment();
         appointmentMapper.applyCreateRequest(appointment, request, studio, location, customerProfile, staffProfile, service);
@@ -131,7 +132,10 @@ public class AppointmentService {
         LocalTime previousStartTime = appointment.getStartTime();
         LocalTime previousEndTime = appointment.getEndTime();
         com.studioflow.enums.AppointmentStatus previousStatus = appointment.getStatus();
+        UUID previousCustomerId = appointment.getCustomerProfile().getId();
+        UUID previousLocationId = appointment.getLocation().getId();
         UUID previousStaffId = appointment.getStaffProfile().getId();
+        UUID previousServiceId = appointment.getService().getId();
 
         if (currentUserService.hasRole(com.studioflow.enums.UserRole.STAFF)) {
             appointmentPolicyService.ensureStaffCanUpdateAppointment(appointment, request);
@@ -144,10 +148,21 @@ public class AppointmentService {
         StaffProfile staffProfile = findStaffProfile(request.staffProfileId());
         com.studioflow.entity.Service service = findService(request.serviceId());
         appointmentPolicyService.validateStudioRelationships(studio, location, customerProfile, staffProfile, service);
+        appointmentPolicyService.validateStaffAvailability(staffProfile, request.appointmentDate(), request.startTime(), request.endTime());
 
         appointmentMapper.applyUpdateRequest(appointment, request, studio, location, customerProfile, staffProfile, service);
         Appointment savedAppointment = appointmentRepository.save(appointment);
-        notificationService.notifyAppointmentUpdated(savedAppointment, previousDate, previousStartTime, previousStatus);
+        notificationService.notifyAppointmentUpdated(
+            savedAppointment,
+            previousDate,
+            previousStartTime,
+            previousEndTime,
+            previousStatus,
+            previousCustomerId,
+            previousLocationId,
+            previousStaffId,
+            previousServiceId
+        );
         auditLogService.log(
             AuditEntityType.APPOINTMENT,
             savedAppointment.getId(),

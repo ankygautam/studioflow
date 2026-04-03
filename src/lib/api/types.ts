@@ -29,6 +29,7 @@ export type AppointmentSource = 'ADMIN_CREATED' | 'STAFF_CREATED' | 'ONLINE_BOOK
 
 export type NotificationType =
   | 'APPOINTMENT_CREATED'
+  | 'APPOINTMENT_UPDATED'
   | 'APPOINTMENT_RESCHEDULED'
   | 'APPOINTMENT_CANCELLED'
   | 'APPOINTMENT_REMINDER'
@@ -386,6 +387,7 @@ export interface ConsentFormSubmissionUpsertPayload {
 
 export interface AnalyticsOverviewRecord {
   activeServices: number
+  activeStaff: number
   cancelledAppointments: number
   completedAppointments: number
   noShowAppointments: number

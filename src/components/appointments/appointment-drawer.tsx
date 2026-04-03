@@ -9,6 +9,7 @@ import { createClient, getClients } from '../../lib/api/clients-api'
 import { getConsentFormSubmissions } from '../../lib/api/consent-forms-api'
 import { getDefaultStudioId } from '../../lib/api/http'
 import { getLocations } from '../../lib/api/locations-api'
+import { dispatchNotificationsRefresh } from '../../lib/notifications'
 import { getServices } from '../../lib/api/services-api'
 import { getStaff } from '../../lib/api/staff-api'
 import { useRemoteList } from '../../hooks/use-remote-list'
@@ -22,11 +23,11 @@ import {
   resolveAppointmentStudioId,
   validateAppointmentForm,
 } from '../../lib/appointments'
-import { formatDate, formatRelativeTime, humanizeEnum } from '../../lib/formatters'
+import { formatCurrency, formatDate, formatRelativeTime, humanizeEnum } from '../../lib/formatters'
 import { ActivityTimeline } from '../ui/activity-timeline'
 import { ConfirmDialog } from '../ui/confirm-dialog'
 import { DetailDrawer } from '../ui/detail-drawer'
-import { ErrorState, LoadingState } from '../ui/async-state'
+import { ErrorState, LoadingState, SavingState } from '../ui/async-state'
 import { InputField, SelectField, TextAreaField } from '../ui/form-controls'
 import { StatusBadge } from '../ui/status-badge'
 
@@ -76,6 +77,8 @@ export function AppointmentDrawer({
     ),
   )
   const [isSaving, setIsSaving] = useState(false)
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false)
+  const [saveFeedbackMessage, setSaveFeedbackMessage] = useState<string | null>(null)
   const [mutationError, setMutationError] = useState<string | null>(null)
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
 
@@ -127,6 +130,8 @@ export function AppointmentDrawer({
     }
 
     setFormErrors({})
+    setHasAttemptedSubmit(false)
+    setSaveFeedbackMessage(null)
     setMutationError(null)
     setConfirmDeleteOpen(false)
     setQuickClientErrors({})
@@ -151,8 +156,64 @@ export function AppointmentDrawer({
   const hasStaff = staffMembers.length > 0
   const hasServices = services.length > 0
   const hasAllDependencies = hasClients && hasLocations && hasStaff && hasServices
+  const hasValidationErrors = Object.keys(formErrors).length > 0
+  const selectedService = services.find((service) => service.id === formState.serviceId) ?? null
+
+  const clearFormErrors = (...fields: Array<keyof AppointmentFormState>) => {
+    setFormErrors((current) => {
+      let next = current
+
+      for (const field of fields) {
+        if (!next[field]) {
+          continue
+        }
+
+        if (next === current) {
+          next = { ...current }
+        }
+
+        delete next[field]
+      }
+
+      return next
+    })
+  }
+
+  const clearQuickClientErrors = (...fields: Array<keyof QuickClientFormState>) => {
+    setQuickClientErrors((current) => {
+      let next = current
+
+      for (const field of fields) {
+        if (!next[field]) {
+          continue
+        }
+
+        if (next === current) {
+          next = { ...current }
+        }
+
+        delete next[field]
+      }
+
+      return next
+    })
+  }
+
+  const updateFormField = <K extends keyof AppointmentFormState>(field: K, value: AppointmentFormState[K]) => {
+    setFormState((current) => ({ ...current, [field]: value }))
+    clearFormErrors(field)
+    setMutationError(null)
+    setSaveFeedbackMessage(null)
+  }
 
   const handleSubmit = async () => {
+    if (isSaving) {
+      return
+    }
+
+    setHasAttemptedSubmit(true)
+    setSaveFeedbackMessage(null)
+
     const resolvedStudioId = resolveAppointmentStudioId(
       formState,
       clients,
@@ -198,9 +259,12 @@ export function AppointmentDrawer({
         savedAppointment = await createAppointment(payload)
       }
 
+      setSaveFeedbackMessage(appointment ? 'Appointment saved. Updating the calendar...' : 'Appointment created. Updating the calendar...')
       await onSaved(savedAppointment)
+      dispatchNotificationsRefresh()
       onClose()
     } catch (error) {
+      setSaveFeedbackMessage(null)
       setMutationError(error instanceof Error ? error.message : 'Unable to save the appointment right now.')
     } finally {
       setIsSaving(false)
@@ -208,7 +272,7 @@ export function AppointmentDrawer({
   }
 
   const handleDelete = async () => {
-    if (!appointment) {
+    if (!appointment || isSaving) {
       return
     }
 
@@ -227,6 +291,10 @@ export function AppointmentDrawer({
   }
 
   const handleQuickClientSubmit = async () => {
+    if (isCreatingClient) {
+      return
+    }
+
     const resolvedStudioId = resolveAppointmentStudioId(
       formState,
       clients,
@@ -318,6 +386,16 @@ export function AppointmentDrawer({
     >
       <div className="pointer-events-auto space-y-5">
         {mutationError ? <ErrorState message={mutationError} /> : null}
+        {hasAttemptedSubmit && hasValidationErrors ? (
+          <ErrorState
+            message="Complete the highlighted required fields before saving this appointment."
+            title="Review required fields"
+          />
+        ) : null}
+        {saveFeedbackMessage ? <SuccessNotice message={saveFeedbackMessage} /> : null}
+        {isSaving ? (
+          <SavingState title={appointment ? 'Saving appointment changes...' : 'Creating appointment...'} />
+        ) : null}
         {dependenciesError ? <ErrorState message={dependenciesError} /> : null}
         {dependenciesLoading ? <LoadingState title="Loading staff, clients, and services..." /> : null}
         {!dependenciesLoading && !dependenciesError && !hasAllDependencies ? (
@@ -353,7 +431,7 @@ export function AppointmentDrawer({
           <InputField
             error={formErrors.studioId}
             label="Studio ID"
-            onChange={(event) => setFormState((current) => ({ ...current, studioId: event.target.value }))}
+            onChange={(event) => updateFormField('studioId', event.target.value)}
             placeholder="Paste the studio UUID"
             value={formState.studioId}
           />
@@ -363,13 +441,16 @@ export function AppointmentDrawer({
           <SelectField
             error={formErrors.locationId}
             label="Location"
-            onChange={(event) =>
+            onChange={(event) => {
               setFormState((current) => ({
                 ...current,
                 locationId: event.target.value,
                 staffProfileId: '',
               }))
-            }
+              clearFormErrors('locationId', 'staffProfileId')
+              setMutationError(null)
+              setSaveFeedbackMessage(null)
+            }}
             disabled={appointment ? !canEditDetails : false}
             value={formState.locationId}
           >
@@ -383,9 +464,7 @@ export function AppointmentDrawer({
           <SelectField
             error={formErrors.customerProfileId}
             label="Client"
-            onChange={(event) =>
-              setFormState((current) => ({ ...current, customerProfileId: event.target.value }))
-            }
+            onChange={(event) => updateFormField('customerProfileId', event.target.value)}
             disabled={appointment ? !canEditDetails : false}
             value={formState.customerProfileId}
           >
@@ -424,18 +503,22 @@ export function AppointmentDrawer({
                   <InputField
                     error={quickClientErrors.fullName}
                     label="Client name"
-                    onChange={(event) =>
+                    onChange={(event) => {
                       setQuickClientState((current) => ({ ...current, fullName: event.target.value }))
-                    }
+                      clearQuickClientErrors('fullName')
+                      setQuickClientMutationError(null)
+                    }}
                     placeholder="Enter the client's full name"
                     value={quickClientState.fullName}
                   />
                   <InputField
                     error={quickClientErrors.phone}
                     label="Phone"
-                    onChange={(event) =>
+                    onChange={(event) => {
                       setQuickClientState((current) => ({ ...current, phone: event.target.value }))
-                    }
+                      clearQuickClientErrors('phone')
+                      setQuickClientMutationError(null)
+                    }}
                     placeholder="Optional phone number"
                     value={quickClientState.phone}
                   />
@@ -443,9 +526,11 @@ export function AppointmentDrawer({
                     <InputField
                       error={quickClientErrors.email}
                       label="Email"
-                      onChange={(event) =>
+                      onChange={(event) => {
                         setQuickClientState((current) => ({ ...current, email: event.target.value }))
-                      }
+                        clearQuickClientErrors('email')
+                        setQuickClientMutationError(null)
+                      }}
                       placeholder="Optional email address"
                       value={quickClientState.email}
                     />
@@ -481,9 +566,7 @@ export function AppointmentDrawer({
           <SelectField
             error={formErrors.staffProfileId}
             label="Staff"
-            onChange={(event) =>
-              setFormState((current) => ({ ...current, staffProfileId: event.target.value }))
-            }
+            onChange={(event) => updateFormField('staffProfileId', event.target.value)}
             disabled={appointment ? !canEditDetails : false}
             value={formState.staffProfileId}
           >
@@ -497,7 +580,7 @@ export function AppointmentDrawer({
           <SelectField
             error={formErrors.serviceId}
             label="Service"
-            onChange={(event) => setFormState((current) => ({ ...current, serviceId: event.target.value }))}
+            onChange={(event) => updateFormField('serviceId', event.target.value)}
             disabled={appointment ? !canEditDetails : false}
             value={formState.serviceId}
           >
@@ -511,9 +594,7 @@ export function AppointmentDrawer({
           <InputField
             error={formErrors.appointmentDate}
             label="Appointment date"
-            onChange={(event) =>
-              setFormState((current) => ({ ...current, appointmentDate: event.target.value }))
-            }
+            onChange={(event) => updateFormField('appointmentDate', event.target.value)}
             disabled={appointment ? !canEditDetails : false}
             type="date"
             value={formState.appointmentDate}
@@ -521,7 +602,7 @@ export function AppointmentDrawer({
           <InputField
             error={formErrors.startTime}
             label="Start time"
-            onChange={(event) => setFormState((current) => ({ ...current, startTime: event.target.value }))}
+            onChange={(event) => updateFormField('startTime', event.target.value)}
             disabled={appointment ? !canEditDetails : false}
             type="time"
             value={formState.startTime}
@@ -529,7 +610,7 @@ export function AppointmentDrawer({
           <InputField
             error={formErrors.endTime}
             label="End time"
-            onChange={(event) => setFormState((current) => ({ ...current, endTime: event.target.value }))}
+            onChange={(event) => updateFormField('endTime', event.target.value)}
             disabled={appointment ? !canEditDetails : false}
             type="time"
             value={formState.endTime}
@@ -537,9 +618,7 @@ export function AppointmentDrawer({
           <SelectField
             error={formErrors.status}
             label="Status"
-            onChange={(event) =>
-              setFormState((current) => ({ ...current, status: event.target.value as AppointmentFormState['status'] }))
-            }
+            onChange={(event) => updateFormField('status', event.target.value as AppointmentFormState['status'])}
             disabled={appointment ? !canEditStatus : false}
             value={formState.status}
           >
@@ -552,9 +631,7 @@ export function AppointmentDrawer({
           <SelectField
             error={formErrors.source}
             label="Source"
-            onChange={(event) =>
-              setFormState((current) => ({ ...current, source: event.target.value as AppointmentFormState['source'] }))
-            }
+            onChange={(event) => updateFormField('source', event.target.value as AppointmentFormState['source'])}
             disabled={appointment ? !canEditDetails : false}
             value={formState.source}
           >
@@ -566,9 +643,21 @@ export function AppointmentDrawer({
           </SelectField>
         </div>
 
+        {selectedService?.depositRequired ? (
+          <section>
+            <div className="rounded-[24px] border border-amber-100 bg-amber-50 px-4 py-4">
+              <p className="text-sm font-semibold text-amber-900">Deposit required</p>
+              <p className="mt-2 text-sm leading-7 text-amber-800">
+                This service requires a {formatCurrency(selectedService.depositAmount)} deposit. The amount is shown here
+                for the team, but it is not enforced by the appointment form yet.
+              </p>
+            </div>
+          </section>
+        ) : null}
+
         <TextAreaField
           label="Notes"
-          onChange={(event) => setFormState((current) => ({ ...current, notes: event.target.value }))}
+          onChange={(event) => updateFormField('notes', event.target.value)}
           placeholder="Add prep details, reminders, or scheduling context."
           disabled={appointment ? !canEditStatus : false}
           value={formState.notes}
@@ -693,6 +782,19 @@ function DependencyNotice({
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Missing setup</p>
       <p className="mt-2 text-sm font-semibold text-slate-900">{title}</p>
       <p className="mt-2 text-sm leading-7 text-slate-600">{description}</p>
+    </div>
+  )
+}
+
+function SuccessNotice({ message }: { message: string }) {
+  return (
+    <div
+      aria-live="polite"
+      className="rounded-[28px] border border-emerald-200 bg-emerald-50/70 p-6"
+      role="status"
+    >
+      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-600">Success</p>
+      <p className="mt-3 text-sm leading-7 text-emerald-800">{message}</p>
     </div>
   )
 }

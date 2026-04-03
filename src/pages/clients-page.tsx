@@ -10,12 +10,22 @@ import { StatusBadge } from '../components/ui/status-badge'
 import { canManageClients } from '../features/auth/authorization'
 import { useAuth } from '../features/auth/use-auth'
 import { useRemoteList } from '../hooks/use-remote-list'
-import { formatDate } from '../lib/formatters'
+import { getAppointments } from '../lib/api/appointments-api'
 import { getAuditLogsByEntity } from '../lib/api/audit-api'
 import { getConsentFormSubmissions } from '../lib/api/consent-forms-api'
 import { getDefaultStudioId } from '../lib/api/http'
+import { getPayments } from '../lib/api/payments-api'
 import { createClient, deleteClient, getClients, updateClient } from '../lib/api/clients-api'
-import type { ClientRecord, ConsentFormStatus, ConsentFormSubmissionRecord } from '../lib/api/types'
+import { formatCurrency, formatDate, formatTime, humanizeEnum } from '../lib/formatters'
+import type {
+  AppointmentRecord,
+  AuditActionType,
+  AuditLogRecord,
+  ClientRecord,
+  ConsentFormStatus,
+  ConsentFormSubmissionRecord,
+  PaymentRecord,
+} from '../lib/api/types'
 
 type ClientFormState = {
   dateOfBirth: string
@@ -53,6 +63,30 @@ export function ClientsPage() {
     error: clientConsentError,
     isLoading: clientConsentLoading,
   } = useRemoteList(loadClientConsent)
+  const loadClientAppointments = useCallback(() => {
+    if (!editingClient?.id) {
+      return Promise.resolve([] as AppointmentRecord[])
+    }
+
+    return getAppointments(editingClient.studioId)
+  }, [editingClient?.id, editingClient?.studioId])
+  const {
+    data: studioAppointments,
+    error: clientAppointmentsError,
+    isLoading: clientAppointmentsLoading,
+  } = useRemoteList(loadClientAppointments)
+  const loadClientPayments = useCallback(() => {
+    if (!editingClient?.id) {
+      return Promise.resolve([] as PaymentRecord[])
+    }
+
+    return getPayments({ studioId: editingClient.studioId })
+  }, [editingClient?.id, editingClient?.studioId])
+  const {
+    data: studioPayments,
+    error: clientPaymentsError,
+    isLoading: clientPaymentsLoading,
+  } = useRemoteList(loadClientPayments)
   const loadClientActivity = useCallback(() => {
     if (!editingClient?.id) {
       return Promise.resolve([])
@@ -157,6 +191,29 @@ export function ClientsPage() {
     () => clientConsentSubmissions[0] ?? null,
     [clientConsentSubmissions],
   )
+  const clientAppointments = useMemo(
+    () => studioAppointments.filter((appointment) => appointment.customerProfileId === editingClient?.id),
+    [editingClient?.id, studioAppointments],
+  )
+  const clientPayments = useMemo(() => {
+    const appointmentIds = new Set(clientAppointments.map((appointment) => appointment.id))
+    return studioPayments.filter((payment) => appointmentIds.has(payment.appointmentId))
+  }, [clientAppointments, studioPayments])
+  const clientTimelineEntries = useMemo(
+    () =>
+      buildClientTimelineEntries({
+        activity: clientActivity,
+        appointments: clientAppointments,
+        client: editingClient,
+        consentSubmissions: clientConsentSubmissions,
+        payments: clientPayments,
+      }),
+    [clientActivity, clientAppointments, clientConsentSubmissions, clientPayments, editingClient],
+  )
+  const clientTimelineError =
+    clientAppointmentsError || clientPaymentsError || clientConsentError || clientActivityError
+  const clientTimelineLoading =
+    clientAppointmentsLoading || clientPaymentsLoading || clientConsentLoading || clientActivityLoading
 
   return (
     <div className="space-y-6">
@@ -394,13 +451,13 @@ export function ClientsPage() {
           </section>
 
           <section>
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-400">Activity history</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-400">Client timeline</p>
             <div className="mt-3">
               <ActivityTimeline
-                emptyDescription="Client activity will appear here as the team updates profile details and relationship records."
-                entries={clientActivity}
-                error={clientActivityError}
-                isLoading={clientActivityLoading}
+                emptyDescription="Client history will appear here as appointments, payments, consent records, and profile notes build up over time."
+                entries={clientTimelineEntries}
+                error={clientTimelineError}
+                isLoading={clientTimelineLoading}
               />
             </div>
           </section>
@@ -474,4 +531,130 @@ function consentTone(status: ConsentFormStatus) {
 
 function humanizeConsentStatus(status: ConsentFormStatus) {
   return status.charAt(0) + status.slice(1).toLowerCase()
+}
+
+function buildClientTimelineEntries({
+  activity,
+  appointments,
+  client,
+  consentSubmissions,
+  payments,
+}: {
+  activity: AuditLogRecord[]
+  appointments: AppointmentRecord[]
+  client: ClientRecord | null
+  consentSubmissions: ConsentFormSubmissionRecord[]
+  payments: PaymentRecord[]
+}): AuditLogRecord[] {
+  const appointmentEntries = appointments.map((appointment) => ({
+    actionType: appointmentTimelineActionType(appointment),
+    actorName: appointment.staffName,
+    actorRole: null,
+    createdAt: buildAppointmentTimelineDateTime(appointment),
+    description: [
+      `${appointment.serviceName} at ${appointment.locationName}.`,
+      `Status: ${humanizeEnum(appointment.status)}.`,
+      `Scheduled for ${formatDate(appointment.appointmentDate)} at ${formatTime(appointment.startTime)}.`,
+    ].join(' '),
+    entityId: appointment.id,
+    entityType: 'APPOINTMENT' as const,
+    id: `appointment-${appointment.id}`,
+    locationId: appointment.locationId,
+    locationName: appointment.locationName,
+    metadataJson: null,
+    studioId: appointment.studioId,
+    title: `Appointment ${humanizeEnum(appointment.status).toLowerCase()}`,
+  }))
+
+  const paymentEntries = payments.map((payment) => ({
+    actionType: paymentTimelineActionType(payment),
+    actorName: payment.locationName,
+    actorRole: null,
+    createdAt: payment.paidAt ?? payment.updatedAt,
+    description: [
+      `${payment.serviceName} payment is ${humanizeEnum(payment.paymentStatus).toLowerCase()}.`,
+      `Amount: ${formatCurrency(payment.amount)}.`,
+      payment.depositAmount > 0 ? `Deposit: ${formatCurrency(payment.depositAmount)}.` : null,
+    ]
+      .filter(Boolean)
+      .join(' '),
+    entityId: payment.id,
+    entityType: 'PAYMENT' as const,
+    id: `payment-${payment.id}`,
+    locationId: payment.locationId,
+    locationName: payment.locationName,
+    metadataJson: null,
+    studioId: payment.studioId,
+    title: `Payment ${humanizeEnum(payment.paymentStatus).toLowerCase()}`,
+  }))
+
+  const consentEntries = consentSubmissions.map((submission) => ({
+    actionType: consentTimelineActionType(submission),
+    actorName: submission.templateTitle,
+    actorRole: null,
+    createdAt: submission.signedAt ?? submission.updatedAt,
+    description: [
+      `Consent form is ${humanizeConsentStatus(submission.status).toLowerCase()}.`,
+      submission.appointmentDate
+        ? `Linked appointment: ${formatDate(submission.appointmentDate)}${submission.appointmentStartTime ? ` at ${formatTime(submission.appointmentStartTime)}` : ''}.`
+        : 'No appointment linked.',
+    ].join(' '),
+    entityId: submission.id,
+    entityType: 'CONSENT_SUBMISSION' as const,
+    id: `consent-${submission.id}`,
+    locationId: null,
+    locationName: null,
+    metadataJson: null,
+    studioId: submission.studioId,
+    title: `Consent ${humanizeConsentStatus(submission.status).toLowerCase()}`,
+  }))
+
+  const noteEntries =
+    client?.notes?.trim()
+      ? [
+          {
+            actionType: 'UPDATED' as const,
+            actorName: 'Client profile',
+            actorRole: null,
+            createdAt: client.updatedAt,
+            description: client.notes.trim(),
+            entityId: client.id,
+            entityType: 'CLIENT' as const,
+            id: `client-notes-${client.id}`,
+            locationId: null,
+            locationName: null,
+            metadataJson: null,
+            studioId: client.studioId,
+            title: 'Client notes updated',
+          },
+        ]
+      : []
+
+  return [...activity, ...appointmentEntries, ...paymentEntries, ...consentEntries, ...noteEntries].sort(
+    (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+  )
+}
+
+function buildAppointmentTimelineDateTime(appointment: AppointmentRecord) {
+  return `${appointment.appointmentDate}T${appointment.startTime}`
+}
+
+function appointmentTimelineActionType(appointment: AppointmentRecord): AuditActionType {
+  if (appointment.status === 'CANCELLED') {
+    return 'CANCELLED'
+  }
+
+  if (appointment.status === 'COMPLETED') {
+    return 'COMPLETED'
+  }
+
+  return 'CREATED'
+}
+
+function paymentTimelineActionType(payment: PaymentRecord): AuditActionType {
+  return payment.paymentStatus === 'PAID' ? 'COMPLETED' : 'UPDATED'
+}
+
+function consentTimelineActionType(submission: ConsentFormSubmissionRecord): AuditActionType {
+  return submission.status === 'SIGNED' ? 'COMPLETED' : 'UPDATED'
 }

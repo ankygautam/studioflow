@@ -7,9 +7,41 @@ export type ProjectUpdate = {
   summary: string
 }
 
-export const generatedAt = "2026-04-03T12:42:39.274Z"
+export const generatedAt = "2026-04-03T14:18:01.621Z"
 
 export const projectUpdates: ProjectUpdate[] = [
+  {
+    "category": "Booking flow",
+    "date": "2026-04-03",
+    "hash": "f89bd7b97b0cab027c162ccdf86219e1e6a225e6",
+    "shortHash": "f89bd7b",
+    "subject": "Polish calendar cards and simplify theme toggle",
+    "summary": "Expanded the scheduling experience so date-based workflows are clearer and more useful."
+  },
+  {
+    "category": "Booking flow",
+    "date": "2026-04-03",
+    "hash": "3e78e9a4c932f074a255c7dc73bc9a04bd3e1b2c",
+    "shortHash": "3e78e9a",
+    "subject": "Fix public booking route crash on startup",
+    "summary": "Improved product behavior and removed friction in an existing workflow."
+  },
+  {
+    "category": "Booking flow",
+    "date": "2026-04-03",
+    "hash": "f6bb70c0d78b73e91de67621eff8423818a3efaf",
+    "shortHash": "f6bb70c",
+    "subject": "Fix appointment drawer footer clicks",
+    "summary": "Improved product behavior and removed friction in an existing workflow."
+  },
+  {
+    "category": "Booking flow",
+    "date": "2026-04-03",
+    "hash": "6853ae955e3e7f13d90f638a9b2c1c2be03c2532",
+    "shortHash": "6853ae9",
+    "subject": "Refactor booking flows and align docs",
+    "summary": "Smoothed the booking flow to reduce extra steps during day-to-day studio operations."
+  },
   {
     "category": "UI polish",
     "date": "2026-04-03",
@@ -121,29 +153,5 @@ export const projectUpdates: ProjectUpdate[] = [
     "shortHash": "2941666",
     "subject": "Simplify app for single-owner studios",
     "summary": "Added another round of product polish and workflow improvements."
-  },
-  {
-    "category": "UI polish",
-    "date": "2026-04-01",
-    "hash": "15e05c3d545e95e166173a9fb0eadc7f2626c993",
-    "shortHash": "15e05c3",
-    "subject": "Fetch commit history for updates page",
-    "summary": "Improved navigation and public-facing guidance so the project is easier to explore."
-  },
-  {
-    "category": "Booking flow",
-    "date": "2026-04-01",
-    "hash": "933feed29a8c1f32ea2d6bcd2b296e71661d707a",
-    "shortHash": "933feed",
-    "subject": "Show saved bookings immediately on calendar",
-    "summary": "Expanded the scheduling experience so date-based workflows are clearer and more useful."
-  },
-  {
-    "category": "Booking flow",
-    "date": "2026-04-01",
-    "hash": "08655f6d44e25b183b90b9adc84df53a22263c77",
-    "shortHash": "08655f6",
-    "subject": "Fix calendar visibility for new appointments",
-    "summary": "Improved product behavior and removed friction in an existing workflow."
   }
 ] as ProjectUpdate[]

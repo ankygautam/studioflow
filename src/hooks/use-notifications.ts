@@ -6,6 +6,7 @@ import {
   markNotificationAsRead,
 } from '../lib/api/notifications-api'
 import type { NotificationRecord } from '../lib/api/types'
+import { getNotificationsRefreshEventName } from '../lib/notifications'
 
 export function useNotifications(enabled: boolean) {
   const [notifications, setNotifications] = useState<NotificationRecord[]>([])
@@ -49,8 +50,16 @@ export function useNotifications(enabled: boolean) {
       void refresh()
     }, 30000)
 
+    const refreshEventName = getNotificationsRefreshEventName()
+    const handleRefresh = () => {
+      void refresh()
+    }
+
+    window.addEventListener(refreshEventName, handleRefresh as EventListener)
+
     return () => {
       window.clearInterval(timer)
+      window.removeEventListener(refreshEventName, handleRefresh as EventListener)
     }
   }, [enabled, refresh])
 

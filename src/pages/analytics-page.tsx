@@ -28,9 +28,12 @@ export function AnalyticsPage() {
     const noShowRate = totalAppointments > 0 ? (data.overview.noShowAppointments / totalAppointments) * 100 : 0
     const cancellationRate =
       totalAppointments > 0 ? (data.overview.cancelledAppointments / totalAppointments) * 100 : 0
+    const completionRate =
+      totalAppointments > 0 ? (data.overview.completedAppointments / totalAppointments) * 100 : 0
 
     return {
       cancellationRate,
+      completionRate,
       noShowRate,
       topService: data.services.topServices[0] ?? null,
     }
@@ -84,7 +87,7 @@ export function AnalyticsPage() {
 
       {!isLoading && !error && data && metrics ? (
         <>
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <StatCard
               accent="mint"
               helper={`${data.revenue.paidCount} payments marked paid`}
@@ -93,20 +96,32 @@ export function AnalyticsPage() {
             />
             <StatCard
               accent="violet"
-              helper={`${data.appointments.completedTotal} completed appointments`}
+              helper={`${metrics.completionRate.toFixed(1)}% completion rate`}
               label="Bookings"
               value={String(data.appointments.bookingsTotal)}
+            />
+            <StatCard
+              accent="warm"
+              helper={`${data.appointments.upcomingTotal} upcoming bookings`}
+              label="Clients"
+              value={String(data.overview.totalClients)}
+            />
+            <StatCard
+              helper={`${data.appointments.completedTotal} completed appointments`}
+              label="Active staff"
+              value={String(data.overview.activeStaff)}
+            />
+            <StatCard
+              accent="violet"
+              helper={`${metrics.topService ? `${metrics.topService.serviceName} leading` : 'Catalog is ready for bookings'}`}
+              label="Active services"
+              value={String(data.overview.activeServices)}
             />
             <StatCard
               accent="warm"
               helper={`${data.overview.noShowAppointments} no-show appointments`}
               label="No-show rate"
               value={`${metrics.noShowRate.toFixed(1)}%`}
-            />
-            <StatCard
-              helper={`${data.overview.cancelledAppointments} cancellations`}
-              label="Cancellation rate"
-              value={`${metrics.cancellationRate.toFixed(1)}%`}
             />
           </section>
 
@@ -145,7 +160,9 @@ export function AnalyticsPage() {
 
             <SurfaceCard title="Insights">
               <div className="space-y-3">
+                <InsightRow label="Cancellation rate" value={`${metrics.cancellationRate.toFixed(1)}%`} />
                 <InsightRow label="Total clients" value={String(data.overview.totalClients)} />
+                <InsightRow label="Active staff" value={String(data.overview.activeStaff)} />
                 <InsightRow label="Active services" value={String(data.overview.activeServices)} />
                 <InsightRow label="Upcoming bookings" value={String(data.appointments.upcomingTotal)} />
                 <InsightRow

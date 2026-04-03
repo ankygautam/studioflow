@@ -100,6 +100,58 @@ public class NotificationService {
         Appointment appointment,
         LocalDate previousDate,
         java.time.LocalTime previousStartTime,
+        java.time.LocalTime previousEndTime,
+        com.studioflow.enums.AppointmentStatus previousStatus,
+        UUID previousCustomerId,
+        UUID previousLocationId,
+        UUID previousStaffId,
+        UUID previousServiceId
+    ) {
+        if (handleAppointmentScheduleNotification(appointment, previousDate, previousStartTime, previousStatus)) {
+            return;
+        }
+
+        boolean meaningfulUpdate =
+            !appointment.getEndTime().equals(previousEndTime)
+                || !appointment.getCustomerProfile().getId().equals(previousCustomerId)
+                || !appointment.getLocation().getId().equals(previousLocationId)
+                || !appointment.getStaffProfile().getId().equals(previousStaffId)
+                || !appointment.getService().getId().equals(previousServiceId)
+                || previousStatus != appointment.getStatus();
+
+        if (!meaningfulUpdate) {
+            return;
+        }
+
+        createStudioNotification(
+            appointment,
+            NotificationType.APPOINTMENT_UPDATED,
+            "Appointment updated",
+            appointment.getCustomerProfile().getFullName()
+                + "'s "
+                + appointment.getService().getName()
+                + " booking was updated for "
+                + formatDate(appointment.getAppointmentDate())
+                + " at "
+                + appointment.getStartTime()
+                + ".",
+            "/appointments"
+        );
+    }
+
+    public void notifyAppointmentUpdated(
+        Appointment appointment,
+        LocalDate previousDate,
+        java.time.LocalTime previousStartTime,
+        com.studioflow.enums.AppointmentStatus previousStatus
+    ) {
+        handleAppointmentScheduleNotification(appointment, previousDate, previousStartTime, previousStatus);
+    }
+
+    private boolean handleAppointmentScheduleNotification(
+        Appointment appointment,
+        LocalDate previousDate,
+        java.time.LocalTime previousStartTime,
         com.studioflow.enums.AppointmentStatus previousStatus
     ) {
         if (appointment.getStatus() == com.studioflow.enums.AppointmentStatus.CANCELLED
@@ -112,7 +164,7 @@ public class NotificationService {
                 "/appointments"
             );
             notificationDeliveryService.sendBookingCancelledConfirmation(appointment);
-            return;
+            return true;
         }
 
         boolean dateChanged = !appointment.getAppointmentDate().equals(previousDate);
@@ -127,7 +179,10 @@ public class NotificationService {
                 "/appointments"
             );
             notificationDeliveryService.sendBookingRescheduledConfirmation(appointment);
+            return true;
         }
+
+        return false;
     }
 
     public boolean notifyAppointmentReminder(Appointment appointment) {
@@ -282,6 +337,7 @@ public class NotificationService {
 
             boolean include = switch (type) {
                 case APPOINTMENT_CREATED,
+                    APPOINTMENT_UPDATED,
                     APPOINTMENT_RESCHEDULED,
                     APPOINTMENT_CANCELLED,
                     APPOINTMENT_REMINDER -> user.getRole() == UserRole.ADMIN

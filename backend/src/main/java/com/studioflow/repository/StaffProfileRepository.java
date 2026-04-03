@@ -16,6 +16,8 @@ public interface StaffProfileRepository extends JpaRepository<StaffProfile, UUID
 
     List<StaffProfile> findByStudioIdAndStatus(UUID studioId, StaffStatus status);
 
+    long countByStudioIdAndStatus(UUID studioId, StaffStatus status);
+
     List<StaffProfile> findByStudioIdAndStatusAndUserRole(UUID studioId, StaffStatus status, UserRole userRole);
 
     List<StaffProfile> findByStudioIdAndPrimaryLocationIdAndStatusAndUserRole(

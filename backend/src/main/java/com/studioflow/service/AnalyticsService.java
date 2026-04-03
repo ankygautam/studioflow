@@ -12,10 +12,12 @@ import com.studioflow.entity.Payment;
 import com.studioflow.entity.Service;
 import com.studioflow.enums.AppointmentStatus;
 import com.studioflow.enums.PaymentStatus;
+import com.studioflow.enums.StaffStatus;
 import com.studioflow.repository.AppointmentRepository;
 import com.studioflow.repository.CustomerProfileRepository;
 import com.studioflow.repository.PaymentRepository;
 import com.studioflow.repository.ServiceRepository;
+import com.studioflow.repository.StaffProfileRepository;
 import com.studioflow.service.auth.CurrentUserService;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -41,6 +43,7 @@ public class AnalyticsService {
     private final PaymentRepository paymentRepository;
     private final CustomerProfileRepository customerProfileRepository;
     private final ServiceRepository serviceRepository;
+    private final StaffProfileRepository staffProfileRepository;
 
     public AnalyticsOverviewResponse getOverview(UUID studioId, LocalDate from, LocalDate to) {
         UUID authorizedStudioId = currentUserService.requireStudioAccess(studioId);
@@ -53,6 +56,7 @@ public class AnalyticsService {
             countAppointments(appointments, AppointmentStatus.CANCELLED),
             countAppointments(appointments, AppointmentStatus.NO_SHOW),
             loadClientCount(authorizedStudioId),
+            loadActiveStaffCount(authorizedStudioId),
             loadActiveServiceCount(authorizedStudioId),
             sumPaymentAmount(payments),
             sumDepositAmount(payments)
@@ -147,6 +151,10 @@ public class AnalyticsService {
 
     private long loadActiveServiceCount(UUID studioId) {
         return serviceRepository.countByStudioIdAndIsActiveTrue(studioId);
+    }
+
+    private long loadActiveStaffCount(UUID studioId) {
+        return staffProfileRepository.countByStudioIdAndStatus(studioId, StaffStatus.ACTIVE);
     }
 
     private List<Appointment> filterAppointments(List<Appointment> appointments, LocalDate from, LocalDate to) {

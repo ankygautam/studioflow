@@ -108,22 +108,43 @@ export function FormsPage() {
 
   const appointmentOptions = useMemo(
     () =>
-      appointments.map((appointment) => ({
+      appointments
+        .filter((appointment) =>
+          submissionState.customerProfileId
+            ? appointment.customerProfileId === submissionState.customerProfileId
+            : true,
+        )
+        .map((appointment) => ({
         label: appointmentOptionLabel(appointment),
         value: appointment.id,
       })),
-    [appointments],
+    [appointments, submissionState.customerProfileId],
   )
 
   const templateOptions = useMemo(
-    () =>
-      templates
-        .filter((template) => template.isActive)
-        .map((template) => ({
+    () => {
+      const activeTemplates = templates.filter((template) => template.isActive)
+      const selectedTemplate = templates.find((template) => template.id === submissionState.templateId)
+
+      if (!selectedTemplate || selectedTemplate.isActive) {
+        return activeTemplates.map((template) => ({
+          label: template.title,
+          value: template.id,
+        }))
+      }
+
+      return [
+        ...activeTemplates.map((template) => ({
           label: template.title,
           value: template.id,
         })),
-    [templates],
+        {
+          label: `${selectedTemplate.title} (Inactive)`,
+          value: selectedTemplate.id,
+        },
+      ]
+    },
+    [submissionState.templateId, templates],
   )
 
   const openTemplateCreate = () => {
@@ -622,7 +643,21 @@ export function FormsPage() {
               error={submissionErrors.customerProfileId}
               label="Client"
               onChange={(event) =>
-                setSubmissionState((current) => ({ ...current, customerProfileId: event.target.value }))
+                setSubmissionState((current) => {
+                  const nextCustomerProfileId = event.target.value
+                  const selectedAppointment = appointments.find(
+                    (appointment) => appointment.id === current.appointmentId,
+                  )
+
+                  return {
+                    ...current,
+                    appointmentId:
+                      selectedAppointment && selectedAppointment.customerProfileId !== nextCustomerProfileId
+                        ? ''
+                        : current.appointmentId,
+                    customerProfileId: nextCustomerProfileId,
+                  }
+                })
               }
               value={submissionState.customerProfileId}
             >
