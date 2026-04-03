@@ -1,1 +1,0 @@
-import{a as r}from"./index-DOCV5EMy.js";function c(e){const t=e?`?studioId=${encodeURIComponent(e)}`:"";return r.get(`/api/services${t}`)}function n(e){return r.post("/api/services",e)}function s(e,t){return r.put(`/api/services/${e}`,t)}function a(e){return r.del(`/api/services/${e}`)}export{n as c,a as d,c as g,s as u};
