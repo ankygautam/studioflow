@@ -3,7 +3,7 @@ import { PUBLIC_BOOKING_DEMO_ROUTE } from '../../lib/demo-routes'
 import { PublicBookingManagePage } from '../../pages/public-booking-manage-page'
 import { PublicBookingPage } from '../../pages/public-booking-page'
 
-export function PublicBookingRoutes() {
+export function renderPublicBookingRoutes() {
   return (
     <>
       <Route

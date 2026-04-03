@@ -1,6 +1,6 @@
 import { lazy, Suspense, type ComponentType, type ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { PublicBookingRoutes } from './routes/public-booking-routes'
+import { renderPublicBookingRoutes } from './routes/public-booking-routes'
 import { AppShell } from '../components/layout/app-shell'
 import { LoadingState } from '../components/ui/async-state'
 import { AdminOnboardingRoute, ProtectedRoute, PublicOnlyRoute, RoleRoute } from '../features/auth/route-guards'
@@ -83,7 +83,7 @@ export function App() {
           </AdminOnboardingRoute>
         }
       />
-      <PublicBookingRoutes />
+      {renderPublicBookingRoutes()}
       <Route
         path="/"
         element={
