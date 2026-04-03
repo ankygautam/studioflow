@@ -276,7 +276,7 @@ export function AppointmentDrawer({
     <>
     <DetailDrawer
       footer={
-        <div className="flex flex-wrap justify-between gap-3">
+        <div className="pointer-events-auto flex flex-wrap justify-between gap-3">
           <div>
             {appointment && allowDelete ? (
               <button
