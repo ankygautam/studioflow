@@ -39,10 +39,10 @@ export function EmptyState({
   title: string
 }) {
   return (
-    <div className="rounded-[28px] border border-dashed border-slate-200 bg-slate-50/70 p-8 text-center">
-      <p className="text-xs font-semibold uppercase tracking-[0.32em] text-slate-400">Empty state</p>
-      <h3 className="mt-3 text-xl font-semibold text-slate-900">{title}</h3>
-      <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-500">{description}</p>
+    <div className="theme-readable-surface rounded-[28px] border border-dashed border-slate-200 bg-slate-50/70 p-8 text-center">
+      <p className="theme-readable-kicker text-xs font-semibold uppercase tracking-[0.32em] text-slate-400">Empty state</p>
+      <h3 className="theme-readable-title mt-3 text-xl font-semibold text-slate-900">{title}</h3>
+      <p className="theme-readable-copy mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-500">{description}</p>
       {action ? <div className="mt-5">{action}</div> : null}
     </div>
   )
@@ -50,10 +50,10 @@ export function EmptyState({
 
 export function SavingState({ title = 'Saving changes...' }: { title?: string }) {
   return (
-    <div className="rounded-[22px] border border-slate-200 bg-slate-50/80 px-4 py-4">
+    <div className="theme-readable-surface rounded-[22px] border border-slate-200 bg-slate-50/80 px-4 py-4">
       <div className="flex items-center gap-3">
         <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-slate-400" />
-        <p className="text-sm font-medium text-slate-500">{title}</p>
+        <p className="theme-readable-copy text-sm font-medium text-slate-500">{title}</p>
       </div>
     </div>
   )

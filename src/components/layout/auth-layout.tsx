@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { ThemeSchemeControl } from '../../features/theme/theme-scheme-control'
 import { AuthCard } from '../auth/auth-card'
 
 export function AuthLayout({
@@ -36,9 +35,6 @@ export function AuthLayout({
   return (
     <div className="theme-page-shell min-h-screen bg-[linear-gradient(180deg,#f7f8fc_0%,#eef2f7_100%)] px-4 py-6 text-slate-900 md:px-6 md:py-8">
       <div className="mx-auto grid min-h-[calc(100vh-3rem)] max-w-[1320px] gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(420px,0.75fr)]">
-        <div className="lg:col-span-2 flex justify-end">
-          <ThemeSchemeControl />
-        </div>
         <motion.section
           animate={{ opacity: 1, x: 0 }}
           className="relative overflow-hidden rounded-[36px] border border-white/60 bg-[#0d1321] p-8 shadow-[0_30px_120px_rgba(6,10,20,0.45)] md:p-10 lg:p-12"

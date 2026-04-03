@@ -4,6 +4,7 @@ import { HashRouter } from 'react-router-dom'
 import { App } from './app/app'
 import { AuthProvider } from './features/auth/auth-context'
 import { AutoThemeSync } from './features/theme/auto-theme-sync'
+import { ThemeSchemeControl } from './features/theme/theme-scheme-control'
 import './styles/index.css'
 
 createRoot(document.getElementById('root')!).render(
@@ -11,6 +12,7 @@ createRoot(document.getElementById('root')!).render(
     <AutoThemeSync />
     <AuthProvider>
       <HashRouter>
+        <ThemeSchemeControl floating />
         <App />
       </HashRouter>
     </AuthProvider>

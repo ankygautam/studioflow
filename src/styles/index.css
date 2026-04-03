@@ -73,8 +73,18 @@ html[data-theme='dark'] .theme-page-shell {
 }
 
 html[data-theme='dark'] [class~='bg-slate-50'],
-html[data-theme='dark'] [class~='bg-slate-100'] {
+html[data-theme='dark'] [class~='bg-slate-100'],
+html[data-theme='dark'] [class*='bg-slate-50/70'],
+html[data-theme='dark'] [class*='bg-slate-50/80'],
+html[data-theme='dark'] [class*='bg-slate-50/90'],
+html[data-theme='dark'] [class*='bg-slate-100/70'],
+html[data-theme='dark'] [class*='bg-slate-100/80'] {
   background-color: #152235 !important;
+}
+
+html[data-theme='dark'] [class*='bg-slate-50/'],
+html[data-theme='dark'] [class*='bg-slate-100/'] {
+  background-color: rgba(21, 34, 53, 0.88) !important;
 }
 
 html[data-theme='dark'] [class~='bg-white'],
@@ -115,6 +125,29 @@ html[data-theme='dark'] [class~='text-slate-400'] {
   color: #94a3b8 !important;
 }
 
+html[data-theme='dark'] .theme-readable-surface {
+  background-color: rgba(21, 34, 53, 0.94) !important;
+  border-color: #334155 !important;
+}
+
+html[data-theme='dark'] .theme-readable-title {
+  color: #f8fafc !important;
+}
+
+html[data-theme='dark'] .theme-readable-copy {
+  color: #cbd5e1 !important;
+}
+
+html[data-theme='dark'] .theme-readable-kicker {
+  color: #8da2c0 !important;
+}
+
+html[data-theme='dark'] .theme-theme-switcher {
+  background-color: rgba(15, 23, 42, 0.92) !important;
+  border-color: #334155 !important;
+  box-shadow: 0 20px 48px rgba(2, 6, 23, 0.5) !important;
+}
+
 html[data-theme='dark'] [class*='placeholder:text-slate-400']::placeholder,
 html[data-theme='dark'] [class*='placeholder:text-slate-500']::placeholder {
   color: #7f90aa !important;
@@ -131,6 +164,18 @@ html[data-theme='dark'] [class~='shadow-xl'] {
 html[data-theme='dark'] [class*='hover:bg-slate-50']:hover,
 html[data-theme='dark'] [class*='hover:bg-white']:hover {
   background-color: #1b2a41 !important;
+}
+
+html[data-theme='dark'] [class*='bg-rose-50/'] {
+  background-color: rgba(68, 18, 36, 0.82) !important;
+}
+
+html[data-theme='dark'] [class*='bg-amber-50'] {
+  background-color: rgba(66, 45, 16, 0.82) !important;
+}
+
+html[data-theme='dark'] [class*='text-amber-900'] {
+  color: #fde68a !important;
 }
 
 html[data-theme='dark'] input,
