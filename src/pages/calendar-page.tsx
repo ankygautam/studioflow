@@ -28,6 +28,7 @@ export function CalendarPage() {
   const [draft, setDraft] = useState<Partial<AppointmentFormState> | null>(null)
   const [editingAppointment, setEditingAppointment] = useState<AppointmentRecord | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [pendingSavedAppointmentId, setPendingSavedAppointmentId] = useState<string | null>(null)
   const [visibilityRescueKey, setVisibilityRescueKey] = useState<string | null>(null)
 
   const {
@@ -90,6 +91,13 @@ export function CalendarPage() {
   )
 
   const timelineHours = getTimelineHours(dayAppointments)
+  const pendingSavedAppointment = useMemo(
+    () =>
+      pendingSavedAppointmentId
+        ? calendarEvents.find((appointment) => appointment.id === pendingSavedAppointmentId) ?? null
+        : null,
+    [calendarEvents, pendingSavedAppointmentId],
+  )
 
   const dependenciesLoading = appointmentsLoading || staffLoading || servicesLoading
   const dependenciesError = appointmentsError || staffError || servicesError
@@ -110,6 +118,10 @@ export function CalendarPage() {
   }, [allowCreate, isDrawerOpen, searchParams, selectedDate, selectedLocationId])
 
   useEffect(() => {
+    if (pendingSavedAppointmentId) {
+      return
+    }
+
     if (dependenciesLoading || dependenciesError) {
       return
     }
@@ -139,6 +151,44 @@ export function CalendarPage() {
     latestFilteredAppointmentDate,
     visibilityRescueKey,
     visibleAppointments.length,
+  ])
+
+  useEffect(() => {
+    if (!pendingSavedAppointment) {
+      return
+    }
+
+    if (selectedDate !== pendingSavedAppointment.appointmentDate) {
+      setSelectedDate(pendingSavedAppointment.appointmentDate)
+    }
+
+    if (view !== 'Day') {
+      setView('Day')
+    }
+
+    if (hasActiveFilters) {
+      resetFilters()
+    }
+
+    if (pendingSavedAppointment.locationId && pendingSavedAppointment.locationId !== selectedLocationId) {
+      setSelectedLocationId(pendingSavedAppointment.locationId)
+    }
+
+    if (visibleAppointments.some((appointment) => appointment.id === pendingSavedAppointment.id)) {
+      setPendingSavedAppointmentId(null)
+      setVisibilityRescueKey(null)
+    }
+  }, [
+    hasActiveFilters,
+    pendingSavedAppointment,
+    resetFilters,
+    selectedDate,
+    selectedLocationId,
+    setSelectedLocationId,
+    setSelectedDate,
+    setView,
+    view,
+    visibleAppointments,
   ])
 
   const closeDrawer = () => {
@@ -296,10 +346,12 @@ export function CalendarPage() {
         onClose={closeDrawer}
         onSaved={async (savedAppointment) => {
           if (!savedAppointment) {
+            setPendingSavedAppointmentId(null)
             await reloadAppointments()
             return
           }
 
+          setPendingSavedAppointmentId(savedAppointment.id)
           focusAppointment(savedAppointment.appointmentDate)
           setSelectedDate(savedAppointment.appointmentDate)
           setView('Day')

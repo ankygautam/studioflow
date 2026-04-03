@@ -141,11 +141,7 @@ export function LoginPage() {
             Demo tip: use <span className="font-semibold text-slate-950">admin@studioflow.co</span>{' '}
             with password <span className="font-semibold text-slate-950">password123</span>.
           </div>
-        ) : (
-          <div className="mt-6 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-600">
-            New to StudioFlow? Create an owner account for your studio first, then finish setup in onboarding after you sign in.
-          </div>
-        )}
+        ) : null}
 
         {appConfig.environment !== 'development' && appConfig.isApiConfigured ? (
           <div className="mt-4 rounded-[24px] border border-slate-200 bg-white px-4 py-4 text-sm leading-7 text-slate-600">
