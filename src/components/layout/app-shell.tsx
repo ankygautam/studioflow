@@ -4,6 +4,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { navigationItems, type NavigationItem } from '../../data/navigation'
 import { canAccessRoute, canCreateBookings, canManageSettings } from '../../features/auth/authorization'
 import { useAuth } from '../../features/auth/use-auth'
+import { ThemeSchemeControl } from '../../features/theme/theme-scheme-control'
 import { useNotifications } from '../../hooks/use-notifications'
 import { useRemoteList } from '../../hooks/use-remote-list'
 import { getLocations } from '../../lib/api/locations-api'
@@ -115,6 +116,10 @@ export function AppShell() {
           </label>
 
           <div className="ml-auto flex items-center gap-2">
+            <div className="hidden sm:block">
+              <ThemeSchemeControl compact />
+            </div>
+
             {/* Location picker */}
             <label className="relative hidden md:block">
               <select

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { ThemeSchemeControl } from '../../features/theme/theme-scheme-control'
 
 type InfoSection = {
   body: ReactNode
@@ -18,6 +19,9 @@ export function InfoPageShell({
   return (
     <div className="theme-page-shell min-h-screen bg-[linear-gradient(180deg,#f7f8fc_0%,#eef2f7_100%)] px-4 py-6 text-slate-900 md:px-6 md:py-8">
       <div className="mx-auto max-w-6xl">
+        <div className="mb-4 flex justify-end">
+          <ThemeSchemeControl />
+        </div>
         <div className="sticky top-4 z-10 mb-6 md:mb-8">
           <Link
             className="group flex items-center gap-4 rounded-[32px] border border-white/55 bg-[#0d1321]/95 px-5 py-5 shadow-[0_24px_80px_rgba(6,10,20,0.24)] backdrop-blur transition duration-200 hover:-translate-y-1 hover:border-white/70 hover:shadow-[0_30px_90px_rgba(6,10,20,0.28)] focus-visible:-translate-y-1 focus-visible:border-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f172a]/25 md:gap-5 md:px-8 md:py-7"

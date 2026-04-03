@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   formatActiveRangeLabel,
   getMonthGridDays,
@@ -8,10 +8,12 @@ import {
 import type { CalendarEvent, CalendarView } from './types'
 
 export function useCalendarView(events: CalendarEvent[]) {
-  const [selectedDate, setSelectedDate] = useState(getTodayDateValue())
+  const [selectedDateState, setSelectedDateState] = useState(getTodayDateValue())
   const [view, setView] = useState<CalendarView>('Day')
-  const [autoFocusedEventSet, setAutoFocusedEventSet] = useState<string | null>(null)
+  const [hasResolvedInitialFocus, setHasResolvedInitialFocus] = useState(false)
 
+  const initialDate = useMemo(() => getTodayDateValue(), [])
+  const selectedDate = selectedDateState
   const weekDays = useMemo(() => getWeekDays(selectedDate), [selectedDate])
   const monthDays = useMemo(() => getMonthGridDays(selectedDate), [selectedDate])
   const activeRangeLabel = useMemo(() => formatActiveRangeLabel(selectedDate, view), [selectedDate, view])
@@ -22,37 +24,45 @@ export function useCalendarView(events: CalendarEvent[]) {
 
     return latestAppointment?.appointmentDate ?? null
   }, [events])
-  const eventSetKey = useMemo(
-    () => events.map((event) => `${event.id}:${event.appointmentDate}:${event.startTime}:${event.endTime}`).join('|'),
-    [events],
-  )
-
   useEffect(() => {
     if (events.length === 0) {
-      setAutoFocusedEventSet(null)
+      setHasResolvedInitialFocus(false)
       return
     }
 
     const hasAppointmentsOnSelectedDate = events.some((event) => event.appointmentDate === selectedDate)
 
     if (hasAppointmentsOnSelectedDate) {
+      setHasResolvedInitialFocus(true)
       return
     }
 
-    if (autoFocusedEventSet === eventSetKey) {
+    if (hasResolvedInitialFocus) {
+      return
+    }
+
+    if (selectedDate !== initialDate) {
+      setHasResolvedInitialFocus(true)
       return
     }
 
     if (latestAppointmentDate) {
-      setSelectedDate(latestAppointmentDate)
-      setAutoFocusedEventSet(eventSetKey)
+      setSelectedDateState(latestAppointmentDate)
     }
-  }, [autoFocusedEventSet, eventSetKey, events, latestAppointmentDate, selectedDate])
 
-  const focusAppointment = (appointmentDate: string) => {
-    setSelectedDate(appointmentDate)
+    setHasResolvedInitialFocus(true)
+  }, [events, hasResolvedInitialFocus, initialDate, latestAppointmentDate, selectedDate])
+
+  const setSelectedDate = useCallback((nextDate: string) => {
+    setSelectedDateState(nextDate)
+    setHasResolvedInitialFocus(true)
+  }, [])
+
+  const focusAppointment = useCallback((appointmentDate: string) => {
+    setSelectedDateState(appointmentDate)
     setView('Day')
-  }
+    setHasResolvedInitialFocus(true)
+  }, [])
 
   return {
     activeRangeLabel,
