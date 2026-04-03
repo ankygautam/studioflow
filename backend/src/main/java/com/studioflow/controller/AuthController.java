@@ -1,4 +1,4 @@
-package com.studioflow.controller.auth;
+package com.studioflow.controller;
 
 import com.studioflow.dto.auth.AuthLoginRequest;
 import com.studioflow.dto.auth.AuthRegisterRequest;

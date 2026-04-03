@@ -57,7 +57,7 @@ public class StaffProfile extends BaseEntity {
     private StaffStatus status;
 
     @OneToMany(mappedBy = "staffProfile", cascade = CascadeType.ALL, orphanRemoval = false)
-    private List<StaffService> staffServices = new ArrayList<>();
+    private List<StaffServiceAssignment> staffServices = new ArrayList<>();
 
     @OneToMany(mappedBy = "staffProfile", cascade = CascadeType.ALL, orphanRemoval = false)
     private List<Availability> availabilities = new ArrayList<>();

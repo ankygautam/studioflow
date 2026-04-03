@@ -1,9 +1,9 @@
 import { lazy, Suspense, type ComponentType, type ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { PublicBookingRoutes } from './routes/public-booking-routes'
 import { AppShell } from '../components/layout/app-shell'
 import { LoadingState } from '../components/ui/async-state'
 import { AdminOnboardingRoute, ProtectedRoute, PublicOnlyRoute, RoleRoute } from '../features/auth/route-guards'
-import { PUBLIC_BOOKING_DEMO_ROUTE } from '../lib/demo-routes'
 import { ExplorePage } from '../pages/explore-page'
 import { ForgotPasswordPage } from '../pages/auth/forgot-password-page'
 import { LoginPage } from '../pages/auth/login-page'
@@ -11,8 +11,6 @@ import { RegisterPage } from '../pages/auth/register-page'
 import { FlowPage } from '../pages/flow-page'
 import { GuidancePage } from '../pages/guidance-page'
 import { PlaceholderPage } from '../pages/placeholder-page'
-import { PublicBookingPage } from '../pages/public-booking-page'
-import { PublicBookingManagePage } from '../pages/public-booking-manage-page'
 import { UpdatesPage } from '../pages/updates-page'
 import { navigationItems } from '../data/navigation'
 
@@ -85,26 +83,7 @@ export function App() {
           </AdminOnboardingRoute>
         }
       />
-      <Route
-        path="/book"
-        element={<Navigate replace to={PUBLIC_BOOKING_DEMO_ROUTE} />}
-      />
-      <Route
-        path="/book/:studioSlug"
-        element={<PublicBookingPage />}
-      />
-      <Route
-        path="/book/:studioSlug/:locationSlug"
-        element={<PublicBookingPage />}
-      />
-      <Route
-        path="/book/:studioSlug/manage"
-        element={<PublicBookingManagePage />}
-      />
-      <Route
-        path="/book/:studioSlug/:locationSlug/manage"
-        element={<PublicBookingManagePage />}
-      />
+      <PublicBookingRoutes />
       <Route
         path="/"
         element={

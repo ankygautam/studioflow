@@ -29,6 +29,50 @@ export type BookingFormErrors = Partial<
   >
 >
 
+export function createPublicBookingFormState({
+  email = '',
+  fullName = '',
+  locationId = '',
+  studioId = '',
+}: {
+  email?: string
+  fullName?: string
+  locationId?: string
+  studioId?: string
+} = {}): BookingFormState {
+  return {
+    appointmentDate: '',
+    email,
+    fullName,
+    locationId,
+    notes: '',
+    phone: '',
+    serviceId: '',
+    slotEndTime: '',
+    slotLabel: '',
+    slotStartTime: '',
+    staffProfileId: '',
+    studioId,
+  }
+}
+
+export function clearSelectedBookingSlot(formState: BookingFormState): BookingFormState {
+  return {
+    ...formState,
+    slotEndTime: '',
+    slotLabel: '',
+    slotStartTime: '',
+  }
+}
+
+export function clearBookingAvailabilitySelection(formState: BookingFormState): BookingFormState {
+  return {
+    ...clearSelectedBookingSlot(formState),
+    appointmentDate: '',
+    staffProfileId: '',
+  }
+}
+
 export function validatePublicBookingForm(formState: BookingFormState) {
   const errors: BookingFormErrors = {}
 

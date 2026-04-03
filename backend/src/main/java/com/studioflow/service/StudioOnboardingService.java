@@ -1,4 +1,4 @@
-package com.studioflow.service.onboarding;
+package com.studioflow.service;
 
 import com.studioflow.dto.onboarding.StudioOnboardingRequest;
 import com.studioflow.dto.onboarding.StudioOnboardingResponse;
@@ -35,7 +35,7 @@ public class StudioOnboardingService {
     private final ServiceRepository serviceRepository;
     private final StaffProfileRepository staffProfileRepository;
     private final StudioWorkspaceResolver studioWorkspaceResolver;
-    private final com.studioflow.service.AuditLogService auditLogService;
+    private final AuditLogService auditLogService;
 
     public StudioOnboardingResponse onboard(StudioOnboardingRequest request) {
         if (currentUserService.getCurrentUserRole() == UserRole.CUSTOMER) {

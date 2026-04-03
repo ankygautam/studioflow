@@ -37,8 +37,12 @@ StudioFlow/
       routes/
     components/
     features/
+      appointments/
       auth/
+      booking/
       calendar/
+      onboarding/
+      theme/
     hooks/
     lib/
       api/
@@ -55,13 +59,23 @@ StudioFlow/
 - `src/app/`
   - app bootstrap and route composition
 - `src/app/routes/`
-  - route groups for public, auth, protected, booking, and onboarding flows
+  - extracted route modules for high-level route groups
 - `src/components/`
   - reusable layout and UI building blocks
+- `src/features/appointments/`
+  - appointment list filtering helpers
 - `src/features/auth/`
   - auth state, route guards, and owner workspace handling
+- `src/features/booking/`
+  - public booking and booking-management feature helpers and feature UI
 - `src/features/calendar/`
   - calendar fetch, mapping, filter, and view helpers
+- `src/features/onboarding/`
+  - onboarding types and form utilities
+- `src/features/theme/`
+  - automatic theme handling and theme controls
+- `src/hooks/`
+  - shared cross-feature hooks such as remote-list loading
 - `src/lib/api/`
   - typed API clients for backend modules
 - `src/pages/`
@@ -70,13 +84,15 @@ StudioFlow/
 ## Backend structure
 
 - `backend/src/main/java/com/studioflow/controller/`
-  - REST endpoints grouped by auth, onboarding, and product modules
+  - REST endpoints for auth and product modules
 - `backend/src/main/java/com/studioflow/service/`
   - application business logic
 - `backend/src/main/java/com/studioflow/service/auth/`
   - current user, workspace resolution, JWT-backed auth flows
-- `backend/src/main/java/com/studioflow/service/onboarding/`
-  - studio setup and onboarding completion
+- `backend/src/main/java/com/studioflow/service/appointment/`
+  - appointment-specific policy and mapping helpers
+- `backend/src/main/java/com/studioflow/service/communication/`
+  - notification, reminder, email, and SMS delivery helpers
 - `backend/src/main/java/com/studioflow/entity/`
   - JPA entities for studios, locations, clients, services, appointments, payments, and more
 - `backend/src/main/java/com/studioflow/repository/`

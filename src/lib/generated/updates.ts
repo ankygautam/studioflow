@@ -7,9 +7,129 @@ export type ProjectUpdate = {
   summary: string
 }
 
-export const generatedAt = "2026-04-01T08:30:46.204Z"
+export const generatedAt = "2026-04-03T12:42:39.274Z"
 
 export const projectUpdates: ProjectUpdate[] = [
+  {
+    "category": "UI polish",
+    "date": "2026-04-03",
+    "hash": "e37076eb3c0bbc51c74ee7a9214981ac6cf6e883",
+    "shortHash": "e37076e",
+    "subject": "Refactor page logic into feature modules",
+    "summary": "Improved navigation and public-facing guidance so the project is easier to explore."
+  },
+  {
+    "category": "Product update",
+    "date": "2026-04-03",
+    "hash": "2c53d252e2443ccc832990fcab1052d3ed1192c9",
+    "shortHash": "2c53d25",
+    "subject": "Move theme toggle to bottom right",
+    "summary": "Added another round of product polish and workflow improvements."
+  },
+  {
+    "category": "Product update",
+    "date": "2026-04-03",
+    "hash": "480fc39bee7fc5e05e959b81cbbaa7a9d07541f6",
+    "shortHash": "480fc39",
+    "subject": "Add global theme toggle and improve dark contrast",
+    "summary": "Added another round of product polish and workflow improvements."
+  },
+  {
+    "category": "Booking flow",
+    "date": "2026-04-03",
+    "hash": "42b5066e9c5c1375d661d6c83772437f7df57297",
+    "shortHash": "42b5066",
+    "subject": "Add theme switcher and respect saved calendar focus",
+    "summary": "Expanded the scheduling experience so date-based workflows are clearer and more useful."
+  },
+  {
+    "category": "Booking flow",
+    "date": "2026-04-03",
+    "hash": "ad7c49f1e1c1fdb187087083cf4e5ee2ffa2bbbc",
+    "shortHash": "ad7c49f",
+    "subject": "Fix calendar save visibility",
+    "summary": "Improved product behavior and removed friction in an existing workflow."
+  },
+  {
+    "category": "Booking flow",
+    "date": "2026-04-03",
+    "hash": "648d490d1e67b925a5c5215a54eb6bf91cbde5f2",
+    "shortHash": "648d490",
+    "subject": "Fix calendar edit handler",
+    "summary": "Improved product behavior and removed friction in an existing workflow."
+  },
+  {
+    "category": "Booking flow",
+    "date": "2026-04-03",
+    "hash": "cf1be32630a533fdc3b463defb51c38bb07d2b9f",
+    "shortHash": "cf1be32",
+    "subject": "Add missing calendar feature modules",
+    "summary": "Expanded the scheduling experience so date-based workflows are clearer and more useful."
+  },
+  {
+    "category": "Booking flow",
+    "date": "2026-04-03",
+    "hash": "4ea7cc7081678211f4d429c93b8d0668bbeeb77d",
+    "shortHash": "4ea7cc7",
+    "subject": "Fix calendar appointment visibility",
+    "summary": "Improved product behavior and removed friction in an existing workflow."
+  },
+  {
+    "category": "Product update",
+    "date": "2026-04-02",
+    "hash": "ddfe21b8a82b356de8f6b6869496d1743cb89198",
+    "shortHash": "ddfe21b",
+    "subject": "Add automatic day night theme",
+    "summary": "Added another round of product polish and workflow improvements."
+  },
+  {
+    "category": "Booking flow",
+    "date": "2026-04-02",
+    "hash": "b7a1344c1bb28089dca544e76fca698e66d9488d",
+    "shortHash": "b7a1344",
+    "subject": "Clean up appointment services and docs structure",
+    "summary": "Added another round of product polish and workflow improvements."
+  },
+  {
+    "category": "Product update",
+    "date": "2026-04-01",
+    "hash": "937109d16c5fb137df256f5b0ed651f0c3b40a1d",
+    "shortHash": "937109d",
+    "subject": "Refactor auth for single-owner studios",
+    "summary": "Added another round of product polish and workflow improvements."
+  },
+  {
+    "category": "Booking flow",
+    "date": "2026-04-01",
+    "hash": "59ce219f1cd4c09363c60a52cc1a0e9f3884d9fc",
+    "shortHash": "59ce219",
+    "subject": "Broaden appointment visibility defaults",
+    "summary": "Added another round of product polish and workflow improvements."
+  },
+  {
+    "category": "Booking flow",
+    "date": "2026-04-01",
+    "hash": "4b0b982dd369a5188d34e8cb122ecbf041d21fda",
+    "shortHash": "4b0b982",
+    "subject": "Reload calendar after saving bookings",
+    "summary": "Expanded the scheduling experience so date-based workflows are clearer and more useful."
+  },
+  {
+    "category": "Product update",
+    "date": "2026-04-01",
+    "hash": "2941666bb0c29be4132a502abc15dd4242e7969e",
+    "shortHash": "2941666",
+    "subject": "Simplify app for single-owner studios",
+    "summary": "Added another round of product polish and workflow improvements."
+  },
+  {
+    "category": "UI polish",
+    "date": "2026-04-01",
+    "hash": "15e05c3d545e95e166173a9fb0eadc7f2626c993",
+    "shortHash": "15e05c3",
+    "subject": "Fetch commit history for updates page",
+    "summary": "Improved navigation and public-facing guidance so the project is easier to explore."
+  },
   {
     "category": "Booking flow",
     "date": "2026-04-01",
@@ -25,133 +145,5 @@ export const projectUpdates: ProjectUpdate[] = [
     "shortHash": "08655f6",
     "subject": "Fix calendar visibility for new appointments",
     "summary": "Improved product behavior and removed friction in an existing workflow."
-  },
-  {
-    "category": "Product update",
-    "date": "2026-04-01",
-    "hash": "1bec3ace943687d171b6bed2eb27ec3be1135a61",
-    "shortHash": "1bec3ac",
-    "subject": "Expand location timezone options",
-    "summary": "Added another round of product polish and workflow improvements."
-  },
-  {
-    "category": "Product update",
-    "date": "2026-04-01",
-    "hash": "8871c85545207f8de943cbe8602678421704b857",
-    "shortHash": "8871c85",
-    "subject": "Add updates feed and polish workspace flows",
-    "summary": "Added another round of product polish and workflow improvements."
-  },
-  {
-    "category": "Booking flow",
-    "date": "2026-03-30",
-    "hash": "4da374cadaf0b69d82a0a9d1418556b5dfa1b5e7",
-    "shortHash": "4da374c",
-    "subject": "Center create flows and fix calendar views",
-    "summary": "Improved product behavior and removed friction in an existing workflow."
-  },
-  {
-    "category": "Booking flow",
-    "date": "2026-03-30",
-    "hash": "32465475440d4b5e1e829ded9f9fdae9bde878a1",
-    "shortHash": "3246547",
-    "subject": "Add inline client creation to booking flow",
-    "summary": "Smoothed the booking flow to reduce extra steps during day-to-day studio operations."
-  },
-  {
-    "category": "Booking flow",
-    "date": "2026-03-30",
-    "hash": "1273dcd0dc0df8ed2a7f4ffa1e6273a4a819762b",
-    "shortHash": "1273dcd",
-    "subject": "Center appointment drawer as modal",
-    "summary": "Added another round of product polish and workflow improvements."
-  },
-  {
-    "category": "UI polish",
-    "date": "2026-03-30",
-    "hash": "f5a7fd4bed654eeede4c13a26b9b585496d939e1",
-    "shortHash": "f5a7fd4",
-    "subject": "Match shell location dropdown to current UI",
-    "summary": "Refined the product shell and dashboard presentation to feel cleaner and more product-ready."
-  },
-  {
-    "category": "UI polish",
-    "date": "2026-03-30",
-    "hash": "c1aba33037993f44dcd68084f19c4d6e76115964",
-    "shortHash": "c1aba33",
-    "subject": "Fix shell and dashboard workspace regressions",
-    "summary": "Improved product behavior and removed friction in an existing workflow."
-  },
-  {
-    "category": "UI polish",
-    "date": "2026-03-26",
-    "hash": "614ec36a7692c17c9644aa17447f2428e223e1b6",
-    "shortHash": "614ec36",
-    "subject": "Add StudioFlow favicon",
-    "summary": "Added another round of product polish and workflow improvements."
-  },
-  {
-    "category": "Navigation",
-    "date": "2026-03-26",
-    "hash": "2e0824b281aac1d7ea3d3be07a2ef5172bacdef8",
-    "shortHash": "2e0824b",
-    "subject": "Link login access note to developer site",
-    "summary": "Improved navigation and public-facing guidance so the project is easier to explore."
-  },
-  {
-    "category": "UI polish",
-    "date": "2026-03-26",
-    "hash": "44a2f4b550e2413af51e642c7ccd5d1f93fb230c",
-    "shortHash": "44a2f4b",
-    "subject": "Add info pages for login guided entries",
-    "summary": "Refined the product shell and dashboard presentation to feel cleaner and more product-ready."
-  },
-  {
-    "category": "Reliability",
-    "date": "2026-03-26",
-    "hash": "765d78a8c65162cc28a729301faf9a1fb6eed98a",
-    "shortHash": "765d78a",
-    "subject": "Use signed-in studio context for staff creation",
-    "summary": "Added another round of product polish and workflow improvements."
-  },
-  {
-    "category": "UI polish",
-    "date": "2026-03-26",
-    "hash": "12ba2ee07dec215b7067c5e33b4d09eba64b5b4a",
-    "shortHash": "12ba2ee",
-    "subject": "Adjust hosted demo entry guidance",
-    "summary": "Refined the product shell and dashboard presentation to feel cleaner and more product-ready."
-  },
-  {
-    "category": "Navigation",
-    "date": "2026-03-26",
-    "hash": "df713df78cb9d9e0e86e035b15518731e7fd0414",
-    "shortHash": "df713df",
-    "subject": "Create linked staff accounts from admin flow",
-    "summary": "Improved navigation and public-facing guidance so the project is easier to explore."
-  },
-  {
-    "category": "UI polish",
-    "date": "2026-03-25",
-    "hash": "a7496e794ad05e8957303278f9a517b69a4f9e8c",
-    "shortHash": "a7496e7",
-    "subject": "Fix guided public booking demo route",
-    "summary": "Improved product behavior and removed friction in an existing workflow."
-  },
-  {
-    "category": "UI polish",
-    "date": "2026-03-25",
-    "hash": "9e5fd671e35cd648514f53ad9429c676f62b2ea8",
-    "shortHash": "9e5fd67",
-    "subject": "Clarify hosted login guidance",
-    "summary": "Refined the product shell and dashboard presentation to feel cleaner and more product-ready."
-  },
-  {
-    "category": "Product update",
-    "date": "2026-03-25",
-    "hash": "e554a46c8204ecd8f625b2c2eae4c083856f8a4e",
-    "shortHash": "e554a46",
-    "subject": "Remove unavailable staff demo login hint",
-    "summary": "Added another round of product polish and workflow improvements."
   }
 ] as ProjectUpdate[]

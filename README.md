@@ -55,8 +55,8 @@ Backend:
 
 ## Architecture Summary
 
-- [src](/Users/ankygautam/Desktop/Project/StudioFlow/src): frontend app shell, pages, API layer, auth, booking flow
-- [backend](/Users/ankygautam/Desktop/Project/StudioFlow/backend): Spring Boot API, auth, authorization, operational modules
+- [src](/Users/ankygautam/Desktop/Project/StudioFlow/src): frontend app shell, route composition, pages, shared UI, feature modules, and typed API clients
+- [backend](/Users/ankygautam/Desktop/Project/StudioFlow/backend): Spring Boot API, auth/security, repositories, entities, DTOs, and operational services
 - [docs/architecture/project-structure.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/architecture/project-structure.md): current repo and module structure
 - [docs/architecture/database-schema.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/architecture/database-schema.md): current ownership and schema notes
 - [docs/architecture/owner-studio-migration.md](/Users/ankygautam/Desktop/Project/StudioFlow/docs/architecture/owner-studio-migration.md): owner-to-studio migration strategy
@@ -65,6 +65,7 @@ StudioFlow uses:
 - a frontend API layer driven by environment-based base URLs
 - JWT auth for internal users
 - service-layer authorization and studio scoping on the backend
+- frontend feature folders for appointments, auth, booking, calendar, onboarding, and theme concerns
 - profile-based backend configuration for local, staging, and production use
 
 Supporting docs:
@@ -121,6 +122,13 @@ Run the local dev server:
 npm run dev
 ```
 
+Frontend structure to expect while navigating the repo:
+- `src/app/` for router composition and route modules
+- `src/pages/` for route-level screens
+- `src/features/` for domain-specific hooks, helpers, and feature UI
+- `src/components/` for shared layout and reusable UI primitives
+- `src/lib/api/` for typed frontend API clients
+
 Useful frontend scripts:
 
 ```bash
@@ -144,9 +152,13 @@ Run backend verification:
 
 ```bash
 cd backend
-mvn test
 mvn -DskipTests compile
+mvn test
 ```
+
+Recommended local backend baseline:
+- Java 17, which matches the project compile target
+- local Spring profile for seeded demo data and H2-backed development
 
 Build a backend artifact:
 
@@ -223,7 +235,7 @@ Local demo login:
 
 Owner signup flow:
 - `/register` creates the owner account and linked studio workspace
-- onboarding completes studio setup after first sign-in
+- `/onboarding` completes the first location, starter services, and booking defaults after first sign-in
 
 ## Profiles And Environment Strategy
 

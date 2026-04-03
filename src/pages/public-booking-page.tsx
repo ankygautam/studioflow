@@ -4,9 +4,14 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { EmptyState, ErrorState, LoadingState } from '../components/ui/async-state'
 import { InputField, SelectField, TextAreaField } from '../components/ui/form-controls'
 import { useAuth } from '../features/auth/use-auth'
-import type { BookingFormErrors, BookingFormState, BookingStep } from '../features/public-booking/public-booking-form'
-import { validatePublicBookingForm } from '../features/public-booking/public-booking-form'
-import { PublicBookingSidebar, SectionIntro, StepRail, SummaryRow } from '../features/public-booking/public-booking-ui'
+import type { BookingFormErrors, BookingFormState, BookingStep } from '../features/booking/public-booking-form'
+import {
+  clearBookingAvailabilitySelection,
+  clearSelectedBookingSlot,
+  createPublicBookingFormState,
+  validatePublicBookingForm,
+} from '../features/booking/public-booking-form'
+import { PublicBookingSidebar, SectionIntro, StepRail, SummaryRow } from '../features/booking/public-booking-ui'
 import {
   createPublicBooking,
   getPublicBookingAvailability,
@@ -43,20 +48,12 @@ export function PublicBookingPage() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [confirmation, setConfirmation] = useState<PublicBookingConfirmationRecord | null>(null)
   const [formErrors, setFormErrors] = useState<BookingFormErrors>({})
-  const [formState, setFormState] = useState<BookingFormState>({
-    appointmentDate: '',
-    email: user?.email ?? '',
-    fullName: user?.fullName ?? '',
-    locationId: '',
-    notes: '',
-    phone: '',
-    serviceId: '',
-    slotEndTime: '',
-    slotLabel: '',
-    slotStartTime: '',
-    staffProfileId: '',
-    studioId: '',
-  })
+  const [formState, setFormState] = useState<BookingFormState>(() =>
+    createPublicBookingFormState({
+      email: user?.email ?? '',
+      fullName: user?.fullName ?? '',
+    }),
+  )
 
   const selectedService = useMemo(
     () => services.find((item) => item.id === formState.serviceId) ?? null,
@@ -79,13 +76,8 @@ export function PublicBookingPage() {
     const matchedLocation = locations.find((location) => location.slug === locationSlug)
     if (matchedLocation && matchedLocation.id !== formState.locationId) {
       setFormState((current) => ({
-        ...current,
-        appointmentDate: '',
+        ...clearBookingAvailabilitySelection(current),
         locationId: matchedLocation.id,
-        slotEndTime: '',
-        slotLabel: '',
-        slotStartTime: '',
-        staffProfileId: '',
       }))
     }
   }, [formState.locationId, locationSlug, locations])
@@ -194,12 +186,8 @@ export function PublicBookingPage() {
 
   const handleServiceSelect = (service: PublicBookableServiceRecord) => {
     setFormState((current) => ({
-      ...current,
+      ...clearBookingAvailabilitySelection(current),
       serviceId: service.id,
-      staffProfileId: '',
-      slotEndTime: '',
-      slotLabel: '',
-      slotStartTime: '',
     }))
     setFormErrors((current) => ({ ...current, serviceId: undefined }))
     setStep('availability')
@@ -254,20 +242,12 @@ export function PublicBookingPage() {
     setConfirmation(null)
     setSubmitError(null)
     setFormErrors({})
-    setFormState({
-      appointmentDate: '',
+    setFormState(createPublicBookingFormState({
       email: user?.email ?? '',
       fullName: user?.fullName ?? '',
       locationId: formState.locationId,
-      notes: '',
-      phone: '',
-      serviceId: '',
-      slotEndTime: '',
-      slotLabel: '',
-      slotStartTime: '',
-      staffProfileId: '',
       studioId: formState.studioId,
-    })
+    }))
     setSlots([])
     setStaff([])
     setStep('service')
@@ -316,13 +296,8 @@ export function PublicBookingPage() {
                         const nextLocationId = event.target.value
                         const nextLocation = locations.find((location) => location.id === nextLocationId)
                         setFormState((current) => ({
-                          ...current,
-                          appointmentDate: '',
+                          ...clearBookingAvailabilitySelection(current),
                           locationId: nextLocationId,
-                          slotEndTime: '',
-                          slotLabel: '',
-                          slotStartTime: '',
-                          staffProfileId: '',
                         }))
                         if (nextLocation) {
                           navigate(`/book/${studioSlug}/${nextLocation.slug}`, { replace: true })
@@ -423,10 +398,7 @@ export function PublicBookingPage() {
                     label="Staff member"
                     onChange={(event) =>
                       setFormState((current) => ({
-                        ...current,
-                        slotEndTime: '',
-                        slotLabel: '',
-                        slotStartTime: '',
+                        ...clearSelectedBookingSlot(current),
                         staffProfileId: event.target.value,
                       }))
                     }
@@ -445,11 +417,8 @@ export function PublicBookingPage() {
                     min={new Date().toISOString().slice(0, 10)}
                     onChange={(event) =>
                       setFormState((current) => ({
-                        ...current,
+                        ...clearSelectedBookingSlot(current),
                         appointmentDate: event.target.value,
-                        slotEndTime: '',
-                        slotLabel: '',
-                        slotStartTime: '',
                       }))
                     }
                     type="date"

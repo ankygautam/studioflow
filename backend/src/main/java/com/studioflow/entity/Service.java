@@ -55,7 +55,7 @@ public class Service extends BaseEntity {
     private Boolean isActive = true;
 
     @OneToMany(mappedBy = "service", cascade = CascadeType.ALL, orphanRemoval = false)
-    private List<StaffService> staffServices = new ArrayList<>();
+    private List<StaffServiceAssignment> staffServices = new ArrayList<>();
 
     @OneToMany(mappedBy = "service", cascade = CascadeType.ALL, orphanRemoval = false)
     private List<Appointment> appointments = new ArrayList<>();

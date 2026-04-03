@@ -41,9 +41,16 @@ For the owner-first flow, `OWNER` is the primary workspace role.
 Key fields:
 - `id`
 - `name`
-- `slug`
 - `ownerUser`
 - `businessType`
+- `email`
+- `phone`
+- `addressLine1`
+- `addressLine2`
+- `city`
+- `provinceOrState`
+- `postalCode`
+- `country`
 - `onboardingCompleted`
 - `isActive`
 - `timezone`

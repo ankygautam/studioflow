@@ -1,8 +1,8 @@
-package com.studioflow.controller.onboarding;
+package com.studioflow.controller;
 
 import com.studioflow.dto.onboarding.StudioOnboardingRequest;
 import com.studioflow.dto.onboarding.StudioOnboardingResponse;
-import com.studioflow.service.onboarding.StudioOnboardingService;
+import com.studioflow.service.StudioOnboardingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
