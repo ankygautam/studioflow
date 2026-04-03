@@ -3,6 +3,7 @@ import {
   getStoredThemePreference,
   getThemePreferenceChangeEventName,
   persistThemePreference,
+  resolveThemeFromPreference,
   type ThemePreference,
 } from './theme-preference'
 
@@ -39,33 +40,11 @@ const OPTIONS: Array<{
       </svg>
     ),
   },
-  {
-    label: 'Auto mode',
-    value: 'auto',
-    icon: (isActive) => (
-      <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24">
-        <rect
-          fill="currentColor"
-          fillOpacity={isActive ? '1' : '0.92'}
-          height="10"
-          rx="2"
-          width="14"
-          x="5"
-          y="6"
-        />
-        <path
-          d="M9 19h6"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeWidth="1.8"
-        />
-      </svg>
-    ),
-  },
 ]
 
 export function ThemeSchemeControl({ floating = false }: { floating?: boolean }) {
   const [preference, setPreference] = useState<ThemePreference>(getStoredThemePreference)
+  const activeTheme = resolveThemeFromPreference(preference)
 
   useEffect(() => {
     const syncPreference = () => {
@@ -92,7 +71,7 @@ export function ThemeSchemeControl({ floating = false }: { floating?: boolean })
       role="toolbar"
     >
       {OPTIONS.map(({ icon, label, value }) => {
-        const isActive = preference === value
+        const isActive = activeTheme === value
 
         return (
           <button

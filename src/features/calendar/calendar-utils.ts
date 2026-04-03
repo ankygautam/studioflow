@@ -1,4 +1,4 @@
-import type { AppointmentRecord } from '../../lib/api/types'
+import type { AppointmentRecord, AppointmentStatus } from '../../lib/api/types'
 import type { CalendarEvent, CalendarView } from './types'
 
 export function getTodayDateValue() {
@@ -19,6 +19,26 @@ export function appointmentCardStyle(appointment: CalendarEvent, timelineStartHo
     height: `${height}px`,
     top: `${topOffset}px`,
   }
+}
+
+const appointmentCardAccentMap: Record<AppointmentStatus, string> = {
+  BOOKED: 'border-violet-500/45',
+  CANCELLED: 'border-rose-500/45',
+  COMPLETED: 'border-emerald-500/45',
+  CONFIRMED: 'border-sky-500/45',
+  NO_SHOW: 'border-amber-500/45',
+}
+
+export function getAppointmentCardClassName(
+  status: AppointmentStatus,
+  variant: 'full' | 'compact' = 'full',
+) {
+  const base =
+    variant === 'compact'
+      ? 'w-full rounded-[16px] border bg-slate-900 px-3 py-2 text-left shadow-[0_12px_28px_rgba(15,23,42,0.18)] transition hover:border-slate-700 hover:bg-slate-950'
+      : 'w-full rounded-[20px] border bg-slate-950 p-4 text-left shadow-[0_16px_36px_rgba(15,23,42,0.16)] transition hover:-translate-y-0.5 hover:border-slate-700'
+
+  return `${base} ${appointmentCardAccentMap[status]}`
 }
 
 export function getTimelineHours(events: CalendarEvent[]) {

@@ -3,7 +3,12 @@ import { EmptyState, ErrorState, LoadingState } from '../../components/ui/async-
 import { StatusBadge } from '../../components/ui/status-badge'
 import { appointmentTone } from '../../lib/appointments'
 import { formatTime, humanizeEnum } from '../../lib/formatters'
-import { appointmentCardStyle, formatHourLabel, formatMonthTitle } from './calendar-utils'
+import {
+  appointmentCardStyle,
+  formatHourLabel,
+  formatMonthTitle,
+  getAppointmentCardClassName,
+} from './calendar-utils'
 import type { CalendarEvent, CalendarView } from './types'
 
 const staffAccents = [
@@ -249,16 +254,8 @@ export function CalendarGrid({
                     <button
                       key={appointment.id}
                       className={[
-                        'absolute left-3 right-3 z-10 rounded-[22px] border p-4 text-left shadow-[0_16px_36px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5',
-                        appointment.status === 'CONFIRMED'
-                          ? 'border-blue-200 bg-blue-50'
-                          : appointment.status === 'BOOKED'
-                            ? 'border-violet-200 bg-violet-50'
-                            : appointment.status === 'COMPLETED'
-                              ? 'border-emerald-200 bg-emerald-50'
-                              : appointment.status === 'CANCELLED'
-                                ? 'border-rose-200 bg-rose-50'
-                                : 'border-amber-200 bg-amber-50',
+                        'absolute left-3 right-3 z-10',
+                        getAppointmentCardClassName(appointment.status),
                       ].join(' ')}
                       onClick={() => onEdit(appointment)}
                       style={appointmentCardStyle(appointment, timelineHours[0] ?? 9)}
@@ -266,9 +263,9 @@ export function CalendarGrid({
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm font-semibold text-slate-700">{formatTime(appointment.startTime)}</p>
-                          <p className="mt-2 font-semibold text-slate-950">{appointment.customerName}</p>
-                          <p className="mt-1 text-sm text-slate-600">{appointment.serviceName}</p>
+                          <p className="text-sm font-semibold text-slate-200">{formatTime(appointment.startTime)}</p>
+                          <p className="mt-2 font-semibold text-white">{appointment.customerName}</p>
+                          <p className="mt-1 text-sm text-slate-300">{appointment.serviceName}</p>
                         </div>
                         <StatusBadge tone={appointmentTone(appointment.status)}>
                           {humanizeEnum(appointment.status)}
@@ -308,16 +305,16 @@ export function CalendarGrid({
                   appointmentsForDay.map((appointment) => (
                     <button
                       key={appointment.id}
-                      className="w-full rounded-[20px] border border-slate-200 bg-white p-4 text-left transition hover:-translate-y-0.5 hover:border-slate-300"
+                      className={getAppointmentCardClassName(appointment.status)}
                       onClick={() => onEdit(appointment)}
                       type="button"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm font-semibold text-slate-700">{formatTime(appointment.startTime)}</p>
-                          <p className="mt-2 font-semibold text-slate-950">{appointment.customerName}</p>
-                          <p className="mt-1 text-sm text-slate-600">{appointment.serviceName}</p>
-                          <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">{appointment.staffName}</p>
+                          <p className="text-sm font-semibold text-slate-200">{formatTime(appointment.startTime)}</p>
+                          <p className="mt-2 font-semibold text-white">{appointment.customerName}</p>
+                          <p className="mt-1 text-sm text-slate-300">{appointment.serviceName}</p>
+                          <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-300">{appointment.staffName}</p>
                         </div>
                         <StatusBadge tone={appointmentTone(appointment.status)}>
                           {humanizeEnum(appointment.status)}
@@ -382,12 +379,12 @@ export function CalendarGrid({
                 {appointmentsForDay.slice(0, 3).map((appointment) => (
                   <button
                     key={appointment.id}
-                    className="w-full rounded-[16px] border border-slate-200 bg-slate-50 px-3 py-2 text-left transition hover:border-slate-300 hover:bg-white"
+                    className={getAppointmentCardClassName(appointment.status, 'compact')}
                     onClick={() => onEdit(appointment)}
                     type="button"
                   >
-                    <p className="text-xs font-semibold text-slate-500">{formatTime(appointment.startTime)}</p>
-                    <p className="mt-1 truncate text-sm font-semibold text-slate-900">{appointment.customerName}</p>
+                    <p className="text-xs font-semibold text-slate-300">{formatTime(appointment.startTime)}</p>
+                    <p className="mt-1 truncate text-sm font-semibold text-white">{appointment.customerName}</p>
                   </button>
                 ))}
                 {appointmentsForDay.length > 3 ? (
