@@ -9,6 +9,8 @@ export type NavigationItem = {
     | 'clients'
     | 'consent'
     | 'dashboard'
+    | 'inventory'
+    | 'packages'
     | 'payments'
     | 'services'
     | 'settings'
@@ -51,6 +53,20 @@ export const navigationItems: NavigationItem[] = [
     icon: 'services',
     label: 'Services',
     slug: 'services',
+  },
+  {
+    description: 'Prepaid visit packs and client retention bundles.',
+    eyebrow: 'Retention',
+    icon: 'packages',
+    label: 'Packages',
+    slug: 'packages',
+  },
+  {
+    description: 'Aftercare, retail, and operational stock levels in one catalog.',
+    eyebrow: 'Inventory',
+    icon: 'inventory',
+    label: 'Inventory',
+    slug: 'inventory',
   },
   {
     description: 'Deposits, balances, invoices, and payment status views.',

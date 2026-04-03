@@ -48,11 +48,28 @@ export function AppShell() {
     () => locations.find((l) => l.id === selectedLocationId) ?? null,
     [locations, selectedLocationId],
   )
+  const locationScopeLabel = useMemo(() => {
+    if (selectedLocation) {
+      return selectedLocation.name
+    }
+
+    return locations.length > 1 ? 'All locations' : roleLabel
+  }, [locations.length, roleLabel, selectedLocation])
 
   useEffect(() => {
     if (!locations.length) return
-    if (!selectedLocationId || !locations.some((l) => l.id === selectedLocationId)) {
-      setSelectedLocationId(locations[0].id)
+
+    const hasValidSelectedLocation =
+      selectedLocationId !== null && locations.some((location) => location.id === selectedLocationId)
+
+    if (hasValidSelectedLocation) {
+      return
+    }
+
+    const fallbackLocationId = locations.length === 1 ? locations[0].id : null
+
+    if (selectedLocationId !== fallbackLocationId) {
+      setSelectedLocationId(fallbackLocationId)
     }
   }, [locations, selectedLocationId, setSelectedLocationId])
 
@@ -122,6 +139,7 @@ export function AppShell() {
                 onChange={(e) => setSelectedLocationId(e.target.value || null)}
                 value={selectedLocationId ?? ''}
               >
+                {locations.length > 1 ? <option value="">All locations</option> : null}
                 {!locations.length && <option value="">No locations</option>}
                 {locations.map((l) => (
                   <option key={l.id} value={l.id}>{l.name}</option>
@@ -234,7 +252,7 @@ export function AppShell() {
                 {initials}
               </span>
               <span className="font-medium text-slate-800">{user?.fullName ?? 'You'}</span>
-              <span className="text-xs text-slate-400">{selectedLocation?.name ?? roleLabel}</span>
+              <span className="text-xs text-slate-400">{locationScopeLabel}</span>
             </button>
 
             {/* New booking */}
@@ -373,6 +391,10 @@ function ShellIcon({ icon }: { icon: NavigationItem['icon'] | 'bell' | 'chevron'
       return <svg className={cls} fill="none" viewBox="0 0 24 24"><circle cx="9" cy="9" r="3.5" stroke="currentColor" strokeWidth="1.8"/><circle cx="17" cy="11" r="2.5" stroke="currentColor" strokeWidth="1.8"/><path d="M3.5 19c.9-2.8 3.1-4.5 5.5-4.5S13.6 16.2 14.5 19M14.5 18.5c.7-1.9 2.1-3 3.9-3 1.1 0 2.1.4 3.1 1.3" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8"/></svg>
     case 'services':
       return <svg className={cls} fill="none" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="3" stroke="currentColor" strokeWidth="1.8"/><path d="M8 9h8M8 13h5M15.5 13h.01" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8"/></svg>
+    case 'packages':
+      return <svg className={cls} fill="none" viewBox="0 0 24 24"><path d="M4.5 8.5h15v10a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2v-10Z" stroke="currentColor" strokeWidth="1.8"/><path d="M4.5 8.5 7 4.5h10l2.5 4M12 4.5v16M8 11.5h.01M16 11.5h.01" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8"/></svg>
+    case 'inventory':
+      return <svg className={cls} fill="none" viewBox="0 0 24 24"><path d="M5 8.5 12 5l7 3.5v7L12 19l-7-3.5v-7Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.8"/><path d="M5 8.5 12 12l7-3.5M12 12v7" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8"/></svg>
     case 'payments':
       return <svg className={cls} fill="none" viewBox="0 0 24 24"><rect x="3.5" y="6" width="17" height="12" rx="3" stroke="currentColor" strokeWidth="1.8"/><path d="M3.5 10h17M8 14h3" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8"/></svg>
     case 'consent':

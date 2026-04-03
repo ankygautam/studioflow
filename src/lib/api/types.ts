@@ -11,6 +11,8 @@ export type ServiceCategory =
   | 'CONSULTATION'
   | 'OTHER'
 
+export type InventoryProductCategory = 'AFTERCARE' | 'RETAIL' | 'SUPPLIES' | 'EQUIPMENT' | 'MERCH' | 'OTHER'
+
 export type BusinessType =
   | 'TATTOO_STUDIO'
   | 'BARBER_SHOP'
@@ -44,6 +46,9 @@ export type AuditEntityType =
   | 'CLIENT'
   | 'STAFF'
   | 'SERVICE'
+  | 'PACKAGE'
+  | 'CLIENT_PACKAGE'
+  | 'INVENTORY_PRODUCT'
   | 'CONSENT_TEMPLATE'
   | 'CONSENT_SUBMISSION'
   | 'LOCATION'
@@ -102,6 +107,7 @@ export interface ServiceUpsertPayload {
 export interface StaffRecord {
   avatarUrl: string | null
   bio: string | null
+  commissionRate: number
   createdAt: string
   displayName: string
   id: string
@@ -122,6 +128,7 @@ export interface StaffRecord {
 export interface StaffCreatePayload {
   avatarUrl: string
   bio: string
+  commissionRate: number
   displayName: string
   jobTitle: string
   phone: string
@@ -136,6 +143,7 @@ export interface StaffCreatePayload {
 export interface StaffUpdatePayload {
   avatarUrl: string
   bio: string
+  commissionRate: number
   displayName: string
   jobTitle: string
   phone: string
@@ -162,6 +170,77 @@ export interface LocationRecord {
   studioId: string
   timezone: string
   updatedAt: string
+}
+
+export interface InventoryProductRecord {
+  category: InventoryProductCategory
+  createdAt: string
+  description: string | null
+  id: string
+  isActive: boolean
+  name: string
+  quantityInStock: number
+  reorderThreshold: number
+  sku: string | null
+  studioId: string
+  unitPrice: number
+  updatedAt: string
+}
+
+export interface InventoryProductUpsertPayload {
+  category: InventoryProductCategory
+  description: string
+  isActive?: boolean
+  name: string
+  quantityInStock: number
+  reorderThreshold: number
+  sku: string
+  studioId: string
+  unitPrice: number
+}
+
+export interface PackageRecord {
+  createdAt: string
+  description: string | null
+  expiresAfterDays: number | null
+  id: string
+  isActive: boolean
+  name: string
+  price: number
+  sessionCount: number
+  studioId: string
+  updatedAt: string
+}
+
+export interface PackageUpsertPayload {
+  description: string
+  expiresAfterDays: number | null
+  isActive?: boolean
+  name: string
+  price: number
+  sessionCount: number
+  studioId: string
+}
+
+export interface ClientPackageRecord {
+  createdAt: string
+  customerName: string
+  customerProfileId: string
+  expiresAt: string | null
+  id: string
+  isActive: boolean
+  packageName: string
+  prepaidPackageId: string
+  remainingSessions: number
+  studioId: string
+  totalSessions: number
+  updatedAt: string
+}
+
+export interface ClientPackageAssignmentPayload {
+  customerProfileId: string
+  prepaidPackageId: string
+  studioId: string
 }
 
 export interface LocationUpsertPayload {

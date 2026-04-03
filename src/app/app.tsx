@@ -21,7 +21,9 @@ const CalendarPage = lazyNamed(() => import('../pages/calendar-page'), 'Calendar
 const ClientsPage = lazyNamed(() => import('../pages/clients-page'), 'ClientsPage')
 const DashboardPage = lazyNamed(() => import('../pages/dashboard-page'), 'DashboardPage')
 const FormsPage = lazyNamed(() => import('../pages/forms-page'), 'FormsPage')
+const InventoryPage = lazyNamed(() => import('../pages/inventory-page'), 'InventoryPage')
 const OnboardingPage = lazyNamed(() => import('../pages/onboarding-page'), 'OnboardingPage')
+const PackagesPage = lazyNamed(() => import('../pages/packages-page'), 'PackagesPage')
 const PaymentsPage = lazyNamed(() => import('../pages/payments-page'), 'PaymentsPage')
 const ServicesPage = lazyNamed(() => import('../pages/services-page'), 'ServicesPage')
 const SettingsPage = lazyNamed(() => import('../pages/settings-page'), 'SettingsPage')
@@ -144,6 +146,26 @@ export function App() {
           }
         />
         <Route
+          path="packages"
+          element={
+            <RoleRoute allowedSlugs={['packages']}>
+              <RouteLoader>
+                <PackagesPage />
+              </RouteLoader>
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="inventory"
+          element={
+            <RoleRoute allowedSlugs={['inventory']}>
+              <RouteLoader>
+                <InventoryPage />
+              </RouteLoader>
+            </RoleRoute>
+          }
+        />
+        <Route
           path="payments"
           element={
             <RoleRoute allowedSlugs={['payments']}>
@@ -214,6 +236,8 @@ export function App() {
                 'appointments',
                 'clients',
                 'services',
+                'packages',
+                'inventory',
                 'payments',
                 'forms',
                 'analytics',

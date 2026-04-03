@@ -2,6 +2,7 @@ package com.studioflow.dto.staff;
 
 import com.studioflow.enums.StaffStatus;
 import com.studioflow.enums.UserRole;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -15,6 +16,7 @@ public record StaffResponse(
     String phone,
     String bio,
     String avatarUrl,
+    BigDecimal commissionRate,
     StaffStatus status,
     Instant createdAt,
     Instant updatedAt,

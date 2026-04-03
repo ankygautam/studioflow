@@ -11,10 +11,12 @@ import { canManageStaff } from '../features/auth/authorization'
 import { isValidEmail } from '../features/auth/auth-utils'
 import { useAuth } from '../features/auth/use-auth'
 import { useRemoteList } from '../hooks/use-remote-list'
+import { getAppointments } from '../lib/api/appointments-api'
 import { getDefaultStudioId } from '../lib/api/http'
+import { getPayments } from '../lib/api/payments-api'
 import { createStaff, deleteStaff, getStaff, updateStaff } from '../lib/api/staff-api'
-import type { StaffRecord, StaffStatus, UserRole } from '../lib/api/types'
-import { humanizeEnum } from '../lib/formatters'
+import type { AppointmentRecord, PaymentRecord, StaffRecord, StaffStatus, UserRole } from '../lib/api/types'
+import { formatCurrency, humanizeEnum } from '../lib/formatters'
 
 type StaffFormState = {
   accountPassword: string
@@ -22,6 +24,7 @@ type StaffFormState = {
   userEmail: string
   avatarUrl: string
   bio: string
+  commissionRate: string
   displayName: string
   jobTitle: string
   phone: string
@@ -42,6 +45,16 @@ export function StaffPage() {
     [defaultStudioId, selectedLocationId],
   )
   const { data: staffMembers, error, isLoading, reload } = useRemoteList(loadStaff)
+  const loadAppointments = useCallback(
+    () => getAppointments(defaultStudioId, selectedLocationId),
+    [defaultStudioId, selectedLocationId],
+  )
+  const loadPayments = useCallback(
+    () => getPayments({ locationId: selectedLocationId, studioId: defaultStudioId }),
+    [defaultStudioId, selectedLocationId],
+  )
+  const { data: appointments } = useRemoteList(loadAppointments)
+  const { data: payments } = useRemoteList(loadPayments)
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -50,6 +63,8 @@ export function StaffPage() {
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof StaffFormState, string>>>({})
   const [formState, setFormState] = useState<StaffFormState>(createStaffForm(defaultStudioId))
+  const staffEarnings = buildStaffEarnings(appointments, payments)
+  const editingStaffEarnings = editingStaff ? staffEarnings.get(editingStaff.id) : null
 
   const openCreateDrawer = () => {
     setEditingStaff(null)
@@ -98,6 +113,7 @@ export function StaffPage() {
         await updateStaff(editingStaff.id, {
           avatarUrl: formState.avatarUrl.trim(),
           bio: formState.bio.trim(),
+          commissionRate: Number(formState.commissionRate || '0'),
           displayName: formState.displayName.trim(),
           jobTitle: formState.jobTitle.trim(),
           phone: formState.phone.trim(),
@@ -109,6 +125,7 @@ export function StaffPage() {
         await createStaff({
           avatarUrl: formState.avatarUrl.trim(),
           bio: formState.bio.trim(),
+          commissionRate: Number(formState.commissionRate || '0'),
           displayName: formState.displayName.trim(),
           jobTitle: formState.jobTitle.trim(),
           phone: formState.phone.trim(),
@@ -198,7 +215,7 @@ export function StaffPage() {
             />
           ) : null}
           {!isLoading && !error && staffMembers.length > 0 ? (
-            <DataTable columns={['Staff member', 'Location', 'Job title', 'Status', 'Linked account']}>
+            <DataTable columns={['Staff member', 'Location', 'Job title', 'Commission', 'Est. earnings', 'Status', 'Linked account']}>
               {staffMembers.map((staffMember) => (
                 <tr key={staffMember.id}>
                   <td className="px-4 py-4">
@@ -216,6 +233,15 @@ export function StaffPage() {
                   </td>
                   <td className="px-4 py-4 text-sm text-slate-600">{staffMember.primaryLocationName || 'Studio-wide'}</td>
                   <td className="px-4 py-4 text-sm text-slate-600">{staffMember.jobTitle || 'Not set'}</td>
+                  <td className="px-4 py-4 text-sm text-slate-600">{formatCommissionRate(staffMember.commissionRate)}</td>
+                  <td className="px-4 py-4 text-sm text-slate-600">
+                    {formatCurrency(
+                      calculateCommissionEarnings(
+                        staffMember.commissionRate,
+                        staffEarnings.get(staffMember.id)?.commissionableRevenue ?? 0,
+                      ),
+                    )}
+                  </td>
                   <td className="px-4 py-4">
                     <StatusBadge tone={staffTone(staffMember.status)}>{humanizeEnum(staffMember.status)}</StatusBadge>
                   </td>
@@ -272,6 +298,25 @@ export function StaffPage() {
       >
         <div className="space-y-5">
           {mutationError ? <ErrorState message={mutationError} /> : null}
+          {editingStaff ? (
+            <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <MetricPill label="Commission rule" value={formatCommissionRate(editingStaff.commissionRate)} />
+                <MetricPill
+                  label="Estimated earnings"
+                  value={formatCurrency(
+                    calculateCommissionEarnings(
+                      editingStaff.commissionRate,
+                      editingStaffEarnings?.commissionableRevenue ?? 0,
+                    ),
+                  )}
+                />
+              </div>
+              <p className="mt-3 text-sm text-slate-500">
+                Estimates use paid records linked to completed appointments in the current location view.
+              </p>
+            </div>
+          ) : null}
           <div className="grid gap-4 sm:grid-cols-2">
             {!editingStaff && !defaultStudioId ? (
               <InputField
@@ -343,6 +388,17 @@ export function StaffPage() {
               placeholder="(555) 123-4567"
               value={formState.phone}
             />
+            <InputField
+              error={formErrors.commissionRate}
+              label="Commission rate (%)"
+              min="0"
+              max="100"
+              onChange={(event) => setFormState((current) => ({ ...current, commissionRate: event.target.value }))}
+              placeholder="40"
+              step="0.01"
+              type="number"
+              value={formState.commissionRate}
+            />
             {!editingStaff ? (
               <InputField
                 autoComplete="new-password"
@@ -409,6 +465,7 @@ function createStaffForm(studioId: string | null, staffMember?: StaffRecord): St
     userEmail: staffMember?.userEmail ?? '',
     avatarUrl: staffMember?.avatarUrl ?? '',
     bio: staffMember?.bio ?? '',
+    commissionRate: staffMember ? String(staffMember.commissionRate) : '0',
     displayName: staffMember?.displayName ?? '',
     jobTitle: staffMember?.jobTitle ?? '',
     phone: staffMember?.phone ?? '',
@@ -444,6 +501,10 @@ function validateStaffForm(formState: StaffFormState, studioId: string | null) {
     errors.displayName = 'Display name is required.'
   }
 
+  if (formState.commissionRate === '' || Number(formState.commissionRate) < 0 || Number(formState.commissionRate) > 100) {
+    errors.commissionRate = 'Commission rate must be between 0 and 100.'
+  }
+
   if (!formState.status) {
     errors.status = 'Status is required.'
   }
@@ -455,4 +516,45 @@ function staffTone(status: StaffStatus) {
   if (status === 'ACTIVE') return 'success' as const
   if (status === 'ON_LEAVE') return 'attention' as const
   return 'neutral' as const
+}
+
+function buildStaffEarnings(appointments: AppointmentRecord[], payments: PaymentRecord[]) {
+  const completedAppointments = appointments.filter((appointment) => appointment.status === 'COMPLETED')
+  const appointmentById = new Map(completedAppointments.map((appointment) => [appointment.id, appointment]))
+  const revenueByStaff = new Map<string, { commissionableRevenue: number }>()
+
+  for (const payment of payments) {
+    if (payment.paymentStatus !== 'PAID') {
+      continue
+    }
+
+    const appointment = appointmentById.get(payment.appointmentId)
+
+    if (!appointment) {
+      continue
+    }
+
+    const current = revenueByStaff.get(appointment.staffProfileId) ?? { commissionableRevenue: 0 }
+    current.commissionableRevenue += payment.amount
+    revenueByStaff.set(appointment.staffProfileId, current)
+  }
+
+  return revenueByStaff
+}
+
+function calculateCommissionEarnings(commissionRate: number, commissionableRevenue: number) {
+  return (commissionableRevenue * commissionRate) / 100
+}
+
+function formatCommissionRate(commissionRate: number) {
+  return `${commissionRate.toFixed(2)}%`
+}
+
+function MetricPill({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[20px] border border-white/80 bg-white px-4 py-3 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">{label}</p>
+      <p className="mt-2 text-sm font-semibold text-slate-700">{value}</p>
+    </div>
+  )
 }

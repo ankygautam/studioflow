@@ -125,7 +125,7 @@ export function DashboardPage() {
             </h1>
             <p className="mt-2 text-sm text-slate-400">
               {todayAppointments.length} bookings today · {unreadCount} unread alerts
-              {selectedLocationId ? ' · Location filtered' : ''}
+              {selectedLocationId ? ' · Selected location' : ' · All locations'}
             </p>
           </div>
           <div className="flex gap-2">

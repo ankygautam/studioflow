@@ -14,6 +14,7 @@ import { getAppointments } from '../lib/api/appointments-api'
 import { getAuditLogsByEntity } from '../lib/api/audit-api'
 import { getConsentFormSubmissions } from '../lib/api/consent-forms-api'
 import { getDefaultStudioId } from '../lib/api/http'
+import { createClientPackageAssignment, getClientPackages, getPackages } from '../lib/api/packages-api'
 import { getPayments } from '../lib/api/payments-api'
 import { createClient, deleteClient, getClients, updateClient } from '../lib/api/clients-api'
 import { formatCurrency, formatDate, formatTime, humanizeEnum } from '../lib/formatters'
@@ -21,9 +22,11 @@ import type {
   AppointmentRecord,
   AuditActionType,
   AuditLogRecord,
+  ClientPackageRecord,
   ClientRecord,
   ConsentFormStatus,
   ConsentFormSubmissionRecord,
+  PackageRecord,
   PaymentRecord,
 } from '../lib/api/types'
 
@@ -48,9 +51,37 @@ export function ClientsPage() {
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof ClientFormState, string>>>({})
   const [formState, setFormState] = useState<ClientFormState>(createClientForm(defaultStudioId))
+  const [selectedPackageId, setSelectedPackageId] = useState('')
+  const [isAssigningPackage, setIsAssigningPackage] = useState(false)
+  const [packageMutationError, setPackageMutationError] = useState<string | null>(null)
 
   const loadClients = useCallback(() => getClients(defaultStudioId), [defaultStudioId])
   const { data: clients, error, isLoading, reload } = useRemoteList(loadClients)
+  const loadAvailablePackages = useCallback(() => {
+    if (!editingClient?.studioId) {
+      return Promise.resolve([] as PackageRecord[])
+    }
+
+    return getPackages(editingClient.studioId)
+  }, [editingClient?.studioId])
+  const {
+    data: availablePackages,
+    error: availablePackagesError,
+    isLoading: availablePackagesLoading,
+  } = useRemoteList(loadAvailablePackages)
+  const loadClientPackages = useCallback(() => {
+    if (!editingClient?.id) {
+      return Promise.resolve([] as ClientPackageRecord[])
+    }
+
+    return getClientPackages(editingClient.id)
+  }, [editingClient?.id])
+  const {
+    data: clientPackages,
+    error: clientPackagesError,
+    isLoading: clientPackagesLoading,
+    reload: reloadClientPackages,
+  } = useRemoteList(loadClientPackages)
   const loadClientConsent = useCallback(() => {
     if (!editingClient?.id) {
       return Promise.resolve([] as ConsentFormSubmissionRecord[])
@@ -103,16 +134,20 @@ export function ClientsPage() {
   const openCreateDrawer = () => {
     setEditingClient(null)
     setMutationError(null)
+    setPackageMutationError(null)
     setFormErrors({})
     setFormState(createClientForm(defaultStudioId))
+    setSelectedPackageId('')
     setIsDrawerOpen(true)
   }
 
   const openEditDrawer = (client: ClientRecord) => {
     setEditingClient(client)
     setMutationError(null)
+    setPackageMutationError(null)
     setFormErrors({})
     setFormState(createClientForm(client.studioId, client))
+    setSelectedPackageId('')
     setIsDrawerOpen(true)
   }
 
@@ -120,8 +155,10 @@ export function ClientsPage() {
     setIsDrawerOpen(false)
     setEditingClient(null)
     setMutationError(null)
+    setPackageMutationError(null)
     setFormErrors({})
     setConfirmDeleteOpen(false)
+    setSelectedPackageId('')
   }
 
   const handleSubmit = async () => {
@@ -191,6 +228,10 @@ export function ClientsPage() {
     () => clientConsentSubmissions[0] ?? null,
     [clientConsentSubmissions],
   )
+  const activePackages = useMemo(
+    () => availablePackages.filter((pkg) => pkg.isActive),
+    [availablePackages],
+  )
   const clientAppointments = useMemo(
     () => studioAppointments.filter((appointment) => appointment.customerProfileId === editingClient?.id),
     [editingClient?.id, studioAppointments],
@@ -214,6 +255,34 @@ export function ClientsPage() {
     clientAppointmentsError || clientPaymentsError || clientConsentError || clientActivityError
   const clientTimelineLoading =
     clientAppointmentsLoading || clientPaymentsLoading || clientConsentLoading || clientActivityLoading
+
+  const handleAssignPackage = async () => {
+    if (!editingClient) {
+      return
+    }
+
+    if (!selectedPackageId) {
+      setPackageMutationError('Choose an active package to assign to this client.')
+      return
+    }
+
+    setIsAssigningPackage(true)
+    setPackageMutationError(null)
+
+    try {
+      await createClientPackageAssignment({
+        customerProfileId: editingClient.id,
+        prepaidPackageId: selectedPackageId,
+        studioId: editingClient.studioId,
+      })
+      await reloadClientPackages()
+      setSelectedPackageId('')
+    } catch (error) {
+      setPackageMutationError(error instanceof Error ? error.message : 'Unable to assign package right now.')
+    } finally {
+      setIsAssigningPackage(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -406,6 +475,88 @@ export function ClientsPage() {
             label="Active client"
             onChange={(checked) => setFormState((current) => ({ ...current, isActive: checked }))}
           />
+
+          {editingClient ? (
+            <section>
+              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-400">Packages</p>
+              <div className="mt-3 space-y-3">
+                {canManage ? (
+                <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                    <div className="flex-1">
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                        Assign package
+                      </label>
+                      <select
+                        className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 outline-none transition hover:border-slate-300 focus:border-slate-300"
+                        onChange={(event) => setSelectedPackageId(event.target.value)}
+                        value={selectedPackageId}
+                      >
+                        <option value="">Choose a package</option>
+                        {activePackages.map((pkg) => (
+                          <option key={pkg.id} value={pkg.id}>
+                            {pkg.name} • {pkg.sessionCount} visits
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                      disabled={isAssigningPackage || availablePackagesLoading || activePackages.length === 0}
+                      onClick={() => void handleAssignPackage()}
+                      type="button"
+                    >
+                      {isAssigningPackage ? 'Assigning...' : 'Assign package'}
+                    </button>
+                  </div>
+                  {packageMutationError ? <p className="mt-3 text-sm text-rose-600">{packageMutationError}</p> : null}
+                  {!availablePackagesLoading && availablePackagesError ? (
+                    <p className="mt-3 text-sm text-rose-600">{availablePackagesError}</p>
+                  ) : null}
+                  {!availablePackagesLoading && !availablePackagesError && activePackages.length === 0 ? (
+                    <p className="mt-3 text-sm text-slate-500">
+                      Create an active package in the Packages workspace before assigning one here.
+                    </p>
+                  ) : null}
+                </div>
+                ) : null}
+
+                {clientPackagesLoading ? <LoadingState title="Loading packages..." /> : null}
+                {!clientPackagesLoading && clientPackagesError ? <ErrorState message={clientPackagesError} /> : null}
+                {!clientPackagesLoading && !clientPackagesError && clientPackages.length === 0 ? (
+                <div className="rounded-[24px] border border-dashed border-slate-200 bg-slate-50 p-4">
+                  <p className="font-semibold text-slate-950">No packages assigned yet</p>
+                  <p className="mt-2 text-sm leading-7 text-slate-600">
+                    Assigned packages will appear here with remaining visits and expiry details.
+                  </p>
+                </div>
+                ) : null}
+                {!clientPackagesLoading && !clientPackagesError && clientPackages.length > 0 ? (
+                <div className="grid gap-3">
+                  {clientPackages.map((pkg) => (
+                    <div key={pkg.id} className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-slate-950">{pkg.packageName}</p>
+                          <p className="mt-1 text-sm text-slate-500">
+                            {pkg.remainingSessions} of {pkg.totalSessions} visits remaining
+                          </p>
+                        </div>
+                        <StatusBadge tone={pkg.isActive ? 'success' : 'neutral'}>
+                          {pkg.isActive ? 'Active package' : 'Inactive package'}
+                        </StatusBadge>
+                      </div>
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                        <InfoCard label="Assigned" value={formatDate(pkg.createdAt)} />
+                        <InfoCard label="Expires" value={pkg.expiresAt ? formatDate(pkg.expiresAt) : 'No expiry'} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                ) : null}
+              </div>
+            </section>
+          ) : null}
 
           <section>
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-400">Consent status</p>

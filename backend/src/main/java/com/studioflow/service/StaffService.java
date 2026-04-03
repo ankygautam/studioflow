@@ -18,6 +18,7 @@ import com.studioflow.repository.StaffProfileRepository;
 import com.studioflow.repository.StudioRepository;
 import com.studioflow.repository.UserRepository;
 import com.studioflow.service.auth.CurrentUserService;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +44,7 @@ public class StaffService {
         Location primaryLocation = findLocation(request.primaryLocationId());
         validateLocation(studio, primaryLocation);
         validateCreateRole(request.userRole());
+        validateCommissionRate(request.commissionRate());
 
         String normalizedEmail = request.userEmail().trim().toLowerCase();
 
@@ -127,6 +129,7 @@ public class StaffService {
         Studio studio = findStudio(currentUserService.requireStudioAccess(request.studioId()));
         Location primaryLocation = findLocation(request.primaryLocationId());
         validateLocation(studio, primaryLocation);
+        validateCommissionRate(request.commissionRate());
 
         mapUpdateRequest(staffProfile, request, user, studio, primaryLocation);
         StaffProfile savedStaffProfile = staffProfileRepository.save(staffProfile);
@@ -207,6 +210,7 @@ public class StaffService {
         staffProfile.setPhone(request.phone());
         staffProfile.setBio(request.bio());
         staffProfile.setAvatarUrl(request.avatarUrl());
+        staffProfile.setCommissionRate(normalizeCommissionRate(request.commissionRate()));
         staffProfile.setStatus(request.status());
     }
 
@@ -225,6 +229,7 @@ public class StaffService {
         staffProfile.setPhone(request.phone());
         staffProfile.setBio(request.bio());
         staffProfile.setAvatarUrl(request.avatarUrl());
+        staffProfile.setCommissionRate(normalizeCommissionRate(request.commissionRate()));
         staffProfile.setStatus(request.status());
     }
 
@@ -239,6 +244,7 @@ public class StaffService {
             staffProfile.getPhone(),
             staffProfile.getBio(),
             staffProfile.getAvatarUrl(),
+            normalizeCommissionRate(staffProfile.getCommissionRate()),
             staffProfile.getStatus(),
             staffProfile.getCreatedAt(),
             staffProfile.getUpdatedAt(),
@@ -260,6 +266,20 @@ public class StaffService {
         if (role != UserRole.STAFF && role != UserRole.RECEPTIONIST) {
             throw new BadRequestException("Staff profiles can only create staff or receptionist accounts");
         }
+    }
+
+    private void validateCommissionRate(BigDecimal commissionRate) {
+        if (commissionRate == null) {
+            return;
+        }
+
+        if (commissionRate.compareTo(BigDecimal.ZERO) < 0 || commissionRate.compareTo(new BigDecimal("100.00")) > 0) {
+            throw new BadRequestException("Commission rate must stay between 0 and 100");
+        }
+    }
+
+    private BigDecimal normalizeCommissionRate(BigDecimal commissionRate) {
+        return commissionRate == null ? BigDecimal.ZERO : commissionRate;
     }
 
     private String resolveJobTitle(String requestedJobTitle, UserRole userRole) {
