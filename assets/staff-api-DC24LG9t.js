@@ -1,0 +1,1 @@
+import{a as s}from"./index-BFFCQqP-.js";function r(a,e){const t=new URLSearchParams;a&&t.set("studioId",a),e&&t.set("locationId",e);const f=t.size>0?`?${t.toString()}`:"";return s.get(`/api/staff${f}`)}export{r as g};
