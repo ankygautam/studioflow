@@ -87,7 +87,7 @@ export function ThemeSchemeControl({ floating = false }: { floating?: boolean })
       aria-label="Theme scheme"
       className={[
         'theme-theme-switcher inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white/92 p-1.5 text-slate-500 shadow-[0_18px_44px_rgba(15,23,42,0.18)] backdrop-blur-xl',
-        floating ? 'fixed right-4 top-4 z-[70] md:right-6 md:top-6' : '',
+        floating ? 'fixed bottom-4 right-4 z-[70] md:bottom-6 md:right-6' : '',
       ].join(' ')}
       role="toolbar"
     >
