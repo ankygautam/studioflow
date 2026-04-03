@@ -1,1 +1,0 @@
-import{a as e}from"./index-BjjzuNAT.js";function a(t){const n=t?`?studioId=${encodeURIComponent(t)}`:"";return e.get(`/api/clients${n}`)}function r(t){return e.post("/api/clients",t)}function c(t,n){return e.put(`/api/clients/${t}`,n)}function o(t){return e.del(`/api/clients/${t}`)}export{r as c,o as d,a as g,c as u};
