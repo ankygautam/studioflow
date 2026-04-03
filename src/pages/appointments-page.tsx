@@ -5,6 +5,7 @@ import { EmptyState, ErrorState, LoadingState } from '../components/ui/async-sta
 import { DataTable } from '../components/ui/data-table'
 import { PageHeader } from '../components/ui/page-header'
 import { StatusBadge } from '../components/ui/status-badge'
+import { useAppointmentsFilters } from '../features/appointments/use-appointments-filters'
 import { canCreateBookings, canDeleteAppointments, canEditAppointments } from '../features/auth/authorization'
 import { useAuth } from '../features/auth/use-auth'
 import { useRemoteList } from '../hooks/use-remote-list'
@@ -26,26 +27,15 @@ export function AppointmentsPage() {
   )
   const { data: appointments, error, isLoading, reload } = useRemoteList(loadAppointments)
 
-  const [filterValue, setFilterValue] = useState<'ALL' | 'THIS_MONTH' | 'TODAY' | 'NEXT_7_DAYS'>('ALL')
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-  const [query, setQuery] = useState('')
   const [editingAppointment, setEditingAppointment] = useState<AppointmentRecord | null>(null)
-
-  const visibleAppointments = appointments
-    .filter((appointment) => matchesAppointmentWindow(appointment, filterValue))
-    .filter((appointment) => {
-      if (!query.trim()) {
-        return true
-      }
-
-      const searchValue = query.trim().toLowerCase()
-      return [
-        appointment.customerName,
-        appointment.serviceName,
-        appointment.staffName,
-        humanizeEnum(appointment.status),
-      ].some((value) => value.toLowerCase().includes(searchValue))
-    })
+  const {
+    filterValue,
+    query,
+    setFilterValue,
+    setQuery,
+    visibleAppointments,
+  } = useAppointmentsFilters(appointments)
 
   const openCreateDrawer = () => {
     setEditingAppointment(null)
@@ -178,33 +168,4 @@ export function AppointmentsPage() {
       />
     </div>
   )
-}
-
-function matchesAppointmentWindow(
-  appointment: AppointmentRecord,
-  filterValue: 'ALL' | 'THIS_MONTH' | 'TODAY' | 'NEXT_7_DAYS',
-) {
-  if (filterValue === 'ALL') {
-    return true
-  }
-
-  const appointmentDate = new Date(`${appointment.appointmentDate}T00:00:00`)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  if (filterValue === 'TODAY') {
-    return appointmentDate.getTime() === today.getTime()
-  }
-
-  if (filterValue === 'THIS_MONTH') {
-    return (
-      appointmentDate.getFullYear() === today.getFullYear() &&
-      appointmentDate.getMonth() === today.getMonth()
-    )
-  }
-
-  const endDate = new Date(today)
-  endDate.setDate(today.getDate() + 6)
-
-  return appointmentDate >= today && appointmentDate <= endDate
 }

@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { EmptyState, ErrorState, LoadingState } from '../components/ui/async-state'
 import { InputField } from '../components/ui/form-controls'
+import type { LookupErrors } from '../features/booking/public-booking-manage-form'
+import { validatePublicBookingLookup } from '../features/booking/public-booking-manage-form'
 import { ApiError } from '../lib/api/http'
 import {
   cancelPublicBooking,
@@ -12,8 +14,6 @@ import {
 } from '../lib/api/public-booking-api'
 import type { PublicBookingLookupRecord, PublicBookingSlotRecord } from '../lib/api/types'
 import { formatDate, formatTime, humanizeEnum } from '../lib/formatters'
-
-type LookupErrors = Partial<Record<'bookingReference' | 'identifier', string>>
 
 export function PublicBookingManagePage() {
   const { studioSlug = 'studioflow-hq', locationSlug } = useParams()
@@ -78,20 +78,11 @@ export function PublicBookingManagePage() {
   }, [booking, rescheduleDate, studioSlug])
 
   const handleLookup = async () => {
-    const errors: LookupErrors = {}
-
-    if (!bookingReference.trim()) {
-      errors.bookingReference = 'Enter your booking reference.'
-    }
-
-    if (!email.trim() && !phone.trim()) {
-      errors.identifier = 'Enter the same email or phone used when booking.'
-    }
-
-    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      errors.identifier = 'Enter a valid email address or clear the field and use your phone number.'
-    }
-
+    const errors = validatePublicBookingLookup({
+      bookingReference,
+      email,
+      phone,
+    })
     setLookupErrors(errors)
     if (Object.keys(errors).length > 0) {
       return

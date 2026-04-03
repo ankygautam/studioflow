@@ -1,3 +1,4 @@
+import type { AppointmentRecord } from '../../lib/api/types'
 import type { CalendarEvent, CalendarView } from './types'
 
 export function getTodayDateValue() {
@@ -31,6 +32,16 @@ export function getTimelineHours(events: CalendarEvent[]) {
   const endHour = Math.min(24, Math.max(18, Math.ceil(latestMinutes / 60)))
 
   return Array.from({ length: Math.max(endHour - startHour, 1) }, (_, index) => startHour + index)
+}
+
+export function upsertAppointment(current: AppointmentRecord[], nextAppointment: AppointmentRecord) {
+  const existingIndex = current.findIndex((appointment) => appointment.id === nextAppointment.id)
+
+  if (existingIndex === -1) {
+    return [...current, nextAppointment]
+  }
+
+  return current.map((appointment) => (appointment.id === nextAppointment.id ? nextAppointment : appointment))
 }
 
 export function matchesCalendarView(appointmentDate: string, selectedDate: string, view: CalendarView) {

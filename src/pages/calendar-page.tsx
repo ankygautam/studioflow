@@ -8,7 +8,7 @@ import { canCreateBookings } from '../features/auth/authorization'
 import { useAuth } from '../features/auth/use-auth'
 import { CalendarGrid } from '../features/calendar/calendar-grid'
 import { CalendarToolbar } from '../features/calendar/calendar-toolbar'
-import { getTimelineHours } from '../features/calendar/calendar-utils'
+import { getTimelineHours, upsertAppointment } from '../features/calendar/calendar-utils'
 import type { CalendarEvent } from '../features/calendar/types'
 import { useCalendarData } from '../features/calendar/use-calendar-data'
 import { useCalendarFilters } from '../features/calendar/use-calendar-filters'
@@ -149,6 +149,7 @@ export function CalendarPage() {
     filteredAppointments.length,
     focusAppointment,
     latestFilteredAppointmentDate,
+    pendingSavedAppointmentId,
     visibilityRescueKey,
     visibleAppointments.length,
   ])
@@ -180,6 +181,7 @@ export function CalendarPage() {
     }
   }, [
     hasActiveFilters,
+    pendingSavedAppointmentId,
     pendingSavedAppointment,
     resetFilters,
     selectedDate,
@@ -384,14 +386,4 @@ function MiniInsight({ label, value }: { label: string; value: string }) {
       <p className="text-sm text-slate-500">{value}</p>
     </div>
   )
-}
-
-function upsertAppointment(current: AppointmentRecord[], nextAppointment: AppointmentRecord) {
-  const existingIndex = current.findIndex((appointment) => appointment.id === nextAppointment.id)
-
-  if (existingIndex === -1) {
-    return [...current, nextAppointment]
-  }
-
-  return current.map((appointment) => (appointment.id === nextAppointment.id ? nextAppointment : appointment))
 }

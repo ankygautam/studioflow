@@ -4,43 +4,12 @@ import { AuthLayout } from '../components/layout/auth-layout'
 import { ErrorState } from '../components/ui/async-state'
 import { InputField, SelectField, ToggleField } from '../components/ui/form-controls'
 import { useAuth } from '../features/auth/use-auth'
+import type { OnboardingErrors, OnboardingStep } from '../features/onboarding/types/onboarding'
+import { businessTypes, createStarterService, serviceCategories, stepOrder, updateStarterService, validateStep } from '../features/onboarding/utils/onboarding-form'
 import { onboardStudio } from '../lib/api/onboarding-api'
 import { timezoneOptions } from '../lib/timezones'
 import type { BusinessType, ServiceCategory, StudioOnboardingPayload } from '../lib/api/types'
 import { humanizeEnum } from '../lib/formatters'
-
-type OnboardingStep = 'location' | 'preferences' | 'services' | 'studio'
-type OnboardingErrors = Partial<Record<string, string>>
-
-type StarterServiceForm = {
-  category: ServiceCategory
-  durationMinutes: number
-  name: string
-  price: number
-}
-
-const stepOrder: OnboardingStep[] = ['studio', 'location', 'services', 'preferences']
-
-const businessTypes: Array<{ label: string; value: BusinessType }> = [
-  { label: 'Tattoo Studio', value: 'TATTOO_STUDIO' },
-  { label: 'Barber Shop', value: 'BARBER_SHOP' },
-  { label: 'Salon', value: 'SALON' },
-  { label: 'Piercing Studio', value: 'PIERCING_STUDIO' },
-  { label: 'Nail Studio', value: 'NAIL_STUDIO' },
-  { label: 'Wellness Clinic', value: 'WELLNESS_CLINIC' },
-  { label: 'Solo Practice', value: 'SOLO_PRACTICE' },
-]
-
-const serviceCategories: ServiceCategory[] = [
-  'TATTOO',
-  'BARBER',
-  'HAIR',
-  'NAIL',
-  'PIERCING',
-  'WELLNESS',
-  'CONSULTATION',
-  'OTHER',
-]
 
 export function OnboardingPage() {
   const navigate = useNavigate()
@@ -484,77 +453,4 @@ function stepLabel(step: OnboardingStep) {
     default:
       return step
   }
-}
-
-function createStarterService(
-  overrides?: Partial<StarterServiceForm>,
-): StarterServiceForm {
-  return {
-    category: overrides?.category ?? 'HAIR',
-    durationMinutes: overrides?.durationMinutes ?? 60,
-    name: overrides?.name ?? '',
-    price: overrides?.price ?? 95,
-  }
-}
-
-function updateStarterService(
-  services: StarterServiceForm[],
-  index: number,
-  updates: Partial<StarterServiceForm>,
-) {
-  return services.map((service, serviceIndex) =>
-    serviceIndex === index ? { ...service, ...updates } : service,
-  )
-}
-
-function validateStep(formState: StudioOnboardingPayload, step: OnboardingStep) {
-  const errors: OnboardingErrors = {}
-
-  if (step === 'studio') {
-    if (!formState.studioName.trim()) {
-      errors.studioName = 'Studio name is required.'
-    }
-
-    if (formState.studioEmail.trim() && !isEmail(formState.studioEmail)) {
-      errors.studioEmail = 'Enter a valid studio email.'
-    }
-  }
-
-  if (step === 'location') {
-    if (!formState.locationName.trim()) {
-      errors.locationName = 'Primary location name is required.'
-    }
-
-    if (!formState.timezone.trim()) {
-      errors.timezone = 'Timezone is required.'
-    }
-
-    if (formState.locationEmail.trim() && !isEmail(formState.locationEmail)) {
-      errors.locationEmail = 'Enter a valid location email.'
-    }
-  }
-
-  if (step === 'services') {
-    formState.starterServices.forEach((service, index) => {
-      if (service.name.trim() && service.durationMinutes < 15) {
-        errors[`starterServices.${index}.name`] = 'Duration should be at least 15 minutes for starter services.'
-      }
-    })
-  }
-
-  if (step === 'preferences') {
-    if (formState.bookingLeadTimeHours < 0) {
-      errors.bookingLeadTimeHours = 'Lead time cannot be negative.'
-    }
-
-    if (formState.defaultDepositRequired && formState.defaultDepositAmount < 0) {
-      errors.defaultDepositAmount = 'Deposit amount must be zero or more.'
-    }
-  }
-
-  return errors
-}
-
-function isEmail(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
 }
