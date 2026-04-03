@@ -9,6 +9,7 @@ import { useAuth } from '../features/auth/use-auth'
 import { CalendarGrid } from '../features/calendar/calendar-grid'
 import { CalendarToolbar } from '../features/calendar/calendar-toolbar'
 import { getTimelineHours } from '../features/calendar/calendar-utils'
+import type { CalendarEvent } from '../features/calendar/types'
 import { useCalendarData } from '../features/calendar/use-calendar-data'
 import { useCalendarFilters } from '../features/calendar/use-calendar-filters'
 import { useCalendarView } from '../features/calendar/use-calendar-view'
@@ -164,9 +165,9 @@ export function CalendarPage() {
     setIsDrawerOpen(true)
   }
 
-  const openEditDrawer = (appointment: AppointmentRecord) => {
+  const openEditDrawer = (appointment: AppointmentRecord | CalendarEvent) => {
     setDraft(null)
-    setEditingAppointment(appointment)
+    setEditingAppointment('title' in appointment ? appointment.source : appointment)
     setIsDrawerOpen(true)
   }
   
@@ -248,7 +249,7 @@ export function CalendarPage() {
               hasActiveFilters={hasActiveFilters}
               monthDays={monthDays}
               onCreate={(nextDraft) => openCreateDrawer(nextDraft)}
-              onEdit={(appointment) => openEditDrawer(appointment.source)}
+              onEdit={(appointment) => openEditDrawer(appointment)}
               onJumpToLatest={() => {
                 const nextFocusDate = latestFilteredAppointmentDate ?? latestAppointmentDate
                 if (nextFocusDate) {
