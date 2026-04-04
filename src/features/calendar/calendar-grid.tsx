@@ -119,26 +119,6 @@ export function CalendarGrid({
     )
   }
 
-  if (rawAppointmentsCount === 0) {
-    return (
-      <EmptyState
-        action={
-          allowCreate ? (
-            <button
-              className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
-              onClick={() => onCreate()}
-              type="button"
-            >
-              New booking
-            </button>
-          ) : null
-        }
-        description="No backend appointments have been loaded for this location yet."
-        title="No appointments loaded"
-      />
-    )
-  }
-
   if (filteredAppointmentsCount === 0) {
     return (
       <EmptyState
@@ -160,7 +140,25 @@ export function CalendarGrid({
   }
 
   const visibilityHint =
-    visibleAppointmentsCount === 0 ? (
+    rawAppointmentsCount === 0 ? (
+      <div className="rounded-[22px] border border-dashed border-slate-200 bg-slate-50/80 px-4 py-4 text-sm text-slate-600">
+        <p className="font-semibold text-slate-900">No appointments loaded yet</p>
+        <p className="mt-1">
+          This location does not have any appointments yet, but the calendar is ready for new bookings.
+        </p>
+        {allowCreate ? (
+          <div className="mt-3">
+            <button
+              className="rounded-full bg-slate-950 px-4 py-2 text-sm font-semibold text-white"
+              onClick={() => onCreate()}
+              type="button"
+            >
+              New booking
+            </button>
+          </div>
+        ) : null}
+      </div>
+    ) : visibleAppointmentsCount === 0 ? (
       <div className="rounded-[22px] border border-dashed border-slate-200 bg-slate-50/80 px-4 py-4 text-sm text-slate-600">
         <p className="font-semibold text-slate-900">No appointments in this date range</p>
         <p className="mt-1">

@@ -7,9 +7,17 @@ export type ProjectUpdate = {
   summary: string
 }
 
-export const generatedAt = "2026-04-04T00:42:35.095Z"
+export const generatedAt = "2026-04-04T00:54:13.549Z"
 
 export const projectUpdates: ProjectUpdate[] = [
+  {
+    "category": "Booking flow",
+    "date": "2026-04-03",
+    "hash": "878272200e1f691d1ecf3a53793b94928b93fc97",
+    "shortHash": "8782722",
+    "subject": "Allow staff booking support and payment collection",
+    "summary": "Smoothed the booking flow to reduce extra steps during day-to-day studio operations."
+  },
   {
     "category": "Product update",
     "date": "2026-04-03",
@@ -144,14 +152,6 @@ export const projectUpdates: ProjectUpdate[] = [
     "hash": "ad7c49f1e1c1fdb187087083cf4e5ee2ffa2bbbc",
     "shortHash": "ad7c49f",
     "subject": "Fix calendar save visibility",
-    "summary": "Improved product behavior and removed friction in an existing workflow."
-  },
-  {
-    "category": "Booking flow",
-    "date": "2026-04-03",
-    "hash": "648d490d1e67b925a5c5215a54eb6bf91cbde5f2",
-    "shortHash": "648d490",
-    "subject": "Fix calendar edit handler",
     "summary": "Improved product behavior and removed friction in an existing workflow."
   }
 ] as ProjectUpdate[]
