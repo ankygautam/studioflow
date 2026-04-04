@@ -10,6 +10,36 @@ It combines an internal operations workspace with a customer-facing booking expe
 - JWT auth with studio-scoped authorization
 - multi-location support and onboarding flow
 
+## What Is Implemented
+
+Operational workspace:
+- owner, receptionist, and staff role-based access
+- appointment creation, editing, cancellation, and mobile-friendly schedule workflows
+- staff-scoped booking creation and payment collection
+- client records with timeline history across appointments, payments, consent, and notes
+- services with duration, pricing, and deposit settings
+- payments and deposit tracking linked to appointments
+- staff profiles, commission settings, and earnings estimates
+- inventory catalog for aftercare and retail products
+- prepaid packages with client assignment
+- waitlist management plus cancellation match suggestions and tracked slot offers
+- consent form templates and submission tracking
+- audit logs and unread notifications
+
+Customer-facing workflows:
+- public booking by studio and location
+- booking lookup with contact verification
+- customer self-service appointment detail portal
+- public booking management for reschedule and cancel
+
+Automation and intelligence:
+- reminder settings with multiple offsets
+- reminder channel toggles for in-app, email, and SMS
+- manual reminder sweep support
+- smart appointment slot suggestions based on staff availability and nearby gaps
+- analytics dashboard with real KPI cards backed by appointment, payment, client, service, and staff data
+- backend-powered CSV exports for appointments, payments, clients, and staff
+
 ## Feature Summary
 
 Core operational modules:
