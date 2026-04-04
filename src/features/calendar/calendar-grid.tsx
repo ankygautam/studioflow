@@ -119,7 +119,7 @@ export function CalendarGrid({
     )
   }
 
-  if (filteredAppointmentsCount === 0) {
+  if (rawAppointmentsCount > 0 && filteredAppointmentsCount === 0) {
     return (
       <EmptyState
         action={

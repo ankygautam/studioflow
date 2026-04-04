@@ -7,12 +7,26 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 public interface StaffProfileRepository extends JpaRepository<StaffProfile, UUID> {
 
     List<StaffProfile> findByStudioId(UUID studioId);
 
     List<StaffProfile> findByStudioIdAndPrimaryLocationId(UUID studioId, UUID primaryLocationId);
+
+    @Query(
+        """
+        select staffProfile
+        from StaffProfile staffProfile
+        where staffProfile.studio.id = :studioId
+          and (
+            staffProfile.primaryLocation is null
+            or staffProfile.primaryLocation.id = :primaryLocationId
+          )
+        """
+    )
+    List<StaffProfile> findVisibleByStudioIdAndLocationId(UUID studioId, UUID primaryLocationId);
 
     List<StaffProfile> findByStudioIdAndStatus(UUID studioId, StaffStatus status);
 

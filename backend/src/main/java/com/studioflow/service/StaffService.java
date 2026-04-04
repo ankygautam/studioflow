@@ -97,7 +97,7 @@ public class StaffService {
         }
 
         List<StaffProfile> staffProfiles = authorizedLocationId != null
-            ? staffProfileRepository.findByStudioIdAndPrimaryLocationId(authorizedStudioId, authorizedLocationId)
+            ? staffProfileRepository.findVisibleByStudioIdAndLocationId(authorizedStudioId, authorizedLocationId)
             : staffProfileRepository.findByStudioId(authorizedStudioId);
 
         return staffProfiles.stream()
