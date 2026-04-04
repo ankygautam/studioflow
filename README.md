@@ -1,10 +1,10 @@
 # StudioFlow
 
-StudioFlow is a full-stack single-owner studio SaaS platform for service-led businesses such as tattoo studios, salons, barber shops, wellness practices, and appointment-first teams.
+StudioFlow is a full-stack studio operations platform for service-led businesses such as tattoo studios, salons, barber shops, wellness practices, and appointment-first teams.
 
 It combines an internal operations workspace with a customer-facing booking experience:
 - direct owner-to-studio workspace ownership
-- internal dashboard, calendar, payments, consent forms, notifications, analytics, and audit history
+- internal dashboard, calendar, appointments, clients, staff, services, payments, consent forms, notifications, analytics, and audit history
 - public self-service booking portal
 - customer self-service reschedule and cancel flow
 - JWT auth with studio-scoped authorization
@@ -16,10 +16,15 @@ Core operational modules:
 - services
 - clients
 - appointments
+- staff
 - payments
+- waitlist
+- packages
+- inventory
 - consent forms
 - notifications and reminders
 - analytics
+- exports and reporting
 - audit logs
 - locations and onboarding
 
@@ -29,10 +34,11 @@ Customer-facing capabilities:
 - self-service reschedule
 - self-service cancel
 
-Owner-first product direction:
+Operations model:
 - one owner account per studio workspace
 - strong backend studio isolation
-- staff/team features remain available for future expansion, but are not required for the v1 owner flow
+- owner, receptionist, and staff roles with scoped workspace access
+- customer-facing public booking and self-service flows remain separate from internal operations
 
 ## Tech Stack
 
@@ -65,7 +71,7 @@ StudioFlow uses:
 - a frontend API layer driven by environment-based base URLs
 - JWT auth for internal users
 - service-layer authorization and studio scoping on the backend
-- frontend feature folders for appointments, auth, booking, calendar, onboarding, and theme concerns
+- frontend feature folders for appointments, auth, booking, calendar, onboarding, theme, and waitlist concerns
 - profile-based backend configuration for local, staging, and production use
 
 Supporting docs:
@@ -128,6 +134,24 @@ Frontend structure to expect while navigating the repo:
 - `src/features/` for domain-specific hooks, helpers, and feature UI
 - `src/components/` for shared layout and reusable UI primitives
 - `src/lib/api/` for typed frontend API clients
+
+Current route-level workspaces include:
+- dashboard
+- calendar
+- appointments
+- clients
+- staff
+- services
+- waitlist
+- packages
+- inventory
+- payments
+- consent forms
+- analytics
+- audit logs
+- settings
+- onboarding
+- public booking, booking management, and customer booking portal
 
 Useful frontend scripts:
 
@@ -236,6 +260,11 @@ Local demo login:
 Owner signup flow:
 - `/register` creates the owner account and linked studio workspace
 - `/onboarding` completes the first location, starter services, and booking defaults after first sign-in
+
+Staff and receptionist flow:
+- staff profiles are created from the `Staff` page by an owner/admin account
+- linked internal users can sign in with their own credentials
+- staff users can work from the calendar, appointments, and payments flows with scoped access to their studio context
 
 ## Profiles And Environment Strategy
 
