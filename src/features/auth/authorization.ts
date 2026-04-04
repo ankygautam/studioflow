@@ -11,7 +11,7 @@ export function canAccessRoute(role: AuthRole, slug: string) {
     case 'clients':
       return isOwnerRole(role)
     case 'staff':
-      return false
+      return isOwnerRole(role)
     case 'services':
       return isOwnerRole(role)
     case 'waitlist':
@@ -87,8 +87,7 @@ export function canManageInventory(role: AuthRole) {
 }
 
 export function canManageStaff(role: AuthRole) {
-  void role
-  return false
+  return isOwnerRole(role)
 }
 
 export function canManagePayments(role: AuthRole) {
