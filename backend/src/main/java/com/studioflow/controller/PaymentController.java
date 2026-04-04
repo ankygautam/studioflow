@@ -29,14 +29,14 @@ public class PaymentController {
     private final PaymentService paymentService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST')")
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST','STAFF')")
     public ResponseEntity<PaymentResponse> createPayment(@Valid @RequestBody PaymentCreateRequest request) {
         PaymentResponse response = paymentService.createPayment(request);
         return ResponseEntity.created(URI.create("/api/payments/" + response.id())).body(response);
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST')")
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST','STAFF')")
     public ResponseEntity<List<PaymentResponse>> getAllPayments(
         @RequestParam(required = false) UUID appointmentId,
         @RequestParam(required = false) UUID studioId,
@@ -46,13 +46,13 @@ public class PaymentController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST')")
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST','STAFF')")
     public ResponseEntity<PaymentResponse> getPaymentById(@PathVariable UUID id) {
         return ResponseEntity.ok(paymentService.getPaymentById(id));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST')")
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST','STAFF')")
     public ResponseEntity<PaymentResponse> updatePayment(
         @PathVariable UUID id,
         @Valid @RequestBody PaymentUpdateRequest request

@@ -21,6 +21,7 @@ export function canAccessRoute(role: AuthRole, slug: string) {
     case 'inventory':
       return isOwnerRole(role)
     case 'payments':
+      return role === 'owner' || role === 'receptionist' || role === 'staff'
     case 'forms':
       return isOwnerRole(role)
     case 'analytics':
@@ -91,7 +92,11 @@ export function canManageStaff(role: AuthRole) {
 }
 
 export function canManagePayments(role: AuthRole) {
-  return isOwnerRole(role)
+  return role === 'owner' || role === 'receptionist' || role === 'staff'
+}
+
+export function canDeletePayments(role: AuthRole) {
+  return role === 'owner' || role === 'receptionist'
 }
 
 export function canManageConsentForms(role: AuthRole) {

@@ -27,7 +27,11 @@ public class ClientService {
     private final AuditLogService auditLogService;
 
     public ClientResponse createClient(ClientCreateRequest request) {
-        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN, com.studioflow.enums.UserRole.RECEPTIONIST);
+        currentUserService.requireAnyRole(
+            com.studioflow.enums.UserRole.ADMIN,
+            com.studioflow.enums.UserRole.RECEPTIONIST,
+            com.studioflow.enums.UserRole.STAFF
+        );
         Studio studio = findStudio(currentUserService.requireStudioAccess(request.studioId()));
         CustomerProfile client = new CustomerProfile();
 
@@ -53,7 +57,11 @@ public class ClientService {
 
     @Transactional(readOnly = true)
     public List<ClientResponse> getAllClients(UUID studioId) {
-        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN, com.studioflow.enums.UserRole.RECEPTIONIST);
+        currentUserService.requireAnyRole(
+            com.studioflow.enums.UserRole.ADMIN,
+            com.studioflow.enums.UserRole.RECEPTIONIST,
+            com.studioflow.enums.UserRole.STAFF
+        );
         UUID authorizedStudioId = currentUserService.requireStudioAccess(studioId);
         List<CustomerProfile> clients = customerProfileRepository.findByStudioId(authorizedStudioId);
 
@@ -64,7 +72,11 @@ public class ClientService {
 
     @Transactional(readOnly = true)
     public ClientResponse getClientById(UUID id) {
-        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN, com.studioflow.enums.UserRole.RECEPTIONIST);
+        currentUserService.requireAnyRole(
+            com.studioflow.enums.UserRole.ADMIN,
+            com.studioflow.enums.UserRole.RECEPTIONIST,
+            com.studioflow.enums.UserRole.STAFF
+        );
         CustomerProfile client = findClient(id);
         currentUserService.ensureStudioAccess(client.getStudio().getId());
         return toResponse(client);

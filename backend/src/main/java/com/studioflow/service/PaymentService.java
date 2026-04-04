@@ -33,7 +33,11 @@ public class PaymentService {
     private final AuditLogService auditLogService;
 
     public PaymentResponse createPayment(PaymentCreateRequest request) {
-        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN, com.studioflow.enums.UserRole.RECEPTIONIST);
+        currentUserService.requireAnyRole(
+            com.studioflow.enums.UserRole.ADMIN,
+            com.studioflow.enums.UserRole.RECEPTIONIST,
+            com.studioflow.enums.UserRole.STAFF
+        );
         validatePaymentMethod(request.paymentStatus(), request.paymentMethod());
         Appointment appointment = findAppointment(request.appointmentId());
         currentUserService.ensureStudioAccess(appointment.getStudio().getId());
@@ -60,7 +64,11 @@ public class PaymentService {
 
     @Transactional(readOnly = true)
     public List<PaymentResponse> getAllPayments(UUID appointmentId, UUID studioId, UUID locationId) {
-        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN, com.studioflow.enums.UserRole.RECEPTIONIST);
+        currentUserService.requireAnyRole(
+            com.studioflow.enums.UserRole.ADMIN,
+            com.studioflow.enums.UserRole.RECEPTIONIST,
+            com.studioflow.enums.UserRole.STAFF
+        );
         List<Payment> payments;
 
         if (appointmentId != null) {
@@ -98,14 +106,22 @@ public class PaymentService {
 
     @Transactional(readOnly = true)
     public PaymentResponse getPaymentById(UUID id) {
-        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN, com.studioflow.enums.UserRole.RECEPTIONIST);
+        currentUserService.requireAnyRole(
+            com.studioflow.enums.UserRole.ADMIN,
+            com.studioflow.enums.UserRole.RECEPTIONIST,
+            com.studioflow.enums.UserRole.STAFF
+        );
         Payment payment = findPayment(id);
         currentUserService.ensureStudioAccess(payment.getAppointment().getStudio().getId());
         return toResponse(payment);
     }
 
     public PaymentResponse updatePayment(UUID id, PaymentUpdateRequest request) {
-        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN, com.studioflow.enums.UserRole.RECEPTIONIST);
+        currentUserService.requireAnyRole(
+            com.studioflow.enums.UserRole.ADMIN,
+            com.studioflow.enums.UserRole.RECEPTIONIST,
+            com.studioflow.enums.UserRole.STAFF
+        );
         validatePaymentMethod(request.paymentStatus(), request.paymentMethod());
 
         Payment payment = findPayment(id);

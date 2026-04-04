@@ -9,6 +9,7 @@ import { InputField, SelectField } from '../components/ui/form-controls'
 import { PageHeader } from '../components/ui/page-header'
 import { StatCard } from '../components/ui/stat-card'
 import { StatusBadge } from '../components/ui/status-badge'
+import { canDeletePayments } from '../features/auth/authorization'
 import { useAuth } from '../features/auth/use-auth'
 import { useRemoteList } from '../hooks/use-remote-list'
 import { getAuditLogsByEntity } from '../lib/api/audit-api'
@@ -33,8 +34,9 @@ const paymentStatuses: PaymentStatus[] = ['PENDING', 'PARTIAL', 'PAID', 'FAILED'
 const paymentMethods: PaymentMethod[] = ['CARD', 'CASH', 'ETRANSFER', 'OTHER']
 
 export function PaymentsPage() {
-  const { selectedLocationId } = useAuth()
+  const { selectedLocationId, user } = useAuth()
   const defaultStudioId = getDefaultStudioId()
+  const allowDelete = user ? canDeletePayments(user.role) : false
   const loadPayments = useCallback(
     () => getPayments({ locationId: selectedLocationId, studioId: defaultStudioId }),
     [defaultStudioId, selectedLocationId],
@@ -308,7 +310,7 @@ export function PaymentsPage() {
         footer={
           <div className="flex flex-wrap justify-between gap-3">
             <div>
-              {editingPayment ? (
+              {editingPayment && allowDelete ? (
                 <button
                   className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700"
                   disabled={isSaving}
@@ -456,15 +458,17 @@ export function PaymentsPage() {
         </div>
       </DetailDrawer>
 
-      <ConfirmDialog
-        confirmLabel="Delete payment"
-        description={`This will remove the payment record for ${editingPayment?.customerName ?? 'this booking'}. Use this only when the entry was created by mistake.`}
-        isConfirming={isSaving}
-        onCancel={() => setConfirmDeleteOpen(false)}
-        onConfirm={() => void handleDelete()}
-        open={confirmDeleteOpen}
-        title="Delete this payment?"
-      />
+      {allowDelete ? (
+        <ConfirmDialog
+          confirmLabel="Delete payment"
+          description={`This will remove the payment record for ${editingPayment?.customerName ?? 'this booking'}. Use this only when the entry was created by mistake.`}
+          isConfirming={isSaving}
+          onCancel={() => setConfirmDeleteOpen(false)}
+          onConfirm={() => void handleDelete()}
+          open={confirmDeleteOpen}
+          title="Delete this payment?"
+        />
+      ) : null}
     </div>
   )
 }

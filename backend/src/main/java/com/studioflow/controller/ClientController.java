@@ -29,7 +29,7 @@ public class ClientController {
     private final ClientService clientService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST')")
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST','STAFF')")
     public ResponseEntity<ClientResponse> createClient(
         @Valid @RequestBody ClientCreateRequest request
     ) {
@@ -38,7 +38,7 @@ public class ClientController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST')")
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST','STAFF')")
     public ResponseEntity<List<ClientResponse>> getAllClients(
         @RequestParam(required = false) UUID studioId
     ) {
@@ -46,7 +46,7 @@ public class ClientController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST')")
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST','STAFF')")
     public ResponseEntity<ClientResponse> getClientById(@PathVariable UUID id) {
         return ResponseEntity.ok(clientService.getClientById(id));
     }
