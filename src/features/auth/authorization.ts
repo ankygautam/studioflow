@@ -7,7 +7,7 @@ export function canAccessRoute(role: AuthRole, slug: string) {
       return isOwnerRole(role)
     case 'calendar':
     case 'appointments':
-      return isOwnerRole(role)
+      return role === 'owner' || role === 'receptionist' || role === 'staff'
     case 'clients':
       return isOwnerRole(role)
     case 'staff':
@@ -39,7 +39,7 @@ export function canViewDashboard(role: AuthRole) {
 }
 
 export function canViewCalendar(role: AuthRole) {
-  return isOwnerRole(role)
+  return role === 'owner' || role === 'receptionist' || role === 'staff'
 }
 
 export function canViewAppointments(role: AuthRole) {
@@ -47,7 +47,7 @@ export function canViewAppointments(role: AuthRole) {
 }
 
 export function canCreateBookings(role: AuthRole) {
-  return isOwnerRole(role)
+  return role === 'owner' || role === 'receptionist' || role === 'staff'
 }
 
 export function canEditAppointments(role: AuthRole) {

@@ -33,7 +33,7 @@ public class AppointmentController {
     private final AppointmentSuggestionService appointmentSuggestionService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST')")
+    @PreAuthorize("hasAnyRole('ADMIN','RECEPTIONIST','STAFF')")
     public ResponseEntity<AppointmentResponse> createAppointment(
         @Valid @RequestBody AppointmentCreateRequest request
     ) {

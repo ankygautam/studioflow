@@ -23,6 +23,10 @@ export function AppointmentsPage() {
   const allowDelete = user ? canDeleteAppointments(user.role) : false
   const allowEdit = user ? canEditAppointments(user.role) : false
   const defaultStudioId = user?.studioId ?? getDefaultStudioId()
+  const createDraft = {
+    source: user?.role === 'staff' ? ('STAFF_CREATED' as const) : ('ADMIN_CREATED' as const),
+    status: 'BOOKED' as const,
+  }
   const loadAppointments = useCallback(
     () => getAppointments(defaultStudioId, selectedLocationId),
     [defaultStudioId, selectedLocationId],
@@ -31,6 +35,7 @@ export function AppointmentsPage() {
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [editingAppointment, setEditingAppointment] = useState<AppointmentRecord | null>(null)
+  const [draft, setDraft] = useState<typeof createDraft | null>(null)
   const [cancelledAppointmentForSuggestions, setCancelledAppointmentForSuggestions] = useState<AppointmentRecord | null>(null)
   const [isExporting, setIsExporting] = useState(false)
   const {
@@ -43,15 +48,18 @@ export function AppointmentsPage() {
 
   const openCreateDrawer = () => {
     setEditingAppointment(null)
+    setDraft(createDraft)
     setIsDrawerOpen(true)
   }
 
   const openEditDrawer = (appointment: AppointmentRecord) => {
+    setDraft(null)
     setEditingAppointment(appointment)
     setIsDrawerOpen(true)
   }
 
   const closeDrawer = () => {
+    setDraft(null)
     setEditingAppointment(null)
     setIsDrawerOpen(false)
   }
@@ -199,6 +207,7 @@ export function AppointmentsPage() {
         appointment={editingAppointment}
         allowCreate={allowCreate}
         allowDelete={allowDelete}
+        draft={draft}
         onCancelled={(cancelledAppointment) => {
           setCancelledAppointmentForSuggestions(cancelledAppointment)
         }}

@@ -7,9 +7,33 @@ export type ProjectUpdate = {
   summary: string
 }
 
-export const generatedAt = "2026-04-03T22:15:29.075Z"
+export const generatedAt = "2026-04-04T00:22:36.849Z"
 
 export const projectUpdates: ProjectUpdate[] = [
+  {
+    "category": "Reliability",
+    "date": "2026-04-03",
+    "hash": "9d13195ce2234c2ed51ac1a5b83df9f3be4e52ad",
+    "shortHash": "9d13195",
+    "subject": "Fix onboarding business type constraint drift",
+    "summary": "Improved product behavior and removed friction in an existing workflow."
+  },
+  {
+    "category": "Reliability",
+    "date": "2026-04-03",
+    "hash": "c057d7e19db3989fd36f14f53df11ee9e92f33b9",
+    "shortHash": "c057d7e",
+    "subject": "Fix registration role constraint drift",
+    "summary": "Improved product behavior and removed friction in an existing workflow."
+  },
+  {
+    "category": "Product update",
+    "date": "2026-04-03",
+    "hash": "1ceab99ca136e8fd80bddf25b8ba7b829f9f5e29",
+    "shortHash": "1ceab99",
+    "subject": "Add smart scheduling and workflow enhancements",
+    "summary": "Added another round of product polish and workflow improvements."
+  },
   {
     "category": "Product update",
     "date": "2026-04-03",
@@ -129,29 +153,5 @@ export const projectUpdates: ProjectUpdate[] = [
     "shortHash": "4ea7cc7",
     "subject": "Fix calendar appointment visibility",
     "summary": "Improved product behavior and removed friction in an existing workflow."
-  },
-  {
-    "category": "Product update",
-    "date": "2026-04-02",
-    "hash": "ddfe21b8a82b356de8f6b6869496d1743cb89198",
-    "shortHash": "ddfe21b",
-    "subject": "Add automatic day night theme",
-    "summary": "Added another round of product polish and workflow improvements."
-  },
-  {
-    "category": "Booking flow",
-    "date": "2026-04-02",
-    "hash": "b7a1344c1bb28089dca544e76fca698e66d9488d",
-    "shortHash": "b7a1344",
-    "subject": "Clean up appointment services and docs structure",
-    "summary": "Added another round of product polish and workflow improvements."
-  },
-  {
-    "category": "Product update",
-    "date": "2026-04-01",
-    "hash": "937109d16c5fb137df256f5b0ed651f0c3b40a1d",
-    "shortHash": "937109d",
-    "subject": "Refactor auth for single-owner studios",
-    "summary": "Added another round of product polish and workflow improvements."
   }
 ] as ProjectUpdate[]

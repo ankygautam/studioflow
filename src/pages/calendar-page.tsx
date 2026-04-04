@@ -26,6 +26,7 @@ export function CalendarPage() {
   const allowCreate = user ? canCreateBookings(user.role) : false
   const canQuickUpdateStatus = user ? canUpdateAppointmentStatus(user.role) : false
   const defaultStudioId = user?.studioId ?? getDefaultStudioId()
+  const createSource = user?.role === 'staff' ? 'STAFF_CREATED' : 'ADMIN_CREATED'
 
   const [searchParams, setSearchParams] = useSearchParams()
   const [draft, setDraft] = useState<Partial<AppointmentFormState> | null>(null)
@@ -118,11 +119,11 @@ export function CalendarPage() {
     setDraft({
       appointmentDate: selectedDate,
       locationId: selectedLocationId ?? '',
-      source: 'ADMIN_CREATED',
+      source: createSource,
       status: 'BOOKED',
     })
     setIsDrawerOpen(true)
-  }, [allowCreate, isDrawerOpen, searchParams, selectedDate, selectedLocationId])
+  }, [allowCreate, createSource, isDrawerOpen, searchParams, selectedDate, selectedLocationId])
 
   useEffect(() => {
     if (pendingSavedAppointmentId) {
@@ -217,7 +218,7 @@ export function CalendarPage() {
     setDraft({
       appointmentDate: selectedDate,
       locationId: selectedLocationId ?? '',
-      source: 'ADMIN_CREATED',
+      source: createSource,
       status: 'BOOKED',
       ...nextDraft,
     })

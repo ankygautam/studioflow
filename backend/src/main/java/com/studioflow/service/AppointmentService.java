@@ -59,7 +59,11 @@ public class AppointmentService {
     private final AppointmentMapper appointmentMapper;
 
     public AppointmentResponse createAppointment(AppointmentCreateRequest request) {
-        currentUserService.requireAnyRole(com.studioflow.enums.UserRole.ADMIN, com.studioflow.enums.UserRole.RECEPTIONIST);
+        currentUserService.requireAnyRole(
+            com.studioflow.enums.UserRole.ADMIN,
+            com.studioflow.enums.UserRole.RECEPTIONIST,
+            com.studioflow.enums.UserRole.STAFF
+        );
         appointmentPolicyService.validateTimeRange(request.startTime(), request.endTime());
 
         UUID studioId = currentUserService.requireStudioAccess(request.studioId());
@@ -68,6 +72,11 @@ public class AppointmentService {
         CustomerProfile customerProfile = findCustomerProfile(request.customerProfileId());
         StaffProfile staffProfile = findStaffProfile(request.staffProfileId());
         com.studioflow.entity.Service service = findService(request.serviceId());
+
+        if (currentUserService.hasRole(com.studioflow.enums.UserRole.STAFF)) {
+            appointmentPolicyService.ensureStaffCanCreateAppointment(staffProfile);
+        }
+
         appointmentPolicyService.validateStudioRelationships(studio, location, customerProfile, staffProfile, service);
         appointmentPolicyService.validateStaffAvailability(staffProfile, request.appointmentDate(), request.startTime(), request.endTime());
 

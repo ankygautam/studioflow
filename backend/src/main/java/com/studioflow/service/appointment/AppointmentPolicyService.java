@@ -85,6 +85,10 @@ public class AppointmentPolicyService {
         }
     }
 
+    public void ensureStaffCanCreateAppointment(StaffProfile staffProfile) {
+        currentUserService.ensureAssignedStaff(staffProfile);
+    }
+
     public void ensureStaffCanUpdateAppointment(Appointment appointment, AppointmentUpdateRequest request) {
         currentUserService.ensureAssignedStaff(appointment.getStaffProfile());
 
