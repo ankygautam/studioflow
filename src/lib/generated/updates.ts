@@ -7,9 +7,25 @@ export type ProjectUpdate = {
   summary: string
 }
 
-export const generatedAt = "2026-04-04T19:36:52.154Z"
+export const generatedAt = "2026-04-08T03:01:17.078Z"
 
 export const projectUpdates: ProjectUpdate[] = [
+  {
+    "category": "Product update",
+    "date": "2026-04-04",
+    "hash": "52b3bfe4b06a0bd8ee396c79cdcb4ab483dfdfa1",
+    "shortHash": "52b3bfe",
+    "subject": "Refresh README feature summary",
+    "summary": "Added another round of product polish and workflow improvements."
+  },
+  {
+    "category": "Product update",
+    "date": "2026-04-04",
+    "hash": "e5f8bc5dc8e105e622d455346cc677017ca51ed8",
+    "shortHash": "e5f8bc5",
+    "subject": "Update Google Analytics measurement ID",
+    "summary": "Added another round of product polish and workflow improvements."
+  },
   {
     "category": "Product update",
     "date": "2026-04-03",
@@ -137,21 +153,5 @@ export const projectUpdates: ProjectUpdate[] = [
     "shortHash": "6853ae9",
     "subject": "Refactor booking flows and align docs",
     "summary": "Smoothed the booking flow to reduce extra steps during day-to-day studio operations."
-  },
-  {
-    "category": "UI polish",
-    "date": "2026-04-03",
-    "hash": "e37076eb3c0bbc51c74ee7a9214981ac6cf6e883",
-    "shortHash": "e37076e",
-    "subject": "Refactor page logic into feature modules",
-    "summary": "Improved navigation and public-facing guidance so the project is easier to explore."
-  },
-  {
-    "category": "Product update",
-    "date": "2026-04-03",
-    "hash": "2c53d252e2443ccc832990fcab1052d3ed1192c9",
-    "shortHash": "2c53d25",
-    "subject": "Move theme toggle to bottom right",
-    "summary": "Added another round of product polish and workflow improvements."
   }
 ] as ProjectUpdate[]

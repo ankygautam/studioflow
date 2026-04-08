@@ -1,9 +1,10 @@
 import { useCallback, useState } from 'react'
 import { AppointmentDrawer } from '../components/appointments/appointment-drawer'
 import { SurfaceCard } from '../components/layout/app-shell'
-import { EmptyState, ErrorState, LoadingState } from '../components/ui/async-state'
+import { EmptyState, ErrorState } from '../components/ui/async-state'
 import { DataTable } from '../components/ui/data-table'
 import { PageHeader } from '../components/ui/page-header'
+import { TableSkeleton } from '../components/ui/skeleton'
 import { StatusBadge } from '../components/ui/status-badge'
 import { useAppointmentsFilters } from '../features/appointments/use-appointments-filters'
 import { canCreateBookings, canDeleteAppointments, canEditAppointments } from '../features/auth/authorization'
@@ -137,7 +138,7 @@ export function AppointmentsPage() {
           </label>
         </div>
 
-        {isLoading ? <LoadingState title="Loading appointments..." /> : null}
+        {isLoading ? <TableSkeleton columns={6} rows={6} /> : null}
         {!isLoading && error ? (
           <ErrorState
             action={

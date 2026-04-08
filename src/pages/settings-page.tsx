@@ -2,10 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { SurfaceCard } from '../components/layout/app-shell'
 import { ActivityFeed } from '../components/ui/activity-feed'
 import { DetailDrawer } from '../components/ui/detail-drawer'
-import { EmptyState, ErrorState, LoadingState } from '../components/ui/async-state'
+import { EmptyState, ErrorState } from '../components/ui/async-state'
 import { ConfirmDialog } from '../components/ui/confirm-dialog'
 import { InputField, SelectField, ToggleField } from '../components/ui/form-controls'
 import { PageHeader } from '../components/ui/page-header'
+import { FormSectionSkeleton, ListRowsSkeleton } from '../components/ui/skeleton'
 import { canViewAuditHistory } from '../features/auth/authorization'
 import { useAuth } from '../features/auth/use-auth'
 import { useRemoteList } from '../hooks/use-remote-list'
@@ -296,7 +297,7 @@ export function SettingsPage() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,0.8fr)]">
         <SurfaceCard title="Locations">
           {mutationError ? <ErrorState message={mutationError} /> : null}
-          {isLoading ? <LoadingState title="Loading locations..." /> : null}
+          {isLoading ? <ListRowsSkeleton rows={3} /> : null}
           {!isLoading && error ? <ErrorState message={error} /> : null}
           {!isLoading && !error && locations.length === 0 ? (
             <EmptyState
@@ -411,7 +412,7 @@ export function SettingsPage() {
           </SurfaceCard>
 
           <SurfaceCard title="Appointment reminders">
-            {reminderSettingsLoading ? <LoadingState title="Loading reminder settings..." /> : null}
+            {reminderSettingsLoading ? <FormSectionSkeleton columns={2} fields={4} includeToggles /> : null}
             {!reminderSettingsLoading && reminderSettingsError ? <ErrorState message={reminderSettingsError} /> : null}
             {!reminderSettingsLoading && !reminderSettingsError ? (
               <div className="space-y-4">

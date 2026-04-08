@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
+import { OnboardingSkeleton, WorkspaceBootSkeleton } from '../../components/ui/skeleton'
 import { canAccessRoute } from './authorization'
 import { getRoleDestination, isOwnerRole } from './auth-utils'
 import { useAuth } from './use-auth'
@@ -13,7 +14,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   const location = useLocation()
 
   if (isLoading) {
-    return null
+    return location.pathname === '/onboarding' ? <OnboardingSkeleton /> : <WorkspaceBootSkeleton />
   }
 
   if (!isAuthenticated) {
@@ -29,9 +30,10 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
 
 export function PublicOnlyRoute({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth()
+  const location = useLocation()
 
   if (isLoading) {
-    return null
+    return location.pathname === '/onboarding' ? <OnboardingSkeleton /> : <WorkspaceBootSkeleton />
   }
 
   if (isAuthenticated) {
@@ -50,7 +52,7 @@ export function AdminOnboardingRoute({ children }: { children: ReactNode }) {
   const location = useLocation()
 
   if (isLoading) {
-    return null
+    return <OnboardingSkeleton />
   }
 
   if (!isAuthenticated || !user) {
@@ -76,9 +78,10 @@ export function RoleRoute({
   children: ReactNode
 }) {
   const { isLoading, user } = useAuth()
+  const location = useLocation()
 
   if (isLoading) {
-    return null
+    return location.pathname === '/onboarding' ? <OnboardingSkeleton /> : <WorkspaceBootSkeleton />
   }
 
   if (!user) {

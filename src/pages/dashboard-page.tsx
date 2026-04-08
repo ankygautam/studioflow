@@ -3,8 +3,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { SurfaceCard } from '../components/layout/app-shell'
 import { ActivityFeed } from '../components/ui/activity-feed'
-import { EmptyState, ErrorState, LoadingState } from '../components/ui/async-state'
+import { EmptyState, ErrorState } from '../components/ui/async-state'
 import { DataTable } from '../components/ui/data-table'
+import { ListRowsSkeleton, SkeletonBlock, StatCardGridSkeleton, TableSkeleton } from '../components/ui/skeleton'
 import { StatusBadge } from '../components/ui/status-badge'
 import { canViewAuditHistory } from '../features/auth/authorization'
 import { useAuth } from '../features/auth/use-auth'
@@ -48,7 +49,7 @@ export function DashboardPage() {
   )
 
   const { data: appointments, error: appointmentsError, isLoading: appointmentsLoading } = useRemoteList(loadAppointments)
-  const { data: payments } = useRemoteList(loadPayments)
+  const { data: payments, isLoading: paymentsLoading } = useRemoteList(loadPayments)
   const { data: unreadNotifications, error: notificationsError, isLoading: notificationsLoading } = useRemoteList(loadNotifications)
   const { data: consentSubmissions, error: consentError, isLoading: consentLoading } = useRemoteList(loadConsentSubmissions)
   const { data: auditLogs, error: auditError, isLoading: auditLoading, reload: reloadAuditLogs } = useRemoteList(loadAuditLogs)
@@ -100,6 +101,7 @@ export function DashboardPage() {
   )
 
   const greeting = getGreeting()
+  const overviewLoading = appointmentsLoading || paymentsLoading || notificationsLoading
 
   return (
     <div className="space-y-5">
@@ -118,70 +120,90 @@ export function DashboardPage() {
           style={{ background: 'radial-gradient(circle,#4f8ef7,transparent 70%)' }} />
 
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-sm font-medium text-violet-300">{greeting}</p>
-            <h1 className="mt-1 text-2xl font-bold text-white md:text-3xl">
-              {user?.fullName?.split(' ')[0] ?? 'Welcome back'} 👋
-            </h1>
-            <p className="mt-2 text-sm text-slate-400">
-              {todayAppointments.length} bookings today · {unreadCount} unread alerts
-              {selectedLocationId ? ' · Selected location' : ' · All locations'}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <button
-              className="rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white backdrop-blur hover:bg-white/20"
-              onClick={() => navigate('/appointments')}
-              type="button"
-            >
-              Appointments
-            </button>
-            <button
-              className="rounded-xl bg-violet-500 px-4 py-2 text-sm font-semibold text-white shadow-lg hover:bg-violet-400"
-              onClick={() => navigate('/calendar')}
-              type="button"
-            >
-              Open calendar
-            </button>
-          </div>
+          {overviewLoading ? (
+            <>
+              <div className="space-y-3">
+                <SkeletonBlock className="h-4 w-28 rounded-full" />
+                <SkeletonBlock className="h-10 w-64 rounded-2xl" />
+                <SkeletonBlock className="h-4 w-72 rounded-full" />
+              </div>
+              <div className="flex gap-2">
+                <SkeletonBlock className="h-10 w-28 rounded-xl" />
+                <SkeletonBlock className="h-10 w-32 rounded-xl" />
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <p className="text-sm font-medium text-violet-300">{greeting}</p>
+                <h1 className="mt-1 text-2xl font-bold text-white md:text-3xl">
+                  {user?.fullName?.split(' ')[0] ?? 'Welcome back'} 👋
+                </h1>
+                <p className="mt-2 text-sm text-slate-400">
+                  {todayAppointments.length} bookings today · {unreadCount} unread alerts
+                  {selectedLocationId ? ' · Selected location' : ' · All locations'}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  className="rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white backdrop-blur hover:bg-white/20"
+                  onClick={() => navigate('/appointments')}
+                  type="button"
+                >
+                  Appointments
+                </button>
+                <button
+                  className="rounded-xl bg-violet-500 px-4 py-2 text-sm font-semibold text-white shadow-lg hover:bg-violet-400"
+                  onClick={() => navigate('/calendar')}
+                  type="button"
+                >
+                  Open calendar
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </motion.div>
 
       {/* ── Metric cards ── */}
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          accent="#7c5af6"
-          accentBg="rgba(124,90,246,0.08)"
-          helper={`${completedToday} completed`}
-          label="Today's bookings"
-          value={String(todayAppointments.length)}
-          icon="📅"
-        />
-        <MetricCard
-          accent="#10b981"
-          accentBg="rgba(16,185,129,0.08)"
-          helper="Live payment data"
-          label="Revenue today"
-          value={formatCurrency(todayRevenue)}
-          icon="💰"
-        />
-        <MetricCard
-          accent="#f59e0b"
-          accentBg="rgba(245,158,11,0.08)"
-          helper="Awaiting completion"
-          label="Pending deposits"
-          value={formatCurrency(pendingDeposits)}
-          icon="⏳"
-        />
-        <MetricCard
-          accent="#ef4444"
-          accentBg="rgba(239,68,68,0.08)"
-          helper={unreadCountError ? 'Unavailable' : 'Reminders & activity'}
-          label="Unread alerts"
-          value={String(unreadCount)}
-          icon="🔔"
-        />
-      </section>
+      {overviewLoading ? (
+        <StatCardGridSkeleton />
+      ) : (
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricCard
+            accent="#7c5af6"
+            accentBg="rgba(124,90,246,0.08)"
+            helper={`${completedToday} completed`}
+            label="Today's bookings"
+            value={String(todayAppointments.length)}
+            icon="📅"
+          />
+          <MetricCard
+            accent="#10b981"
+            accentBg="rgba(16,185,129,0.08)"
+            helper="Live payment data"
+            label="Revenue today"
+            value={formatCurrency(todayRevenue)}
+            icon="💰"
+          />
+          <MetricCard
+            accent="#f59e0b"
+            accentBg="rgba(245,158,11,0.08)"
+            helper="Awaiting completion"
+            label="Pending deposits"
+            value={formatCurrency(pendingDeposits)}
+            icon="⏳"
+          />
+          <MetricCard
+            accent="#ef4444"
+            accentBg="rgba(239,68,68,0.08)"
+            helper={unreadCountError ? 'Unavailable' : 'Reminders & activity'}
+            label="Unread alerts"
+            value={String(unreadCount)}
+            icon="🔔"
+          />
+        </section>
+      )}
 
       {/* ── Today's appointments + Pulse ── */}
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
@@ -197,7 +219,7 @@ export function DashboardPage() {
           }
           title="Today's appointments"
         >
-          {appointmentsLoading && <LoadingState title="Loading today's bookings..." />}
+          {appointmentsLoading && <TableSkeleton columns={4} rows={4} />}
           {!appointmentsLoading && appointmentsError && <ErrorState message={appointmentsError} />}
           {!appointmentsLoading && !appointmentsError && todayAppointments.length === 0 && (
             <EmptyState
@@ -238,7 +260,11 @@ export function DashboardPage() {
                 </button>
               </div>
 
-              {appointmentsLoading && <div className="mt-2"><LoadingState title="Loading..." /></div>}
+              {appointmentsLoading && (
+                <div className="mt-2">
+                  <OperationalListSkeleton rows={3} />
+                </div>
+              )}
               {!appointmentsLoading && !appointmentsError && upcomingAppointments.length === 0 && (
                 <p className="mt-2 text-xs text-slate-400">No upcoming bookings</p>
               )}
@@ -279,7 +305,7 @@ export function DashboardPage() {
           }
           title="Forms & reminders"
         >
-          {consentLoading && <LoadingState title="Loading consent records..." />}
+          {consentLoading && <ListRowsSkeleton rows={3} />}
           {!consentLoading && consentError && <ErrorState message={consentError} />}
           {!consentLoading && !consentError && pendingConsent.length === 0 && (
             <EmptyState description="Pending consent requests will appear here." title="No pending forms" />
@@ -312,7 +338,11 @@ export function DashboardPage() {
                 Open workspace
               </button>
             </div>
-            {notificationsLoading && <div className="mt-2"><LoadingState title="Loading..." /></div>}
+            {notificationsLoading && (
+              <div className="mt-2">
+                <OperationalListSkeleton rows={3} />
+              </div>
+            )}
             {!notificationsLoading && notificationsError && <div className="mt-2"><ErrorState message={notificationsError} /></div>}
             {!notificationsLoading && !notificationsError && unreadNotifications.length === 0 && (
               <p className="mt-2 text-xs text-slate-400">No unread notifications</p>
@@ -398,6 +428,24 @@ function PulseRow({ color, label, value }: { color: string; label: string; value
         <p className="text-sm text-slate-600">{label}</p>
       </div>
       <p className="text-lg font-bold text-slate-900">{value}</p>
+    </div>
+  )
+}
+
+function OperationalListSkeleton({ rows }: { rows: number }) {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: rows }).map((_, index) => (
+        <div key={index} className="rounded-lg border border-slate-100 bg-white px-3 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="space-y-2">
+              <SkeletonBlock className="h-4 w-40 rounded-full" />
+              <SkeletonBlock className="h-3 w-28 rounded-full" />
+            </div>
+            <SkeletonBlock className="h-7 w-20 rounded-full" />
+          </div>
+        </div>
+      ))}
     </div>
   )
 }

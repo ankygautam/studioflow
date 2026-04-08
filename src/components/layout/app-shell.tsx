@@ -132,6 +132,15 @@ export function AppShell() {
           </label>
 
           <div className="ml-auto flex items-center gap-2">
+            <button
+              className="hidden items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900 md:inline-flex"
+              onClick={() => navigate('/updates')}
+              type="button"
+            >
+              <ShellIcon icon="spark" />
+              <span>Recent updates</span>
+            </button>
+
             {/* Location picker */}
             <label className="relative hidden md:block">
               <select
@@ -378,7 +387,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
-function ShellIcon({ icon }: { icon: NavigationItem['icon'] | 'bell' | 'chevron' | 'logout' | 'menu' | 'plus' | 'search' | 'settings' }) {
+function ShellIcon({ icon }: { icon: NavigationItem['icon'] | 'bell' | 'chevron' | 'logout' | 'menu' | 'plus' | 'search' | 'settings' | 'spark' }) {
   const cls = 'h-4 w-4'
   switch (icon) {
     case 'dashboard':
@@ -419,6 +428,8 @@ function ShellIcon({ icon }: { icon: NavigationItem['icon'] | 'bell' | 'chevron'
       return <svg className={cls} fill="none" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8"/></svg>
     case 'plus':
       return <svg className={cls} fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8"/></svg>
+    case 'spark':
+      return <svg className={cls} fill="none" viewBox="0 0 24 24"><path d="m12 3 1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8L12 3ZM18.5 15.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8.8-1.7ZM6 15l.9 2.1L9 18l-2.1.9L6 21l-.9-2.1L3 18l2.1-.9L6 15Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.5"/></svg>
   }
 }
 

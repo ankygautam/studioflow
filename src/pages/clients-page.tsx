@@ -6,6 +6,7 @@ import { ConfirmDialog } from '../components/ui/confirm-dialog'
 import { DetailDrawer } from '../components/ui/detail-drawer'
 import { InputField, TextAreaField, ToggleField } from '../components/ui/form-controls'
 import { PageHeader } from '../components/ui/page-header'
+import { ListRowsSkeleton } from '../components/ui/skeleton'
 import { StatusBadge } from '../components/ui/status-badge'
 import { canManageClients } from '../features/auth/authorization'
 import { useAuth } from '../features/auth/use-auth'
@@ -333,7 +334,7 @@ export function ClientsPage() {
 
       <section>
         <SurfaceCard title="Client list">
-          {isLoading ? <LoadingState title="Loading clients..." /> : null}
+          {isLoading ? <ListRowsSkeleton rows={5} /> : null}
           {!isLoading && error ? (
             <ErrorState
               action={

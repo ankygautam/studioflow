@@ -1,5 +1,6 @@
 import type { AppointmentSource, AppointmentStatus } from '../../lib/api/types'
-import { EmptyState, ErrorState, LoadingState } from '../../components/ui/async-state'
+import { EmptyState, ErrorState } from '../../components/ui/async-state'
+import { CalendarBoardSkeleton } from '../../components/ui/skeleton'
 import { StatusBadge } from '../../components/ui/status-badge'
 import { appointmentTone } from '../../lib/appointments'
 import { formatDate, formatTime, humanizeEnum } from '../../lib/formatters'
@@ -92,7 +93,7 @@ export function CalendarGrid({
   weekDays: { displayDate: string; label: string; value: string }[]
 }) {
   if (dependenciesLoading) {
-    return <LoadingState title="Loading calendar data..." />
+    return <CalendarBoardSkeleton />
   }
 
   if (dependenciesError) {

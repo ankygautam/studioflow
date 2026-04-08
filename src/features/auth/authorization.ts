@@ -52,19 +52,19 @@ export function canCreateBookings(role: AuthRole) {
 }
 
 export function canEditAppointments(role: AuthRole) {
-  return isOwnerRole(role)
+  return role === 'owner' || role === 'receptionist' || role === 'staff'
 }
 
 export function canEditAppointmentDetails(role: AuthRole) {
-  return isOwnerRole(role)
+  return role === 'owner' || role === 'receptionist'
 }
 
 export function canUpdateAppointmentStatus(role: AuthRole) {
-  return isOwnerRole(role)
+  return role === 'owner' || role === 'receptionist' || role === 'staff'
 }
 
 export function canDeleteAppointments(role: AuthRole) {
-  return isOwnerRole(role)
+  return role === 'owner' || role === 'receptionist'
 }
 
 export function canManageClients(role: AuthRole) {
@@ -120,5 +120,5 @@ export function canViewAuditLogs(role: AuthRole) {
 }
 
 export function canCancelAppointments(role: AuthRole) {
-  return isOwnerRole(role)
+  return role === 'owner' || role === 'receptionist'
 }
